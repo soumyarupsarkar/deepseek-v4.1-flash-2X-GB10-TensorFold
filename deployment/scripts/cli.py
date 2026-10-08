@@ -100,9 +100,14 @@ def check_host(pair):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config',type=Path,default=SOURCE/'deployment/local.json')
-    parser.add_argument('action',choices=('plan','init','doctor','fetch','replicate','verify','build',
+    parser.add_argument('action',choices=('plan','init','doctor','fetch','reuse','replicate','verify','build',
                                          'precompile','start','stop','status','check-host','watch'))
+    parser.add_argument('--from-head',help='Existing head asset root for reuse (never adopted)')
+    parser.add_argument('--from-worker',help='Existing worker asset root for reuse (never adopted)')
+    parser.add_argument('--reuse-prepared',action='store_true',help='Import completed rank caches, mounted read-only')
     args=parser.parse_args()
+    if args.action!='reuse' and (args.from_head or args.from_worker or args.reuse_prepared):
+        parser.error('Asset source arguments apply only to reuse')
     config=load(args.config)
     if args.action=='plan':
         print(json.dumps(plan(config),indent=2));return
@@ -122,6 +127,9 @@ def main():
         elif args.action=='fetch':
             from assets import fetch
             fetch(pair)
+        elif args.action=='reuse':
+            from reuse import reuse
+            reuse(pair,dict(head=args.from_head,worker=args.from_worker),args.reuse_prepared)
         elif args.action=='replicate':
             from assets import replicate
             replicate(pair)

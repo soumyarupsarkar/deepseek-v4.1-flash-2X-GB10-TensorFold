@@ -1,6 +1,7 @@
 """Owned two-node operations. Installation state lives outside tracked source."""
 import contextlib
 import fcntl
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -153,8 +154,8 @@ class Pair:
                 atomic(baseline, self.snapshot(host))
 
     def containers(self, host):
-        ids = self.docker(host,'ps','-aq','--filter',LABEL+'='+self.ownership(),
-                          '--filter',ROLE+'=inference',timeout=30).stdout.split()
+        ids = self.docker(host,'ps','-aq','--filter','label='+LABEL+'='+self.ownership(),
+                          '--filter','label='+ROLE+'=inference',timeout=30).stdout.split()
         return json.loads(self.docker(host,'inspect',*ids,timeout=30).stdout) if ids else []
 
     def fabric(self, host):
@@ -331,26 +332,38 @@ class Pair:
         if read(self.state/'precompile.json')['image'] != image:
             raise RuntimeError('Precompile the selected image with model weights unloaded')
         rails, cards = {}, {}
+        prepared_readonly = (self.state/'prepared-import.json').exists()
+        prepared = read(self.state/'prepared-import.json') if prepared_readonly else None
+        if prepared and (set(prepared['hosts'])!={'head','worker'} or prepared['weights_source_sha256']!=hashlib.sha256(
+                (SOURCE/'src/tensorfold/families/deepseek_v41/cuda/weights.py').read_bytes()).hexdigest()):
+            raise RuntimeError('Imported prepared cache is incomplete or its loader source changed')
         for host in ('head','worker'):
             self.roots(host); self.idle(host); verify(self,host,full=False)
+            if prepared:
+                code="import json,pathlib,sys\np=pathlib.Path(sys.argv[1]);expected=json.loads(sys.argv[2]);s=p.stat()\nif p.is_symlink() or [s.st_dev,s.st_ino,s.st_size,s.st_mtime_ns,s.st_ctime_ns]!=expected:raise ValueError('Imported prepared cache fingerprint changed')\n"
+                row=prepared['hosts'][host]
+                self.run(host,['python3','-B','-c',code,self.config[host]['data_root']+'/prepared/'+row['name'],
+                               json.dumps(row['fingerprint'])],timeout=30)
             row = json.loads(self.docker(host,'image','inspect',image,timeout=30).stdout)[0]
             if row['Id'] != image:
                 raise RuntimeError('Image ID differs')
             if self.memory(host)['MemAvailable'] < 112*2**30:
                 raise RuntimeError(host+': need at least 112 GiB available before loading')
             rails[host] = self.fabric(host)
-            found = [k for k,v in self.snapshot(host)['cards'].items() if v=='nvidia']
-            if len(found) != 1:
-                raise RuntimeError('Expected exactly one NVIDIA DRM card')
-            cards[host] = '/dev/dri/'+found[0]
             code = "import socket,sys\nfor p in sys.argv[1:]:\n with socket.socket() as s:\n  s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1);s.bind(('0.0.0.0',int(p)));s.listen(1)\n"
             self.run(host,['python3','-B','-c',code,str(self.config['api']['port']),str(self.config['master_port'])],timeout=20)
         started = {}
         try:
             for host in ('head','worker'):
                 self.apply_display(host)
+                # Reloading the module can change the DRM minor number.
+                found = [k for k,v in self.snapshot(host)['cards'].items() if v=='nvidia']
+                if len(found) != 1:
+                    raise RuntimeError('Expected exactly one NVIDIA DRM card after display setup')
+                cards[host] = '/dev/dri/'+found[0]
             for host in ('worker','head'):
-                args = launch_args(self.config,host,self.ownership(),image,rails[host],cards[host])
+                args = launch_args(self.config,host,self.ownership(),image,rails[host],cards[host],
+                                   prepared_readonly=prepared_readonly)
                 started[host] = self.docker(host,*args,timeout=90).stdout.strip()
             atomic(self.state/'launch.json',dict(time=now(),config=self.config,profile=p,image=image,containers=started))
             deadline = time.monotonic()+3600

@@ -101,7 +101,7 @@ def profile():
     return value
 
 
-def launch_args(config, host, deployment_id, image, rails, drm_card='/dev/dri/card0'):
+def launch_args(config, host, deployment_id, image, rails, drm_card='/dev/dri/card0', *, prepared_readonly=False):
     """Pure command rendering; GID indices and DRM card come from host preflight."""
     validate(config)
     if not re.fullmatch(r'[0-9a-f-]{36}', deployment_id):
@@ -138,7 +138,7 @@ def launch_args(config, host, deployment_id, image, rails, drm_card='/dev/dri/ca
             '--cap-add', 'IPC_LOCK', '--pids-limit', '4096', '--log-opt', 'max-size=50m',
             '--log-opt', 'max-file=3']
     for sub, mount, ro in [('model','/model',True), ('engram','/engram',True),
-                           ('vision-extra','/vision-extra',True), ('prepared','/prepared',False),
+                           ('vision-extra','/vision-extra',True), ('prepared','/prepared',prepared_readonly),
                            ('kernel-cache','/cache',False), ('state','/state',False)]:
         args += ['-v', str(root/sub)+':'+mount+(':ro' if ro else '')]
     for key, value in sorted(env.items()):

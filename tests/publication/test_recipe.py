@@ -17,6 +17,7 @@ import assets
 import cli
 import configuration as cfg
 import runtime
+import reuse
 
 
 def example():
@@ -185,6 +186,41 @@ class AssetTests(unittest.TestCase):
         self.assertNotEqual(p.returncode,0)
         self.assertIn('inventory differs',p.stderr)
 
+    def test_reuse_validates_pins_and_preserves_source_when_new_link_removed(self):
+        source=self.root/'old';dest=self.root/'new';source.mkdir();dest.mkdir()
+        original=source/'weight';original.write_bytes(b'checked weights')
+        row=dict(source='weight',target='model/weight',bytes=original.stat().st_size,
+                 sha256=hashlib.sha256(original.read_bytes()).hexdigest())
+        def run():
+            return subprocess.run([sys.executable,'-B','-c',reuse.IMPORT],input=json.dumps(
+                dict(source=str(source),root=str(dest),files=[row])),capture_output=True,text=True)
+        self.assertEqual(run().returncode,0)
+        self.assertEqual(run().returncode,0)
+        self.assertEqual(original.stat().st_ino,(dest/'model/weight').stat().st_ino)
+        (dest/'model/weight').unlink()
+        self.assertEqual(original.read_bytes(),b'checked weights')
+        row['sha256']='0'*64
+        self.assertNotEqual(run().returncode,0)
+        self.assertFalse((dest/'model/weight').exists())
+
+    def test_reuse_refuses_redirected_source_and_foreign_destination(self):
+        source=self.root/'old';dest=self.root/'new';source.mkdir();dest.mkdir()
+        original=source/'weight';original.write_bytes(b'a')
+        row=dict(source='weight',target='weight',bytes=1,sha256=hashlib.sha256(b'a').hexdigest())
+        (dest/'weight').write_bytes(b'keep')
+        def run():
+            return subprocess.run([sys.executable,'-B','-c',reuse.IMPORT],input=json.dumps(
+                dict(source=str(source),root=str(dest),files=[row])),capture_output=True,text=True)
+        self.assertNotEqual(run().returncode,0)
+        self.assertEqual((dest/'weight').read_bytes(),b'keep')
+        original.unlink();original.symlink_to(dest/'weight')
+        self.assertNotEqual(run().returncode,0)
+
+    def test_imported_prepared_cache_is_readonly_in_serving_container(self):
+        value=example();rails=[dict(r,gid_index=3) for r in value['head']['rails']]
+        args=cfg.launch_args(value,'head',str(uuid.uuid4()),'image',rails,prepared_readonly=True)
+        self.assertIn(value['head']['data_root']+'/prepared:/prepared:ro',args)
+
 
 class RestorationTests(unittest.TestCase):
     def setUp(self):
@@ -239,6 +275,13 @@ class RestorationTests(unittest.TestCase):
              patch.object(self.pair,'restore_display') as restore:
             with self.assertRaisesRegex(RuntimeError,'ownership differs'):self.pair.stop()
         restore.assert_not_called()
+
+    def test_container_lookup_uses_both_ownership_labels(self):
+        with patch.object(self.pair,'docker',return_value=types.SimpleNamespace(stdout='')) as docker:
+            self.assertEqual(self.pair.containers('worker'),[])
+        args=docker.call_args.args
+        filters=[args[i+1] for i,a in enumerate(args[:-1]) if a=='--filter']
+        self.assertEqual(filters,['label='+cfg.LABEL+'='+self.identity,'label='+cfg.ROLE+'=inference'])
 
     def test_start_without_drm_choice_has_no_remote_side_effects(self):
         value=example();pair=runtime.Pair(value,self.state)

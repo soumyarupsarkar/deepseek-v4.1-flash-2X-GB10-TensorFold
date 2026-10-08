@@ -14,6 +14,7 @@ import cli
 import configuration as cfg
 import runtime
 import assets
+import reuse
 
 
 def git(*args):
@@ -49,7 +50,8 @@ def main():
         syntax_files.update((ROOT / directory).glob('*.py'))
     for path in syntax_files | {ROOT / 'cluster'}:
         ast.parse(path.read_text(), filename=str(path.relative_to(ROOT)))
-    for module, names in ((runtime, ('ROOTS', 'SNAPSHOT', 'FABRIC')), (assets, ('VERIFY',))):
+    for module, names in ((runtime, ('ROOTS', 'SNAPSHOT', 'FABRIC')), (assets, ('VERIFY',)),
+                          (reuse, ('IMPORT', 'PREPARED'))):
         for name in names:
             ast.parse(getattr(module, name), filename=module.__name__ + '.' + name)
     cfg.validate(cfg.read(cfg.CONFIG / 'cluster.example.json'))

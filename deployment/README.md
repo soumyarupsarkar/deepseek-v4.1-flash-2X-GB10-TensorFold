@@ -42,6 +42,21 @@ Allow space for stock weights, the overlay, original Engram shards, extracted as
 
 Downloads resume through their own range journals. A failed extraction can leave a `.prepare-part` file; inspect the failure and remove only that incomplete output before retrying. A completed file with a different hash is refused, not overwritten. Serving mounts model assets read-only. It still writes prepared weights, compiled kernels and bounded logs; disabling session KV writes does not eliminate all SSD writes.
 
+### Reuse an existing pinned installation
+
+On idle hosts, a migration can reuse the existing files instead of downloading another copy:
+
+```bash
+python3 cluster reuse --from-head /path/to/previous-head-data \
+  --from-worker /path/to/previous-worker-data --reuse-prepared
+```
+
+Run `init` first with **new, empty data roots**. The head source must contain `stock-model/`, `overlays/`, `engram/` and `vision-extra/`; the worker source needs `model/`, `engram/` and `vision-extra/`. Both sources must match the pinned assets. This command verifies hashes and creates hardlinks on each host's filesystem, builds a new model index, and verifies both complete runtime views. It copies no ownership markers, host journals, private provenance or request logs. Source and destination must be on the same filesystem.
+
+The optional prepared-cache import verifies complete cache files, records their hashes and loader source, and mounts them **read-only** in the new serving containers. Both prepared caches must be imported successfully before startup. Mutable kernel caches remain separate and are rebuilt by `precompile`. Incompatible prepared caches can fall back to reading the original weights; the read-only mount prevents the new deployment from replacing the old prepared bytes.
+
+Hardlinks preserve file contents and modification times but change inode change times. **Refresh the previous installation's full asset verification receipts before starting it again** if it checks change times. Keep its image, source and journals. Removing a link from the new root does not remove the original file; writing through either link would change shared bytes, so never edit imported assets in place. The controller serves all model files read-only.
+
 ## Build, precompile and start
 
 ```bash
