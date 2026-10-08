@@ -22,9 +22,15 @@ containers=PAIR.containers
 
 def snapshot_launch():
     """Capture current identity for the clients; never select or start a profile."""
+    PAIR.ownership()
     if not read(STATE/'active.json')['running']:
         raise RuntimeError('Start and qualify only the selected owned pair')
     launch=read(STATE/'launch.json')
+    for host in ('head','worker'):
+        rows=PAIR.containers(host)
+        if (len(rows)!=1 or not rows[0]['State']['Running']
+                or rows[0]['Id']!=launch['containers'][host] or rows[0]['Image']!=launch['image']):
+            raise RuntimeError(host+': selected rank identity changed')
     atomic(ROOT/'records/launch.json',dict(launch,settings=launch['profile']))
     atomic(ROOT/'records/active.json',read(STATE/'active.json'))
 
