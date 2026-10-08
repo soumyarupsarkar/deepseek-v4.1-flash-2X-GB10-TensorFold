@@ -137,8 +137,13 @@ def main():
             from assets import replicate
             replicate(pair)
         elif args.action=='verify':
+            from concurrent.futures import ThreadPoolExecutor
             from assets import verify
-            for host in ('head','worker'):verify(pair,host,full=True)
+            with ThreadPoolExecutor(2) as pool:
+                results={host:pool.submit(verify,pair,host,full=True) for host in ('head','worker')}
+                for host,future in results.items():
+                    future.result()
+                    print(host+': all runtime asset hashes verified',flush=True)
         elif args.action=='build':build(pair)
         elif args.action=='precompile':precompile(pair)
         elif args.action=='start':pair.start()

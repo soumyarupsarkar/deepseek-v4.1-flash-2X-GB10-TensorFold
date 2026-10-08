@@ -232,11 +232,12 @@ def fetch(pair):
     verify(pair,'head',full=True)
 
 
-VERIFY = '''import hashlib,json,os,pathlib,sys
+VERIFY = '''import concurrent.futures,hashlib,json,os,pathlib,sys
 p=json.load(sys.stdin);root=pathlib.Path(p['root']);out={}
 actual={sub+'/'+f.name for sub in ('model','engram','vision-extra') for f in (root/sub).iterdir()}
 if actual!=set(p['manifest']):raise ValueError('Asset inventory differs; extra files can override tensors')
-for name,expected in p['manifest'].items():
+def one(item):
+ name,expected=item
  f=root/name
  if not f.is_file() or f.is_symlink():raise ValueError('Missing/redirected asset')
  st=f.stat();fp=[st.st_dev,st.st_ino,st.st_size,st.st_mtime_ns,st.st_ctime_ns]
@@ -248,7 +249,10 @@ for name,expected in p['manifest'].items():
     h.update(block);os.posix_fadvise(stream.fileno(),stream.tell()-len(block),len(block),os.POSIX_FADV_DONTNEED)
   if h.hexdigest()!=expected['sha256']:raise ValueError('Asset SHA256 differs')
  elif fp!=p['previous']['files'][name]:raise ValueError('Verified asset fingerprint changed')
- out[name]=fp
+ after=f.stat()
+ if fp!=[after.st_dev,after.st_ino,after.st_size,after.st_mtime_ns,after.st_ctime_ns]:raise ValueError('Asset changed during verification')
+ return name,fp
+with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:out=dict(pool.map(one,p['manifest'].items()))
 print(json.dumps(out))
 '''
 
