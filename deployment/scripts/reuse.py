@@ -23,7 +23,8 @@ def one(row):
  sha=hashlib.sha256();blob=hashlib.sha1(b'blob '+str(before.st_size).encode()+b'\0')
  with src.open('rb') as stream:
   while block:=stream.read(4*2**20):
-   sha.update(block);blob.update(block)
+   sha.update(block)
+   if row.get('git_blob_id'):blob.update(block)
    os.posix_fadvise(stream.fileno(),stream.tell()-len(block),len(block),os.POSIX_FADV_DONTNEED)
  digest=sha.hexdigest()
  if row.get('sha256') and digest!=row['sha256']:raise ValueError('Source SHA256 differs: '+row['source'])
@@ -88,6 +89,7 @@ def reuse(pair, sources, prepared=False):
             rows.append(dict(source=name,target=name,bytes=row['size'],sha256=row['sha256'],
                              git_blob_id=row['git_blob_id'] if not row['sha256'] else None))
     rows.extend(dict(source=n,target=n,**row) for n,row in derived.items())
+    print('Head: hashing pinned source assets before linking them',flush=True)
     result=pair.run('head',['python3','-B','-c',IMPORT],input=json.dumps(dict(
         source=sources['head'],root=pair.config['head']['data_root'],files=rows)),timeout=7200)
     imported=json.loads(result.stdout)
@@ -108,6 +110,7 @@ def reuse(pair, sources, prepared=False):
     pair.run('worker',['python3','-B','-c',code,pair.config['worker']['data_root']+'/model/model.safetensors.index.json'],
              input=index.decode(),timeout=60)
     rows=[dict(source=n,target=n,**row) for n,row in manifest.items() if n!='model/model.safetensors.index.json']
+    print('Worker: hashing and linking the matching runtime assets',flush=True)
     pair.run('worker',['python3','-B','-c',IMPORT],input=json.dumps(dict(
         source=sources['worker'],root=pair.config['worker']['data_root'],files=rows)),timeout=7200)
     if prepared:
@@ -116,9 +119,13 @@ def reuse(pair, sources, prepared=False):
         # Publish the read-only policy before any shared prepared inode exists.
         atomic(pair.state/'prepared-import.json',receipt)
         for rank,host in enumerate(('head','worker')):
+            print(host+': checking the completed prepared cache for read-only reuse',flush=True)
             result=pair.run(host,['python3','-B','-c',PREPARED],input=json.dumps(dict(
                 source=sources[host],root=pair.config[host]['data_root'],rank=rank)),timeout=3600)
             receipt['hosts'][host]=json.loads(result.stdout)
             atomic(pair.state/'prepared-import.json',receipt)
-    for host in ('head','worker'):verify(pair,host,full=True)
+    for host in ('head','worker'):
+        print(host+': verifying the complete new runtime view',flush=True)
+        verify(pair,host,full=True)
     atomic(pair.state/'reuse.json',dict(time=now(),sources=sources,prepared_readonly=prepared,status='passed'))
+    print('Verified asset reuse complete; previous source contents retained',flush=True)
