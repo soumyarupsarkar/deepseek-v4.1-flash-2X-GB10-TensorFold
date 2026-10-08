@@ -1,0 +1,214 @@
+[
+  {
+    "streams": 1,
+    "prompt_tokens": 0,
+    "reply_tokens": 384,
+    "prompt_class": "code",
+    "cache": "cold",
+    "mode": "default",
+    "temperature": 0,
+    "seed": 42000,
+    "rep": 0
+  },
+  {
+    "streams": 1,
+    "prompt_tokens": 0,
+    "reply_tokens": 384,
+    "prompt_class": "prose",
+    "cache": "cold",
+    "mode": "default",
+    "temperature": 0,
+    "seed": 42000,
+    "rep": 0
+  },
+  {
+    "streams": 1,
+    "prompt_tokens": 0,
+    "reply_tokens": 384,
+    "prompt_class": "structured",
+    "cache": "cold",
+    "mode": "default",
+    "temperature": 0,
+    "seed": 42000,
+    "rep": 0
+  },
+  {
+    "streams": 4,
+    "prompt_tokens": 1024,
+    "reply_tokens": 256,
+    "prompt_class": "mixed",
+    "cache": "cold",
+    "mode": "default",
+    "temperature": 0,
+    "seed": 42000,
+    "rep": 0
+  },
+  {
+    "streams": 8,
+    "prompt_tokens": 1024,
+    "reply_tokens": 256,
+    "prompt_class": "mixed",
+    "cache": "cold",
+    "mode": "default",
+    "temperature": 0,
+    "seed": 42000,
+    "rep": 0
+  },
+  {
+    "streams": 16,
+    "prompt_tokens": 1024,
+    "reply_tokens": 256,
+    "prompt_class": "mixed",
+    "cache": "cold",
+    "mode": "default",
+    "temperature": 0,
+    "seed": 42000,
+    "rep": 0
+  },
+  {
+    "streams": 24,
+    "prompt_tokens": 1024,
+    "reply_tokens": 256,
+    "prompt_class": "mixed",
+    "cache": "cold",
+    "mode": "default",
+    "temperature": 0,
+    "seed": 42000,
+    "rep": 0
+  },
+  {
+    "streams": 32,
+    "prompt_tokens": 1024,
+    "reply_tokens": 256,
+    "prompt_class": "mixed",
+    "cache": "cold",
+    "mode": "default",
+    "temperature": 0,
+    "seed": 42000,
+    "rep": 0
+  },
+  {
+    "streams": 1,
+    "prompt_tokens": 0,
+    "reply_tokens": 384,
+    "prompt_class": "code",
+    "cache": "cold",
+    "mode": "default",
+    "temperature": 0,
+    "seed": 42000,
+    "rep": 1
+  },
+  {
+    "streams": 1,
+    "prompt_tokens": 0,
+    "reply_tokens": 384,
+    "prompt_class": "prose",
+    "cache": "cold",
+    "mode": "default",
+    "temperature": 0,
+    "seed": 42000,
+    "rep": 1
+  },
+  {
+    "streams": 1,
+    "prompt_tokens": 0,
+    "reply_tokens": 384,
+    "prompt_class": "structured",
+    "cache": "cold",
+    "mode": "default",
+    "temperature": 0,
+    "seed": 42000,
+    "rep": 1
+  },
+  {
+    "streams": 4,
+    "prompt_tokens": 1024,
+    "reply_tokens": 256,
+    "prompt_class": "mixed",
+    "cache": "cold",
+    "mode": "default",
+    "temperature": 0,
+    "seed": 42000,
+    "rep": 1
+  },
+  {
+    "streams": 8,
+    "prompt_tokens": 1024,
+    "reply_tokens": 256,
+    "prompt_class": "mixed",
+    "cache": "cold",
+    "mode": "default",
+    "temperature": 0,
+    "seed": 42000,
+    "rep": 1
+  },
+  {
+    "streams": 16,
+    "prompt_tokens": 1024,
+    "reply_tokens": 256,
+    "prompt_class": "mixed",
+    "cache": "cold",
+    "mode": "default",
+    "temperature": 0,
+    "seed": 42000,
+    "rep": 1
+  },
+  {
+    "streams": 24,
+    "prompt_tokens": 1024,
+    "reply_tokens": 256,
+    "prompt_class": "mixed",
+    "cache": "cold",
+    "mode": "default",
+    "temperature": 0,
+    "seed": 42000,
+    "rep": 1
+  },
+  {
+    "streams": 32,
+    "prompt_tokens": 1024,
+    "reply_tokens": 256,
+    "prompt_class": "mixed",
+    "cache": "cold",
+    "mode": "default",
+    "temperature": 0,
+    "seed": 42000,
+    "rep": 1
+  },
+  {
+    "streams": 1,
+    "prompt_tokens": 32768,
+    "reply_tokens": 256,
+    "cache": "cold",
+    "mode": "default",
+    "seed": 52000,
+    "rep": 0
+  },
+  {
+    "streams": 1,
+    "prompt_tokens": 131072,
+    "reply_tokens": 256,
+    "cache": "cold",
+    "mode": "default",
+    "seed": 52000,
+    "rep": 0
+  },
+  {
+    "streams": 1,
+    "prompt_tokens": 32768,
+    "reply_tokens": 256,
+    "cache": "cold",
+    "mode": "default",
+    "seed": 52000,
+    "rep": 1
+  },
+  {
+    "streams": 1,
+    "prompt_tokens": 131072,
+    "reply_tokens": 256,
+    "cache": "cold",
+    "mode": "default",
+    "seed": 52000,
+    "rep": 1
+  }
+]

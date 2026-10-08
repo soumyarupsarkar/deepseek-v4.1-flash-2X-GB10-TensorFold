@@ -12,3 +12,17 @@ venv/
 *.swp
 *.log
 ._*
+
+# Installation-specific configuration, journals, credentials and derived data
+deployment/local.json
+deployment/.local/
+deployment/records/
+deployment/baseline/
+*.env
+.env
+hf-token
+*.pem
+.venv-publication/
+*.safetensors
+*.download-part
+*.prepare-part

@@ -1,0 +1,48 @@
+{
+  "engine_identity": {
+    "files": 476,
+    "status": "byte_identical_to_qualified_engine"
+  },
+  "example_plan": {
+    "host_actions": false,
+    "status": "passed"
+  },
+  "pending": [
+    "fresh local clone checks",
+    "portable two-node installation and rollback qualification",
+    "fresh portable-build inference/benchmark qualification",
+    "final license and publication review"
+  ],
+  "private_identifier_scan": {
+    "findings": [],
+    "known_private_identifier_count": 10,
+    "private_commit_objects_absent": true,
+    "reachable_objects": {
+      "blob": 3442,
+      "commit": 365,
+      "tree": 2714
+    },
+    "status": "passed",
+    "working_tree_files": 1028
+  },
+  "scope": "Publication preparation only; no live host actions",
+  "secret_scan": {
+    "tool": {
+      "archive_sha256": "5f2edbe1f49f7b920f9e06e90759947d3c5dfc16f752fb93aaafc17e9d14cf07",
+      "binary_sha256": "4b3b8184b6059abdfb50cb83a9ddc7d96affb32c7b14610ad9930965162de3b2",
+      "source": "https://github.com/gitleaks/gitleaks/releases/download/v8.24.3/gitleaks_8.24.3_linux_arm64.tar.gz",
+      "version": "8.24.3"
+    },
+    "upstream_history_findings": 0,
+    "worktree_findings": 0
+  },
+  "source_checker": {
+    "local_document_links": 50,
+    "status": "passed"
+  },
+  "status": "offline_checks_passed_fresh_clone_pending",
+  "tests": {
+    "command": "python3 -B -m unittest discover -s tests/publication -v",
+    "passed": 33
+  }
+}

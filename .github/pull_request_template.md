@@ -1,27 +1,17 @@
-<!-- Read CONTRIBUTING.md first. A small pull request with a complete receipt lands fastest. -->
+## Change
 
-## What this changes
+Describe the concrete problem and resulting behavior. Identify adapted upstream code and its immutable source revision where relevant.
 
-<!-- One or two sentences, and the issue it closes if there is one. One change to a pull request. -->
+## Evidence
 
-## Receipt
+- Checks run, including pass/fail/skip counts and anything not exercised:
+- For engine changes: ordinary/drafted and numerical controls, image/profile/asset pins, capacity and feature qualification:
+- For performance claims: prompt/reply sizes, concurrency, cache state, sampling, timing boundaries, repetitions and full ranges:
+- For lifecycle changes: ownership checks, partial-failure recovery and restoration to the captured host baseline:
 
-<!-- A change to documentation alone needs no receipt. -->
+## Review
 
-- Environment, with the TensorFold commit, MLX or PyTorch version, machine and GPU, checkpoint and revision:
-- Exactness, from `tools/bench_concurrent.py --alone --serial` or `token_sha` against `"draft": false`:
-- Decode speed before and after, from `tools/bench_openai.py`:
-- Prompt speed before and after, from `tools/prefill_cold.py`:
-- Tests run, with pass, fail and skip counts:
-- Not run, and why:
-
-## Checklist
-
-- [ ] Every token still goes through the lane rounds. No serial path, and nothing that needs drafts off.
-- [ ] Drafted output equals `"draft": false`, a resumed prompt equals a fresh one, and concurrent equals solo.
-- [ ] No precision traded for speed. If the bits change, the description says which sums change and why.
-- [ ] Prompt processing is no slower than the last release.
-- [ ] The description says which platforms I ran, Metal M1 to M5 and CUDA, and which I could not.
-- [ ] New tests fail before the change, pass after it, and skip cleanly without their dependency.
-- [ ] Comments and docstrings are one line. No measurements or history in the source.
-- [ ] No personal data, machine names, internal hosts or local paths. No AI attribution lines.
+- [ ] Applicable notices and source attribution are preserved.
+- [ ] No credentials, private prompts, host journals, operational logs or weights are included.
+- [ ] Changed engine hashes are accompanied by qualification evidence; offline CI is not presented as hardware acceptance.
+- [ ] Limitations and tests not run are explicit.

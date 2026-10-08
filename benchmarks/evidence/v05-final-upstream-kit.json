@@ -1,0 +1,173 @@
+{
+  "burst": [
+    {
+      "aggregate_output_tps": {
+        "max": 121.21221412132053,
+        "median": 120.8837429090225,
+        "min": 78.72973349530423,
+        "n": 9
+      },
+      "max_tokens": [
+        384
+      ],
+      "streams": 4,
+      "total_generated_tokens": [
+        1536,
+        1536,
+        1536,
+        1536,
+        1536,
+        1536,
+        1536,
+        1536,
+        1536
+      ]
+    }
+  ],
+  "client": {
+    "scope": "Local benchmark client is byte-for-byte equal to the reviewed upstream v0.5 client. It remains unmodified for the additional release-suite measurements.",
+    "sha256": "83a4fbeb987032f906cf00d3f6c9dd2fad47dd675e75dd498c4c4188d63a6c0d",
+    "source": "https://github.com/bertholomus/TensorFold/blob/808eb4a1090ca7b79173cc2c799de16da5f923e3/tools/dsv41/kit_bench.py",
+    "time": "2026-10-07T08:58:53.789367+00:00"
+  },
+  "decode": [
+    {
+      "decode_output_tps": {
+        "max": 94.633,
+        "median": 94.42514896654,
+        "min": 94.066,
+        "n": 3
+      },
+      "generated_tokens": [
+        384,
+        384,
+        384
+      ],
+      "identical_texts": true,
+      "max_tokens": 384,
+      "median_ttft_s": 0.16744006297085434,
+      "prompt": "code"
+    },
+    {
+      "decode_output_tps": {
+        "max": 58.934,
+        "median": 58.77220890663545,
+        "min": 58.26,
+        "n": 3
+      },
+      "generated_tokens": [
+        384,
+        384,
+        384
+      ],
+      "identical_texts": true,
+      "max_tokens": 384,
+      "median_ttft_s": 0.12120771303307265,
+      "prompt": "prose"
+    },
+    {
+      "decode_output_tps": {
+        "max": 139.172,
+        "median": 138.80676351910162,
+        "min": 138.593,
+        "n": 3
+      },
+      "generated_tokens": [
+        384,
+        384,
+        384
+      ],
+      "identical_texts": true,
+      "max_tokens": 384,
+      "median_ttft_s": 0.11326347605790943,
+      "prompt": "structured"
+    }
+  ],
+  "image": "sha256:830689e541513583176ba7b55e5e65283110cecaecb7d417ba074ba2e4def0a6",
+  "prefill": [
+    {
+      "input_over_ttft_tps": {
+        "max": 2006.5699630845768,
+        "median": 2005.6291080371727,
+        "min": 1884.9803563691344,
+        "n": 3
+      },
+      "input_tokens": 32768,
+      "ttft_s": {
+        "max": 17.383735532988794,
+        "median": 16.33801577205304,
+        "min": 16.330355084966868,
+        "n": 3
+      }
+    },
+    {
+      "input_over_ttft_tps": {
+        "max": 1845.8436272059685,
+        "median": 1842.6790250504948,
+        "min": 1836.4288093312812,
+        "n": 3
+      },
+      "input_tokens": 131072,
+      "ttft_s": {
+        "max": 71.3733085290296,
+        "median": 71.13121613592375,
+        "min": 71.00926539395005,
+        "n": 3
+      }
+    }
+  ],
+  "profile": "benchmark-v05-final",
+  "provenance": {
+    "kind": "historical_measurement",
+    "measured_engine_revision": "699437d9096c0dbd14cd8d28b4a0e84d1f1a1a71",
+    "note": "Measurements from the original two-GB10 deployment; not a fresh portable-install qualification.",
+    "source_sha256": "2b180fdbe88ff2b9e8618562cb08fd1fde3b33d8d9583d9206685c9db3158da2"
+  },
+  "scope": [
+    "Unchanged upstream client; maximum output length, EOS allowed.",
+    "C1 includes per-prompt warm-up and repeated requests; no cold-cache claim.",
+    "Burst rate includes complete request waves; it is not sampled steady decode.",
+    "Sustained rate estimates window tokens by clipping each reply decode span.",
+    "Prefill uses one output token and fresh time-seeded prompts; inputs are not saved.",
+    "Wrapper verified zero prefill prefix hits; weights and kernel caches were warm.",
+    "Same client method does not match author hardware, Keys overlay or capacity settings."
+  ],
+  "sources": [
+    {
+      "receipt": "benchmark-v05-final-upstream-kit.json",
+      "sha256": "3bf7b6b9658fc27550ca1c6247a4330aac8d5e5591602c4766eead48c144eded"
+    },
+    {
+      "receipt": "benchmark-v05-final-kit-decode.json",
+      "sha256": "80fcdf41d9610f80b385b6d4cfd2920a1b319c4b64bb6e6cf615af9b882b204e"
+    },
+    {
+      "receipt": "benchmark-v05-final-kit-burst.json",
+      "sha256": "429449c330f542e8503303dad509692bc4848207f7e7532d7229e346323e3f4f"
+    },
+    {
+      "receipt": "benchmark-v05-final-kit-sustained.json",
+      "sha256": "bfc8240286eaa7a14591e2e193b4e83cb89b9e7bd89c4fb5fd8715a508639d40"
+    },
+    {
+      "receipt": "benchmark-v05-final-kit-prefill.json",
+      "sha256": "24bb4c0b68f93e123b708ef6700f282aff0b1f861b369bb6efaaf0bbd7dc3b9a"
+    }
+  ],
+  "sustained": [
+    {
+      "aggregate_tps": 133.01,
+      "max_tokens": 384,
+      "per_stream_tps_p05": 19.093,
+      "per_stream_tps_p50": 39.926,
+      "per_stream_tps_p95": 74.306,
+      "requests": 33,
+      "seconds": 90.0,
+      "set": "b",
+      "streams": 4,
+      "ttft_s_p50": 0.19,
+      "ttft_s_p95": 0.367
+    }
+  ],
+  "time": "2026-10-07T13:50:44.924466+00:00"
+}

@@ -1,0 +1,52 @@
+# Measurement definitions and reproduction
+
+All bundled throughput results are historical measurements from the original two-GB10 deployment on 2026-10-07. The engine fingerprint is in [engine-source.json](../release/engine-source.json); the new portable installer has not produced these results. Sanitized summaries retain ranges and source-receipt hashes. Private raw operational receipts, host inventories and logs are not bundled; their hashes are provenance references, not links to downloadable files.
+
+## Two distinct methods
+
+**Unchanged upstream kit:** [kit_bench.py](../tools/dsv41/kit_bench.py) uses published set-b prompts. C1 reports `(output tokens - 1) / first-to-last-content time`, allowing EOS with a 384-token maximum. All measured C1 replies reached that maximum. Three repetitions follow per-prompt warm-up, so these are not cold-prefix claims. Cold prefill uses fresh time-seeded word inputs, one output token, and input tokens divided by first-content latency; a wrapper verified zero prefix hits. Model weights and compiled kernels were warm. Burst timing includes complete waves. Sustained timing estimates window tokens from clipped response decode spans, rather than counting each token event at the window boundary.
+
+**Local fixed-input protocol 4:** [benchmark.py](../deployment/scripts/benchmark.py) uses the same prompt corpus where applicable, explicit sampling seeds, and forced output lengths. The suite runs two repetitions with separately retained unscored warm-up, verified zero prefix hits, and exact usage/counter checks. C16/C32 use distinct 1,024-token synthetic prompts and 256 generated tokens per request. Concurrency means observed active decoders, not merely launched HTTP clients. Whole-wave rates include admission, prefill and replies. Sampled steady rates require full requested decode occupancy, no prefill/queued work, adjacent health polls at most three seconds apart, and at least two seconds of eligible observations. Insufficient windows remain null. Engine-only prefill is distinct from input/TTFT.
+
+The local benchmark client differs from its original deployment version only in imports and receipt paths. Its calculation method is retained. The unchanged upstream kit is separately source-pinned. Neither method is an application-quality evaluation, and the prompt named `structured` is a counting task, not grammar-constrained JSON.
+
+## Historical headlines
+
+| Method / workload | Result |
+|---|---:|
+| Kit C1 code / prose / counting, medians of 3 | 94.4 / 58.8 / 138.8 output tok/s |
+| Kit cold 32K / 128K input divided by TTFT, medians of 3 | 2,006 / 1,843 input tok/s |
+| Kit C4 burst, median of 9 | 120.9 aggregate output tok/s |
+| Kit C4 sustained, one 90-second run | 133.0 aggregate output tok/s |
+| Local C1 code / prose / counting, medians of 2 | 93.2 / 58.6 / 137.9 output tok/s |
+| Local cold 32K / 128K input divided by TTFT | 1,959 / 1,756 input tok/s |
+| Local C16 / C32 steady decode | 209.6 / 267.5 aggregate output tok/s |
+| Local C16 / C32 complete wave | 112.3 / 139.8 aggregate output tok/s |
+
+Raw summary ranges, sample counts and timing scopes: [kit](evidence/v05-final-upstream-kit.json), [selected engine](evidence/v05-final-headlines.json), [previous-engine control](evidence/v05-final-control.json). The first C4 burst was slower, 78.7 tok/s, and remains in the nine-run distribution. No best-run replacement is used.
+
+The matched local control had 69.6 / 49.3 / 89.9 C1 code/prose/counting output tok/s; C16/C32 steady 114.7 / 130.3; whole-wave 77.7 / 90.0; cold 32K/128K input/TTFT 1,642 / 1,471. Each configuration completed 178 scored requests and 46,336 output tokens. First-content latency did not improve in every batch. Output-hash parity across the final configurations was **174/178**, not perfect. The earlier fixed-512-chunk comparison was 178/178; changing prefill chunking can alter quantized numerical trajectories. A matched long-context C1 evaluation and broader overlay-quality evaluation remain release work before stronger claims.
+
+## Capacity is a separate test
+
+The 8,650,752 logical-token pool stores active and retained KV states. Its tensor allocation was 7.49 GiB per rank; this is not total process memory, original input bytes, or the sum of clients' requested maxima. Thirty-two slots share that pool. Allocation fragmentation and prefix retention can cause waiting before every slot is active.
+
+The large-session qualification used an identical primed document, 261,120 input plus 1,024 output tokens per stream, twice at C32. It is evidence of populated simultaneous session states, not cold ingestion of 32 independent 262K documents. See [historical qualification](QUALIFICATION.md) for observed occupancy, recovery, memory headroom and observation gaps. NVMe session KV retention is disabled; prepared weight/kernel caches and logs still write to disk.
+
+## Reproduce after the portable installation qualifies
+
+Use an otherwise idle pair and record the source, image, asset/profile hashes, dependencies, drivers, power/temperature state, client revision and complete workload. Keep output outside Git. These commands send substantial inference workloads; they are not preparation checks.
+
+```bash
+mkdir -p deployment/.local/measurements
+python3 tools/dsv41/kit_bench.py \
+  --base http://127.0.0.1:8000 --model DeepSeek-V4.1-Flash-Keys \
+  decode --set b --tokens 384 --reps 3 \
+  --out deployment/.local/measurements/kit-decode.json
+python3 deployment/scripts/benchmark.py \
+  --suite benchmarks/headline-suite.json --record fresh-headlines --warmup
+```
+
+The local script requires the portable launch receipt at `deployment/.local/launch.json`, archives its own code and prompt fixture, and fails on cold-cache reuse, counter contamination or allocator/capture growth. Use a unique record name; preserve failed receipts. For kit prefill comparisons, additionally prove zero prefix hits through health counters and retain that evidence. A kit command alone does not establish a cold-cache claim.
+
+Do not combine kit and local timing definitions into a speed ranking. [Other recipes](../deployment/COMPARISON.md) differ in hardware runs, overlay, KV format, memory budget, chunking and client workloads.
