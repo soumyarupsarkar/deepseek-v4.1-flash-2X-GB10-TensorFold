@@ -55,6 +55,8 @@ Run `init` first with **new, empty data roots**. The head source must contain `s
 
 The optional prepared-cache import verifies complete cache files, records their hashes and loader source, and mounts them **read-only** in the new serving containers. Both prepared caches must be imported successfully before startup. Mutable kernel caches remain separate and are rebuilt by `precompile`. Incompatible prepared caches can fall back to reading the original weights; the read-only mount prevents the new deployment from replacing the old prepared bytes.
 
+Prepared files created by Docker may be root-owned. Their import uses scoped sudo to create protected hardlinks without changing source ownership or permissions. A cache-only retry is available as `cluster reuse-prepared --from-head ... --from-worker ...`; follow an interrupted model import with `cluster verify` before startup. Cache hashes record the imported bytes; they do not independently establish that a cache was prepared from the intended weights. Import prepared files only from a trusted, previously qualified installation; omit `--reuse-prepared` otherwise.
+
 Hardlinks preserve file contents and modification times but change inode change times. **Refresh the previous installation's full asset verification receipts before starting it again** if it checks change times. Keep its image, source and journals. Removing a link from the new root does not remove the original file; writing through either link would change shared bytes, so never edit imported assets in place. The controller serves all model files read-only.
 
 ## Build, precompile and start

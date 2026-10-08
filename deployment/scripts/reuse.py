@@ -43,7 +43,11 @@ print(json.dumps(out))
 
 PREPARED = r'''import hashlib,json,os,pathlib,struct,sys
 p=json.load(sys.stdin);source=pathlib.Path(p['source'])/'prepared';dest=pathlib.Path(p['root'])/'prepared'
-if source.resolve()!=source:raise ValueError('Redirected prepared source')
+root=pathlib.Path(p['root'])
+if (not source.is_absolute() or source.resolve()!=source or root.resolve()!=root or dest.resolve()!=dest
+ or source==dest or root in source.parents or source.parent in root.parents):raise ValueError('Invalid prepared source or destination')
+marker=root/'.spark-owned.json'
+if marker.is_symlink() or json.loads(marker.read_text())['deployment_id']!=p['id']:raise ValueError('Prepared destination ownership differs')
 files=list(source.glob('rank'+str(p['rank'])+'of2-*.bin'))
 if len(files)!=1:raise ValueError('Expected one completed prepared cache for this rank')
 f=files[0]
@@ -113,19 +117,28 @@ def reuse(pair, sources, prepared=False):
     print('Worker: hashing and linking the matching runtime assets',flush=True)
     pair.run('worker',['python3','-B','-c',IMPORT],input=json.dumps(dict(
         source=sources['worker'],root=pair.config['worker']['data_root'],files=rows)),timeout=7200)
-    if prepared:
-        receipt=dict(time=now(),readonly=True,hosts={},weights_source_sha256=hashlib.sha256(
-            (SOURCE/'src/tensorfold/families/deepseek_v41/cuda/weights.py').read_bytes()).hexdigest())
-        # Publish the read-only policy before any shared prepared inode exists.
-        atomic(pair.state/'prepared-import.json',receipt)
-        for rank,host in enumerate(('head','worker')):
-            print(host+': checking the completed prepared cache for read-only reuse',flush=True)
-            result=pair.run(host,['python3','-B','-c',PREPARED],input=json.dumps(dict(
-                source=sources[host],root=pair.config[host]['data_root'],rank=rank)),timeout=3600)
-            receipt['hosts'][host]=json.loads(result.stdout)
-            atomic(pair.state/'prepared-import.json',receipt)
+    if prepared:reuse_prepared(pair,sources)
     for host in ('head','worker'):
         print(host+': verifying the complete new runtime view',flush=True)
         verify(pair,host,full=True)
     atomic(pair.state/'reuse.json',dict(time=now(),sources=sources,prepared_readonly=prepared,status='passed'))
     print('Verified asset reuse complete; previous source contents retained',flush=True)
+
+
+def reuse_prepared(pair,sources):
+    """Can also resume cache import after a completed model import."""
+    for host in ('head','worker'):
+        pair.roots(host);pair.idle(host)
+        if not sources.get(host):raise ValueError('Both existing source roots are required')
+    receipt=dict(time=now(),readonly=True,hosts={},weights_source_sha256=hashlib.sha256(
+        (SOURCE/'src/tensorfold/families/deepseek_v41/cuda/weights.py').read_bytes()).hexdigest())
+    # Publish the read-only policy before any shared prepared inode exists.
+    atomic(pair.state/'prepared-import.json',receipt)
+    for rank,host in enumerate(('head','worker')):
+        print(host+': checking the completed prepared cache for read-only reuse',flush=True)
+        # Docker-created cache files belong to root. Scoped sudo can make a
+        # protected hardlink without chown/chmod or weakening host policy.
+        result=pair.run(host,['sudo','-n','python3','-B','-c',PREPARED],input=json.dumps(dict(
+            source=sources[host],root=pair.config[host]['data_root'],rank=rank,id=pair.ownership())),timeout=3600)
+        receipt['hosts'][host]=json.loads(result.stdout)
+        atomic(pair.state/'prepared-import.json',receipt)
