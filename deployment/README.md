@@ -82,6 +82,10 @@ curl --fail http://127.0.0.1:8000/v1/chat/completions \
 
 The 1,048,576 limit covers prompt plus reply; the 8,650,752-token pool is shared by active and retained states. The 32 slots do not promise 32 simultaneously full million-token histories.
 
+The [paired acceptance clients](../tools/qualification/README.md) exercise the
+selected installation with synthetic inputs and keep their receipts private.
+Run them during qualification before treating a new build as serving-ready.
+
 ## Stop and restore
 
 ```bash

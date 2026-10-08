@@ -46,7 +46,7 @@ def main():
                 or Path(name).name in ('.env', 'hf-token')):
             failures.append('installation/asset file included: ' + name)
     syntax_files = set()
-    for directory in ('deployment/scripts', 'tests/publication', 'scripts'):
+    for directory in ('deployment/scripts', 'tests/publication', 'scripts', 'tools/qualification'):
         syntax_files.update((ROOT / directory).glob('*.py'))
     for path in syntax_files | {ROOT / 'cluster'}:
         ast.parse(path.read_text(), filename=str(path.relative_to(ROOT)))
@@ -71,7 +71,7 @@ def main():
                 failures.append('asset digest invalid')
     # Check links authored for this candidate; inherited upstream docs remain outside this scope.
     documents = [ROOT / n for n in ('README.md', 'CONTRIBUTING.md', 'SECURITY.md')]
-    for directory in ('deployment', 'benchmarks', 'release'):
+    for directory in ('deployment', 'benchmarks', 'release', 'tools/qualification'):
         documents.extend((ROOT / directory).glob('*.md'))
     link_count = 0
     for path in documents:
