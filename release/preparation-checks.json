@@ -1,4 +1,6 @@
 {
+  "checked_at": "2026-10-08T03:49:16.501978+00:00",
+  "checked_source_revision": "32c7e22ae680def8994c8b60f5e419d26424b2e0",
   "engine_identity": {
     "files": 476,
     "status": "byte_identical_to_qualified_engine"
@@ -7,26 +9,66 @@
     "host_actions": false,
     "status": "passed"
   },
+  "existing_deployment_tracked_state_unchanged": true,
+  "fresh_clone": {
+    "checks": {
+      "clean_checkout": {
+        "returncode": 0
+      },
+      "example_plan": {
+        "returncode": 0
+      },
+      "offline_tests": {
+        "passed": 33,
+        "returncode": 0
+      },
+      "source_and_publication": {
+        "returncode": 0,
+        "summary": {
+          "engine_files": 476,
+          "local_document_links": 50,
+          "python_files": 10,
+          "scope": "offline source/configuration/publication checks only",
+          "status": "passed"
+        }
+      }
+    },
+    "host_operations": false,
+    "ignored_installation_state_absent": true,
+    "python": "3.12.3",
+    "revision": "32c7e22ae680def8994c8b60f5e419d26424b2e0",
+    "status": "passed"
+  },
   "pending": [
-    "fresh local clone checks",
-    "portable two-node installation and rollback qualification",
-    "fresh portable-build inference/benchmark qualification",
-    "final license and publication review"
+    "portable two-node asset/build/start/stop and rollback qualification",
+    "fresh portable-build inference, recovery and benchmark qualification",
+    "final code/model/container license and notice review",
+    "GitHub destination, publication authorization and hosted CI run"
   ],
   "private_identifier_scan": {
     "findings": [],
     "known_private_identifier_count": 10,
     "private_commit_objects_absent": true,
     "reachable_objects": {
-      "blob": 3442,
-      "commit": 365,
-      "tree": 2714
+      "blob": 3540,
+      "commit": 367,
+      "tree": 2744
     },
     "status": "passed",
     "working_tree_files": 1028
   },
+  "publication": {
+    "github_repository_created": false,
+    "origin_configured": false,
+    "pushed": false,
+    "upstream_push_disabled": true
+  },
   "scope": "Publication preparation only; no live host actions",
   "secret_scan": {
+    "all_refs_at_checked_revision": true,
+    "note": "Gitleaks default rules; findings reviewed locally. No blanket allowlist. Re-scan final publication refs after further changes.",
+    "public_history_findings": 0,
+    "redaction_percent": 100,
     "tool": {
       "archive_sha256": "5f2edbe1f49f7b920f9e06e90759947d3c5dfc16f752fb93aaafc17e9d14cf07",
       "binary_sha256": "4b3b8184b6059abdfb50cb83a9ddc7d96affb32c7b14610ad9930965162de3b2",
@@ -40,7 +82,7 @@
     "local_document_links": 50,
     "status": "passed"
   },
-  "status": "offline_checks_passed_fresh_clone_pending",
+  "status": "offline_preparation_passed_release_gates_pending",
   "tests": {
     "command": "python3 -B -m unittest discover -s tests/publication -v",
     "passed": 33
