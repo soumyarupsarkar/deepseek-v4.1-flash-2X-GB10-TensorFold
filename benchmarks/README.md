@@ -1,6 +1,6 @@
 # Measurement definitions and reproduction
 
-The bundle contains original two-GB10 measurements from 2026-10-07 and portable-cutover measurements from 2026-10-08 (UTC). The cutover built a fresh image and reused fully verified model/prepared assets. The engine fingerprint is in [engine-source.json](../release/engine-source.json). Sanitized summaries retain ranges and source-receipt hashes. Private raw operational receipts, host inventories and logs are not bundled; their hashes are provenance references, not links to downloadable files.
+The bundle contains original two-GB10 measurements from 2026-10-07, portable-cutover measurements from 2026-10-08, and the later FP32 correctness update on 2026-10-08 (UTC). Both portable builds reused fully verified model/prepared assets. Current engine fingerprints and historical provenance are in [engine-source.json](../release/engine-source.json). Sanitized summaries retain ranges and source-receipt hashes. Private raw operational receipts, host inventories and logs are not bundled; their hashes are provenance references, not links to downloadable files.
 
 ## Two distinct methods
 
@@ -10,7 +10,50 @@ The bundle contains original two-GB10 measurements from 2026-10-07 and portable-
 
 The local benchmark client differs from its original deployment version only in imports and receipt paths. Its calculation method is retained. The unchanged upstream kit is separately source-pinned. Neither method is an application-quality evaluation, and the prompt named `structured` is a counting task, not grammar-constrained JSON.
 
+## Current FP32 correctness update
+
+Source `c068898375337c1f2a7bd222e5d1c342b0a83f9c`, local image ID
+`sha256:928fc8e4416e4494de8e600ef81c3ed60393f3871959d77ae20965bc99d2e8ba`,
+profile `c32-keys-v051`. The recipe enforces
+`TORCH_ALLOW_TF32_CUBLAS_OVERRIDE=0`; the earlier container inherited 1.
+The optional reasoning-loop guard is off. Assets, capacity, draft policy and
+the 225-line dependency inventory match the prior build.
+
+| Matched method | Previous TF32 build | FP32 update |
+|---|---:|---:|
+| Kit C1 code / prose / counting, output tok/s | 93.9 / 58.2 / 136.7 | 94.5 / 59.0 / 137.8 |
+| Kit cold 32K / 128K, input divided by TTFT | 2,021 / 1,852 | 2,000 / 1,837 |
+| Local C1 code / prose / counting, output tok/s | 94.1 / 59.0 / 137.0 | 88.2 / 58.1 / 136.2 |
+| Local cold 32K / 128K, input divided by TTFT | 1,936 / 1,767 | 1,904 / 1,762 |
+| Local C16 / C32 steady aggregate output tok/s | 214.5 / 266.9 | 209.9 / 272.2 |
+| Local C16 / C32 whole-wave aggregate output tok/s | 108.6 / 133.0 | 117.2 / 145.5 |
+
+Both local suites completed 178 scored requests and 46,336 output tokens with
+matching prompts and usage budgets. **76/178** token/text hashes agree with the
+earlier TF32 build; **89/89** repeated fixed-input pairs agree within this FP32
+build. These timings compare complete builds with different reply trajectories.
+Output-hash counts are not a quality score.
+
+The local code repetitions were **82.9 and 93.5 tok/s**, producing the same reply
+with the same 99 decode rounds. Both are retained in the 88.2 median. The
+separate kit code repetitions were **93.4–94.6 tok/s** after their per-prompt
+warm-up. These methods have different cache and timing boundaries; the kit's
+result does not replace the slower local sample. Steady-window summaries retain
+their actual sample counts, including null values for insufficient windows.
+
+[Local ranges and hash comparisons](evidence/upstream-v051-headlines.json) and
+[unchanged-kit results](evidence/upstream-v051-kit.json) retain every scored
+repetition. All nine scored kit C1 replies reached the 384-token maximum.
+The kit wrapper verified exact request/token counters and zero cached input for
+all six prefill requests. No allocator or graph counter growth occurred. Kit
+C4 burst/sustained was not repeated during this update.
+
+[The integration report](../deployment/UPSTREAM-V051.md) records arithmetic,
+guard, C32/million-context, retention and restoration checks separately.
+
 ## Portable cutover measurements
+
+This section records the earlier TF32 build; its results remain historical.
 
 Source `2f65892284376d6a59eda1270e3a9ab59f79897b`, local image ID
 `sha256:07cd312dca050f9be3c14c5ca9c3ec728c3a28d1b9c2142e45c6a4d1fe54f98b`,

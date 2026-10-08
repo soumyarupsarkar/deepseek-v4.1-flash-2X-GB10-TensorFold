@@ -1,0 +1,176 @@
+{
+  "acceptance_wall_seconds": 3011.171,
+  "admission": {
+    "fragmentation_observed": false,
+    "million_token_reservations": 8,
+    "ninth_held_and_released": true,
+    "oversize_rejected": true,
+    "plain_and_schema_cancellation": true,
+    "solo_offset_output_checks": 9
+  },
+  "capacity": {
+    "allocated_pool_rows": 8716288,
+    "display_bytes": 1865286488,
+    "ordinary_pool_bytes": 6175852488,
+    "parallel": 32,
+    "per_request_tokens": 1048576,
+    "pool_bytes": 8041138976,
+    "shared_pool_tokens": 8650752,
+    "target_decode_rows": 32
+  },
+  "features": {
+    "explicit_seed_replay": true,
+    "keys_overlay": true,
+    "seed_mode": "random",
+    "streaming_constraints": true,
+    "strict_json_schema_tools": true,
+    "text": true,
+    "unique_unseeded_replies": 4,
+    "vision_red_and_blue": true
+  },
+  "finished": "2026-10-08T09:23:33.496613+00:00",
+  "full_sessions": {
+    "identical_primed_document": true,
+    "note": "Populated independent session states; not 32 cold independent document prefills.",
+    "peak_decoders": [
+      32,
+      32
+    ],
+    "prompt_tokens": 261120,
+    "reply_tokens": 1024,
+    "sampled_reserved_rows": 8454144,
+    "sampled_resident_logical_tokens": 8388192,
+    "seconds": 573.437,
+    "streams_per_wave": 32,
+    "total_tokens_per_request": 262144,
+    "waves": 2
+  },
+  "image_id": "sha256:928fc8e4416e4494de8e600ef81c3ed60393f3871959d77ae20965bc99d2e8ba",
+  "memory": {
+    "allocation_ooms": 0,
+    "allocation_retries": 0,
+    "graphs_sealed": true,
+    "minimum_available_gib": {
+      "head": 2.4672088623046875,
+      "worker": 3.167888641357422
+    },
+    "monitor_minimum_available_gib": 2,
+    "note": "Finite test evidence is not an uptime or memory guarantee; compare observed host availability with the unchanged watchdog floor.",
+    "peak_allocated_bytes": 115775078912,
+    "reserved_bytes": 116702314496,
+    "retention_minimum_available_gib": {
+      "head": 3.2319869995117188,
+      "worker": 4.231952667236328
+    },
+    "sealed_graphs": 96
+  },
+  "native_million": {
+    "cached_tokens": 0,
+    "concurrent_small_request_seconds": [
+      0.707,
+      1.462
+    ],
+    "note": "Bounded three-needle synthetic retrieval, not a comprehensive long-context quality evaluation.",
+    "prompt_tokens": 1048320,
+    "reply_tokens": 256,
+    "seconds": 890.145,
+    "three_passphrases_recovered": true,
+    "total_tokens": 1048576
+  },
+  "observations": {
+    "acceptance_error_types": [
+      "TimeoutError"
+    ],
+    "acceptance_errors": 2,
+    "acceptance_samples": 1418,
+    "parity_errors": 1,
+    "parity_samples": 189,
+    "retention_errors": 0,
+    "retention_samples": 87
+  },
+  "ordinary_default_parity": {
+    "all_token_hashes_match": true,
+    "inference_requests": 208,
+    "note": "Default policy can draft below C17; C17-C32 normally uses ordinary decoding.",
+    "pair_concurrencies": [
+      16,
+      24,
+      32,
+      32
+    ],
+    "paired_replies": 104
+  },
+  "privacy": "Inputs come from the published synthetic clients. Ordinary inference traffic was not used. Raw operational receipts remain private; their hashes are provenance references, not downloadable artifacts.",
+  "profile": "c32-keys-v051",
+  "profile_sha256": "670654bb363d7605702fb6930be8297199baeaaba4ea9fff37a73de43915b150",
+  "retention": {
+    "entries": 32,
+    "recent_checkpoints_per_entry": 2,
+    "requests": 132,
+    "resident_logical_tokens": 524288,
+    "seconds": 475.2041846350767,
+    "snapshot_bytes": 239075328,
+    "stages": [
+      "32-distinct-cold-prefixes",
+      "32-sequential-revisits",
+      "32-sequential-extensions",
+      "32-extended-prefix-revisits",
+      "least-recently-used-eviction"
+    ]
+  },
+  "scope": "Paired FP32-corrected inference/capacity and retention with the v0.5.1 selective integration; same verified assets and capacity. Loop-guard and precision-probe evidence are recorded separately.",
+  "soak": {
+    "requests": 288,
+    "structured_recheck": true,
+    "waves": 9
+  },
+  "source_revision": "c068898375337c1f2a7bd222e5d1c342b0a83f9c",
+  "sources": [
+    {
+      "receipt": "validation-upstream-v051-draft-tuning-phase.json",
+      "sha256": "024d971207a76e63712402b802a97043aede556ecf99cf60573f22bebfff7c56"
+    },
+    {
+      "receipt": "validation-upstream-v051-baseline.json",
+      "sha256": "90da3be0a5c9d37a21e87f1290246c4aef6853163fe1c15bfa8fcf058d146cdc"
+    },
+    {
+      "receipt": "validation-upstream-v051-structured.json",
+      "sha256": "0eef249a346d4d952e45052bf28f9e805f273531dce392cd31327a2b0e05e7e3"
+    },
+    {
+      "receipt": "validation-upstream-v051-sampling.json",
+      "sha256": "bec487b2a1d448e4cec8189f91f32c08c95cfc71dba9de630d87d8dddf99f217"
+    },
+    {
+      "receipt": "validation-upstream-v051-ordinary-parity.json",
+      "sha256": "7387bc30c869bec3e90f493199b0c895a2a6253f0b637069fd60d3d8df3f9b9f"
+    },
+    {
+      "receipt": "validation-upstream-v051-full-sessions.json",
+      "sha256": "da6ecf184bbc5cc7e808f5b26fc9e333c4dd80958f42118c7cac21a69c421d6b"
+    },
+    {
+      "receipt": "validation-upstream-v051-million.json",
+      "sha256": "a509fb8301cb5c28bba120ad104dad6c1da7d0bc752acdcdaccad8335d0df7fe"
+    },
+    {
+      "receipt": "validation-upstream-v051-queue.json",
+      "sha256": "c00ac26939aa119afaefcbbc2bc03fc2046ec9ad8cf22fd6c9ebbc22069ab3b6"
+    },
+    {
+      "receipt": "validation-upstream-v051-recovery.json",
+      "sha256": "4abcedcc415f97ce66bda8efd6dc2e165b6b4ad37a2bfe8d9808eeb0306ffa44"
+    },
+    {
+      "receipt": "validation-upstream-v051-soak.json",
+      "sha256": "ae98f22e48910a4c6689d4573d476373b74256356250c34cc9f065645cfce9a2"
+    },
+    {
+      "receipt": "validation-upstream-v051-retention.json",
+      "sha256": "c635ad37fb56cf58b10f4bc1872b04b19badf776ad349cf5936fc9060441fedb"
+    }
+  ],
+  "started": "2026-10-08T08:25:24.191591+00:00",
+  "status": "passed"
+}

@@ -23,6 +23,12 @@ sets it to **0** in both rank environments. The family entry point also clears i
 for callers outside the recipe and runs upstream's GPU arithmetic probe before
 returning a ready engine. A mismatch refuses startup.
 
+The standalone probe reproduced the difference on **both GB10s** using the
+preserved container dependencies: override 1 summed to **4096** and was refused;
+override 0 summed to the expected **4098** and passed. Both updated ranks select
+0 before PyTorch starts. All **225 dependency-inventory lines** match the earlier
+image; the three changed engine files were verified inside both running ranks.
+
 This corrects arithmetic; it is not a promise to prevent all reasoning loops.
 Replies may differ from the earlier container build, including at the same seed.
 Historical output hashes and speeds remain evidence for their original precision
@@ -59,15 +65,76 @@ including an automatically generated random seed.
 
 ## Validation and rollback
 
-Offline coverage exercises the repeated-token cutoff, natural closure, novel
+Forty-seven publication tests and 222 targeted HTTP tests passed, with one
+existing skip. Offline coverage exercises the repeated-token cutoff, natural closure, novel
 reasoning, cancellation, output budgets and speculative preview. HTTP tests cover
 streamed/non-streamed continuation, explicit and random seeds, per-request
 overrides and independent concurrent guards. They use synthetic engine fixtures;
 they do not claim that the real model reproduces the reported upstream loop.
 
-Paired hardware qualification and current performance results will be recorded
-after the selected image is built. The previous source/image and private state
-must remain available until those checks pass. Follow the
+The C32 and million-context suites use the selected default, guard off. The
+separate guard-on hardware check covers an ordinary code-review prompt, streaming,
+four concurrent requests and coexistence with schema/budget controls. It does not
+establish guard-on capacity for long reasoning at C32.
+
+The candidate source is `c068898375337c1f2a7bd222e5d1c342b0a83f9c`, built as
+image `sha256:928fc8e4416e4494de8e600ef81c3ed60393f3871959d77ae20965bc99d2e8ba`
+on both ranks. All nine paired acceptance phases passed in 3,011 seconds:
+
+- Text, red/blue image input, strict JSON/schema/tools and streaming constraints.
+- Random unseeded replies, explicit-seed replay and 104 matching default/ordinary
+  reply pairs at C16, C24, C32 and a reversed-order C32 repeat.
+- Two waves of 32 independent session states, each with 261,120 input and 1,024
+  output tokens from an identical primed document. Peak sampled populated history
+  was 8,388,192 logical tokens; this is not 32 cold independent document prefills.
+- Cold native-million retrieval: 1,048,320 input plus 256 output tokens, all three
+  passphrases recovered in 890 seconds. The two smaller concurrent requests
+  completed in 0.71 and 1.46 seconds.
+- Full-pool admission/release, cancellation, oversized-context rejection and
+  nine mixed-load soak cycles.
+
+There were zero CUDA allocation retries or out-of-memory events; all 96 round
+graphs remained sealed. Minimum sampled host availability was **2.47 GiB head /
+3.17 GiB worker**, against the unchanged 2 GiB watchdog floor. The main watcher
+recorded two timeouts in 1,418 health samples; the parity watcher separately
+recorded one timeout. These are observation gaps, with all inference checks
+completed. Finite qualification does not establish indefinite uptime.
+
+All 132 retained-prefix checks passed in 475 seconds: cold fill, sequential reuse,
+extension, repeat parity and least-recently-used eviction. The paired guard
+coexistence check also passed: default/off/on replies matched for a non-looping
+code-review prompt, including streaming and four concurrent requests; schema,
+thinking-budget and non-thinking exclusions stayed effective. Forced looping is
+covered by the synthetic engine tests, not claimed as a reproduced model failure.
+
+[Acceptance/retention receipt](../release/upstream-v051-acceptance.json) and
+[precision/guard receipt](../release/upstream-v051-correctness.json) retain the
+exact scope and hashes of the private source receipts.
+
+## Performance and final serving checks
+
+The complete local suite and unchanged upstream C1/prefill client passed.
+The current kit C1 code/prose/counting medians are **94.5 / 59.0 / 137.8 output
+tok/s**; cold 32K/128K input divided by first-content latency is **2,000 / 1,837
+tok/s**. Local C16/C32 steady medians are **209.9 / 272.2 aggregate output tok/s**;
+whole cold-wave medians are **117.2 / 145.5**. [Methods, ranges and previous-build
+comparison](../benchmarks/README.md) keep these timing definitions separate.
+
+Of 178 matched local requests, 76 retained the previous TF32 build's token and
+text hashes. All 89 repeated fixed-input pairs matched within the updated build.
+Every sample remains in the summaries, including one slower local C1 code
+repetition. The correction changes arithmetic and can change reply trajectories;
+these are measurements of the complete builds, not a quality evaluation.
+
+Normal stop and host restoration passed. The same candidate image was then
+restarted and passed text/vision, strict output, random-seeding/replay, worker-to-LAN
+access and paired-monitor checks. Both ranks enforce FP32, select the guard off,
+and mount the shared assets read-only. The previous image is present on both
+nodes. [Current-update lifecycle receipt](../release/upstream-v051-lifecycle.json).
+This update did not repeat reboot, worker-loss or previous-image fallback tests;
+the earlier [cutover lifecycle evidence](CUTOVER.md) has its own scope.
+
+The previous source/image and private state remain available. Follow the
 [update workflow](WORKFLOW.md) and [rollback instructions](ROLLBACK.md); stop and
 restore hosts using the active controller before selecting a previous image.
 

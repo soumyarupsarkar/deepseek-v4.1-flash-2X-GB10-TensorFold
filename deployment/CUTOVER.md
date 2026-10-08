@@ -1,5 +1,9 @@
 # Portable cutover qualification
 
+This records the initial portable cutover. The subsequent
+[FP32 correctness update](UPSTREAM-V051.md) changes three engine files and has
+separate qualification and measurements; the results below remain historical.
+
 The 2026-10-08 UTC cutover uses a clean, separate deployment checkout of
 `2f65892284376d6a59eda1270e3a9ab59f79897b`. Its locally built image ID is
 `sha256:07cd312dca050f9be3c14c5ca9c3ec728c3a28d1b9c2142e45c6a4d1fe54f98b`.

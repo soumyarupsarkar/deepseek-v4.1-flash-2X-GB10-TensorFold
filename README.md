@@ -8,12 +8,12 @@ Run DeepSeek-V4.1-Flash across two NVIDIA GB10s with Mia's EXL3 weights, drowzey
 |---|---|
 | Shared KV pool | **8,650,752 logical tokens** across **32 active slots** |
 | Maximum context | **1,048,576 tokens per request**, prompt plus reply |
-| C1 code / prose / counting decode | **93.9 / 58.2 / 136.7 output tok/s** |
-| Cold 32K / 128K prefill | **2,021 / 1,852 input tok/s**, measured as input/TTFT |
-| C16 / C32 steady decode | **214.5 / 266.9 aggregate output tok/s** |
+| C1 code / prose / counting decode | **94.5 / 59.0 / 137.8 output tok/s** |
+| Cold 32K / 128K prefill | **2,000 / 1,837 input tok/s**, measured as input/TTFT |
+| C16 / C32 steady decode | **209.9 / 272.2 aggregate output tok/s** |
 | Model features | **Vision, Keys abliteration and strict structured output** enabled together |
 
-Measured on the portable two-GB10 build on 2026-10-08 using fully verified existing model and prepared-cache assets. C1 and prefill use the unchanged upstream benchmark client; C16/C32 use the local suite. [Workloads and timing boundaries](#benchmarks) matter when comparing these numbers. Active and retained sessions share the pool; 32 slots do not mean 32 simultaneously full million-token histories.
+Measured on the FP32-corrected two-GB10 build on 2026-10-08 using fully verified existing model and prepared-cache assets, with the optional reasoning-loop guard off. C1 and prefill use the unchanged upstream benchmark client; C16/C32 use the local suite. [Workloads and timing boundaries](#benchmarks) matter when comparing these numbers. Active and retained sessions share the pool; 32 slots do not mean 32 simultaneously full million-token histories.
 
 [Credits](#credits) · [Setup](#setup) · [Rollback](#rollback) · [Benchmarks](#benchmarks) · [License](#license)
 
@@ -28,7 +28,8 @@ This work builds on the following projects and contributors:
 | Contributor | Contribution |
 |---|---|
 | [ashhart / TensorFold contributors](https://github.com/ashhart/TensorFold) | TensorFold framework, EXL3 foundation and inherited kernels |
-| [Bertholomus / Albert Lee](https://github.com/bertholomus/TensorFold/tree/deepseek-v41-tp2) | DeepSeek TP2 engine, vision/RDMA integration, benchmark kit and selective v0.5 kernel/memory improvements |
+| [Bertholomus / Albert Lee](https://github.com/bertholomus/TensorFold/tree/deepseek-v41-tp2) | DeepSeek TP2 engine, vision/RDMA integration, benchmark kit, v0.5 kernel/memory improvements and v0.5.1 FP32/loop-guard fixes |
+| [Capicua25x](https://github.com/bertholomus/deepseek-v4.1-tensorfold-tp2-2xgb10/pull/9) | Novelty signal used by Bertholomus's optional reasoning-loop guard |
 | [Mia-AiLab](https://huggingface.co/Mia-AiLab/DeepSeek-V4.1-Flash-EXL3-2.9bpw) | EXL3 2.9-bpw checkpoint |
 | [drowzeys / Keys](https://huggingface.co/drowzeys/DeepSeek-V4.1-Flash-Abliterated-Cybersecurity-Unleashed) | Matching Keys attention overlay |
 | [DeepSeek](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash) | Original model, assets and model research |
@@ -177,32 +178,33 @@ Removing retained data or image tags is a separate, optional step after restorat
 ## What this fork adds
 
 - Selective Bertholomus v0.5 improvements: compact prompt histories and RoPE tables, reduced indexer/attention work and grouped-expert prefill. The framework remains based on TensorFold 0.6.3; this is not a full 0.6.6 merge.
+- Bertholomus v0.5.1 FP32 correction with a startup arithmetic check, plus an optional reasoning-loop guard. The guard is off by default and can be enabled per request; [behavior and qualification](deployment/UPSTREAM-V051.md).
 - Temporary DRM allocation, bounded graph/scratch memory, admission diagnostics and up to 32 retained prefixes with two recent checkpoints each. Pool tensors consume 7.49 GiB per rank in the measured configuration.
 - The Keys overlay, image input, strict structured output and configurable random or prompt-derived request seeds. The recipe selects random seeds; explicit request seeds still work.
 - A measured draft-cost policy, shared round outputs and bounded 8K/262K/1M graph widths. The selected 32-row target budget uses ordinary decoding at C17–32 and resumes drafting as concurrency falls. Experimental 64-row profiles are outside this portable candidate.
 - Installation ownership, pinned asset acquisition, verified immutable asset reuse, paired failure handling and journaled host restoration, with offline contract tests, CI and paired hardware evidence.
 
-Session KV writes to NVMe are off. Prepared weights, compiled kernels and logs still write to disk. [Integration decisions](deployment/UPSTREAM-V05.md), [portable cutover qualification](deployment/CUTOVER.md) and [historical qualification](benchmarks/QUALIFICATION.md) describe the selected engine and its limits.
+Session KV writes to NVMe are off. Prepared weights, compiled kernels and logs still write to disk. [v0.5 integration decisions](deployment/UPSTREAM-V05.md), [v0.5.1 correctness update](deployment/UPSTREAM-V051.md), [portable cutover qualification](deployment/CUTOVER.md) and [historical qualification](benchmarks/QUALIFICATION.md) describe the selected engine and its limits.
 
 ## Benchmarks
 
-Matched methods on the same two GB10s, with Mia 2.9-bpw + Keys, 1K prefill chunks, 32 slots and the shared pool above. The cutover built a fresh portable image and reused verified assets. Dates below are UTC.
+Matched methods on the same two GB10s, with Mia 2.9-bpw + Keys, 1K prefill chunks, 32 slots and the shared pool above. Both builds reused verified assets. The earlier container inherited the TF32 override; the current build enforces FP32 arithmetic. Both measurements are from 2026-10-08 UTC.
 
-| Workload | Original, Oct 7 | Cutover, Oct 8 | Measurement |
+| Workload | Previous TF32 build | FP32 update | Measurement |
 |---|---:|---:|---|
-| C1 code / prose / counting decode | 94.4 / 58.8 / 138.8 | **93.9 / 58.2 / 136.7** | Output tok/s; unchanged upstream client, set-b, T=0, 384-token maximum, medians of 3 |
-| Cold 32K / 128K input throughput | 2,006 / 1,843 | **2,021 / 1,852** | Input tok/s through first-content latency; upstream client, medians of 3 |
-| C16 / C32 steady decode | 209.6 / 267.5 | **214.5 / 266.9** | Aggregate output tok/s; local suite, distinct 1K prompts, 256 forced outputs, medians of 2 |
-| C16 / C32 whole cold wave | 112.3 / 139.8 | **108.6 / 133.0** | Same suite, including admission and prefill |
+| C1 code / prose / counting decode | 93.9 / 58.2 / 136.7 | **94.5 / 59.0 / 137.8** | Output tok/s; unchanged upstream client, set-b, T=0, 384-token maximum, medians of 3 |
+| Cold 32K / 128K input throughput | 2,021 / 1,852 | **2,000 / 1,837** | Input tok/s through first-content latency; upstream client, medians of 3 |
+| C16 / C32 steady decode | 214.5 / 266.9 | **209.9 / 272.2** | Aggregate output tok/s; local suite, distinct 1K prompts, 256 forced outputs, medians of 2 |
+| C16 / C32 whole cold wave | 108.6 / 133.0 | **117.2 / 145.5** | Same suite, including admission and prefill |
 | Large-session capacity | 32 × 262,144, twice | **32 × 262,144, twice** | Identical primed document, independent active session states; not 32 cold independent document prefills |
 | Native-million retrieval | 1,048,576 | **1,048,576** | Total prompt + reply tokens, cold input, all three passphrases recovered |
 | Vision / Keys / strict output | Passed together | **Passed together** | Constrained requests use ordinary decoding |
 
-All **178** local benchmark replies matched the previous deployment's token and text hashes; each suite generated 46,336 scored output tokens. Whole cold-wave rates are lower in this cutover run even though steady-decode rates stayed close. The historical upstream C4 burst/sustained results (120.9 / 133.0 aggregate tok/s) were not repeated here.
+After the arithmetic correction, **76/178** local replies retained the previous build's token and text hashes. All **89/89** repeated fixed-input pairs matched within the updated build. Each local suite generated 46,336 scored output tokens. These timings compare complete builds, including changed reply trajectories; all repetitions and ranges are retained. The historical upstream C4 burst/sustained results (120.9 / 133.0 aggregate tok/s) were not repeated here.
 
-The configured pool budget differs from populated history. The cutover's large-session test sampled 8,388,288 populated logical tokens; retained prefixes share the pool, and contiguous-allocation requirements can queue requests before every slot fills. The counting benchmark is not a strict-JSON benchmark. Feature qualification does not establish the overlay's quality across all tasks.
+The configured pool budget differs from populated history. The updated large-session test sampled 8,388,192 populated logical tokens; retained prefixes share the pool, and contiguous-allocation requirements can queue requests before every slot fills. The counting benchmark is not a strict-JSON benchmark. Feature qualification does not establish the overlay's quality across all tasks.
 
-[Methods, ranges and reproduction](benchmarks/README.md) · [Cutover qualification](deployment/CUTOVER.md) · [Historical qualification](benchmarks/QUALIFICATION.md) · [Comparison with Bertholomus, Urtho and coolbho3k](deployment/COMPARISON.md).
+[Methods, ranges and reproduction](benchmarks/README.md) · [FP32 update qualification](deployment/UPSTREAM-V051.md) · [Historical cutover](deployment/CUTOVER.md) · [Comparison with Bertholomus, Urtho and coolbho3k](deployment/COMPARISON.md).
 
 ![Historical throughput and first-content latency by concurrency](benchmarks/throughput.svg)
 

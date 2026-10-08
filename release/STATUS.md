@@ -5,13 +5,39 @@ The portable controller has paired hardware evidence for **verified existing-ass
 reuse and a fresh image build**. Fresh model acquisition is a separate gate.
 There is no release tag associated with this qualification.
 
-## Completed evidence
+## Current FP32 correctness update
+
+The selected engine source is `c068898375337c1f2a7bd222e5d1c342b0a83f9c`, image
+`sha256:928fc8e4416e4494de8e600ef81c3ed60393f3871959d77ae20965bc99d2e8ba`
+on both ranks. It selectively integrates Bertholomus v0.5.1's FP32 correction and
+optional reasoning-loop guard, including a local multi-window callback fix.
+The guard stays off by default. Random sampling, assets, capacity and memory
+policy are unchanged; the 225-line dependency inventory matches the prior image.
+
+All nine paired acceptance phases and 32-prefix retention passed, including two
+C32 × 262,144-token waves, cold native-million retrieval and 104 default/ordinary
+reply pairs. The arithmetic difference was reproduced on both GPUs, and the
+paired guard coexistence checks passed. Forty-seven publication tests and 222
+targeted HTTP tests passed, with one existing skip. See the
+[integration report](../deployment/UPSTREAM-V051.md),
+[acceptance receipt](upstream-v051-acceptance.json) and
+[correctness receipt](upstream-v051-correctness.json).
+
+The complete local suite and unchanged upstream C1/prefill measurements passed.
+Normal host restoration and the final restart of the same image passed, including
+feature, LAN and monitor checks. [Current lifecycle receipt](upstream-v051-lifecycle.json)
+and [measurements](../benchmarks/README.md) record their scope. The previous image
+is present on both nodes and installation state is preserved; this update did
+not repeat previous-image fallback, worker-loss or reboot tests.
+
+## Historical portable cutover evidence
 
 - Public upstream ancestry retained; private deployment commits, host journals,
   credentials and raw operational logs omitted.
-- The 476 engine/client files match the qualified source fingerprints in
-  [engine-source.json](engine-source.json). The original private engine/image
-  identifiers are provenance, not publicly fetchable artifacts.
+- The cutover verified 476 engine/client files against its then-selected
+  snapshot. [engine-source.json](engine-source.json) now records current
+  fingerprints and the historical baseline provenance. The original private
+  engine/image identifiers are not publicly fetchable artifacts.
 - Source `2f65892284376d6a59eda1270e3a9ab59f79897b` built and transferred as the
   identical image on both GB10s. All 225 dependency-inventory lines match the
   previous image; installed runtime source identity was checked.

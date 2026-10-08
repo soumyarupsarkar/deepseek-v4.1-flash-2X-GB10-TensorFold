@@ -1,6 +1,6 @@
 # Recipe comparison and attribution
 
-This comparison records source snapshots reviewed for the 2026-10-07 qualification. It is not a claim about the latest versions or a matched speed ranking. The local results are historical; the new portable installer remains unqualified.
+The table records source snapshots reviewed for the 2026-10-07 qualification. It is not a claim about the latest versions or a matched speed ranking. The local results are historical. The later [portable cutover](CUTOVER.md) qualified verified asset reuse and lifecycle recovery; [the v0.5.1 integration](UPSTREAM-V051.md) records the 2026-10-08 Bertholomus review separately.
 
 | Recipe at cited revision | Runtime | Reported performance | Capacity evidence |
 |---|---|---|---|
@@ -13,10 +13,17 @@ Rates are tokens per second. Different dated experiments in one source are label
 
 The unchanged kit reduces one methodological difference with Bertholomus, but physical machines, Keys, pool/slot budget and 1K versus 2K prefill still differ. Our 2K candidate exceeded the unchanged memory ceiling and was rejected. No pool or memory-floor reduction was used to obtain the selected gains.
 
+The v0.5.1 review also identified a precision difference: the earlier local
+container inherited `TORCH_ALLOW_TF32_CUBLAS_OVERRIDE=1`. The updated profile
+explicitly selects 0 and checks FP32 arithmetic at startup. Earlier output hashes
+and performance remain scoped to their original builds; they are not evidence of
+bitwise agreement with the corrected engine or another recipe.
+
 ## Attribution
 
 - [ashhart/TensorFold](https://github.com/ashhart/TensorFold) and its contributors provide the framework, EXL3 foundation and inherited kernels.
-- [Bertholomus / Albert Lee](https://github.com/bertholomus/TensorFold/tree/deepseek-v41-tp2) provides the DeepSeek TP2 engine, vision/RDMA integration, benchmark kit and selective v0.5 kernel/memory improvements. [Detailed family provenance](../tools/dsv41/ATTRIBUTION.md).
+- [Bertholomus / Albert Lee](https://github.com/bertholomus/TensorFold/tree/deepseek-v41-tp2) provides the DeepSeek TP2 engine, vision/RDMA integration, benchmark kit, selective v0.5 kernel/memory improvements and v0.5.1 FP32/loop-guard fixes. [Detailed family provenance](../tools/dsv41/ATTRIBUTION.md).
+- [Capicua25x](https://github.com/bertholomus/deepseek-v4.1-tensorfold-tp2-2xgb10/pull/9) provided the novelty signal that Bertholomus reimplemented for the optional reasoning-loop guard.
 - [Mia-AiLab](https://huggingface.co/Mia-AiLab/DeepSeek-V4.1-Flash-EXL3-2.9bpw) provides the EXL3 checkpoint; [drowzeys / Keys](https://huggingface.co/drowzeys/DeepSeek-V4.1-Flash-Abliterated-Cybersecurity-Unleashed) provides the matching attention overlay. They are downloaded separately at [pinned revisions](config/assets.json).
 - [DeepSeek](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash) provides the original model/assets and model research; the original family provenance identifies its math references.
 - [Urtho](https://github.com/urtho/TensorFold) supplies adapted structured-output/DRM work and the memory/graph-budget approaches described in [third-party notices](../THIRD_PARTY_NOTICES.md). Relevant code pins include `27404275d0f14bba8e97e7ca801de4c956d369be` and `8b05ee70ef2891c579ce7f3292a65dfd39fe600c`.
@@ -24,4 +31,4 @@ The unchanged kit reduces one methodological difference with Bertholomus, but ph
 - [coolbho3k / Emi Huang](https://github.com/coolbho3k/DeepSeek-v4.1-Flash-2x-DGX-Spark) provides the vLLM recipe reference and the display-memory idea credited by Urtho's independent DRM implementation. No AGPL `display_kv.c` source is included by this adaptation.
 - Soumyarup Sarkar's local work combines the recipe, configurable sampling, strict output, bounded capacity/graphs/checkpoints, occupancy diagnostics and measured draft policy; it adds portable installation ownership, restoration and publication evidence. Kernel performance credit remains with the originating authors as documented.
 
-The inherited original-family account is scoped to that original implementation; later local adaptations and their licenses are explicitly separate. This checkout preserves upstream notices and ancestry but omits private installation history. Complete the [release license review](../release/STATUS.md) before publication.
+The inherited original-family account is scoped to that original implementation; later local adaptations and their licenses are explicitly separate. This checkout preserves upstream notices and ancestry but omits private installation history. [Release status](../release/STATUS.md) records the remaining code/model/container license review before a release tag or stronger distribution claims.

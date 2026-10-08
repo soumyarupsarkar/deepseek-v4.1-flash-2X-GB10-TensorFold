@@ -1,6 +1,6 @@
 # Historical engine qualification
 
-These are summaries of the original installation's completed acceptance work. The later [portable cutover report](../deployment/CUTOVER.md) records the verified-reuse migration separately. The engine files match [the qualified source](../release/engine-source.json). Original raw host journals and operational receipts are private and are not bundled.
+These are summaries of the original installation's completed acceptance work. The later [portable cutover report](../deployment/CUTOVER.md) records the verified-reuse migration separately, and the subsequent [FP32 correctness update](../deployment/UPSTREAM-V051.md) has its own evidence. The [source manifest](../release/engine-source.json) records current fingerprints and the historical baseline provenance. Original raw host journals and operational receipts are private and are not bundled.
 
 | Gate | Historical observation |
 |---|---|
