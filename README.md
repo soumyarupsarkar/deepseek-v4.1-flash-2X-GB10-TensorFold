@@ -4,7 +4,7 @@
 
 Run DeepSeek-V4.1-Flash across two NVIDIA GB10s with Mia's EXL3 weights, drowzeys' Keys overlay and a TensorFold TP2 engine built on Bertholomus's work. This fork combines measured concurrency and memory improvements with a reversible deployment workflow.
 
-| Headline | Portable cutover measurement |
+| Headline | Measured result |
 |---|---|
 | Shared KV pool | **8,650,752 logical tokens** across **32 active slots** |
 | Maximum context | **1,048,576 tokens per request**, prompt plus reply |
@@ -15,7 +15,7 @@ Run DeepSeek-V4.1-Flash across two NVIDIA GB10s with Mia's EXL3 weights, drowzey
 
 Measured on the portable two-GB10 build on 2026-10-08 using fully verified existing model and prepared-cache assets. C1 and prefill use the unchanged upstream benchmark client; C16/C32 use the local suite. [Workloads and timing boundaries](#benchmarks) matter when comparing these numbers. Active and retained sessions share the pool; 32 slots do not mean 32 simultaneously full million-token histories.
 
-> **Hardware-qualified reuse path:** image build, paired inference/capacity, failure cleanup and host restoration have been exercised on two GB10s. Fresh model download/extraction remains a separate release gate. [Cutover evidence and limits](deployment/CUTOVER.md) · [Release status](release/STATUS.md).
+> I have personally been using this with model aliases suffixed with `-1m` and `-262k` configured in my coding agent (variants differing only in context window): `-1m` interactively and `-262k` for 32 parallel sessions, and I've been seeing ~140 aggregate tok/s for long-running code review/refactor agent sessions. As far as I know, this is the only dual GB10 recipe for this model that supports this (C32 at full 262k) as of October 8, 2026.
 
 [Credits](#credits) · [Setup](#setup) · [Rollback](#rollback) · [Benchmarks](#benchmarks) · [License](#license)
 
