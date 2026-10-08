@@ -30,3 +30,23 @@ The controller's normal configuration-ownership checks still apply. These
 clients place substantial load on both GPUs and can exercise the watchdog;
 run them during a maintenance window. They do not perform the separate
 worker-failure, interrupted-start or host-restoration acceptance checks.
+
+## Lifecycle fault tests
+
+These explicit maintenance operations each leave both ranks stopped and check
+restoration against this installation's baseline. They preserve models/images.
+
+```bash
+# Start with both hosts idle and the pair stopped.
+python3 -B tools/qualification/check_lifecycle.py interrupted-start --record interrupted
+python3 -B cluster start
+# Run inference/capacity acceptance, then wait until all requests have finished.
+python3 -B tools/qualification/check_lifecycle.py worker-failure --record worker-loss
+python3 -B cluster start
+```
+
+The first terminates a setup child after writing both display journals, then
+uses normal paired stop to recover. The second deliberately kills only the
+owned idle worker and waits for the real paired monitor to clean up and restore
+both hosts. A failed fault test retains its receipt; use normal `cluster stop`
+and `check-host` for recovery before investigating. Neither test reboots a host.
