@@ -1,4 +1,6 @@
 {
+  "baseline_qualified_engine_revision": "699437d9096c0dbd14cd8d28b4a0e84d1f1a1a71",
+  "baseline_qualified_image_id": "sha256:830689e541513583176ba7b55e5e65283110cecaecb7d417ba074ba2e4def0a6",
   "files": [
     {
       "path": "pyproject.toml",
@@ -414,7 +416,7 @@
     },
     {
       "path": "src/tensorfold/cuda/server.py",
-      "sha256": "055d1f3727942817f5803625ec5bdedef14815ff5c27b7a7233c667b40590106"
+      "sha256": "cc5f36e5b7bcfaf7652c6646d8b516398d44e216d137c0d217eefdd0be2036bf"
     },
     {
       "path": "src/tensorfold/cuda/streams.py",
@@ -494,7 +496,7 @@
     },
     {
       "path": "src/tensorfold/engine/call_gate.py",
-      "sha256": "945be1ce7d5ea3a16f774e5acccf748b94b8a9c8071ac2a22926c8c741e6d4a3"
+      "sha256": "17de663d0b60d6bdf3293706d945e4aeea9962fe794cf334be4096d2529abc47"
     },
     {
       "path": "src/tensorfold/engine/exact_sampling.py",
@@ -646,7 +648,7 @@
     },
     {
       "path": "src/tensorfold/families/deepseek_v41/__init__.py",
-      "sha256": "ddf12ffc41a02375cbc33399a6567ebc2c854d1e7f6ee8f3b8f3bd36aeee92e9"
+      "sha256": "824e2092b776c689069e2130dab3657973fb42f5aa732872fc65d7a468bd3485"
     },
     {
       "path": "src/tensorfold/families/deepseek_v41/config.py",
@@ -1905,11 +1907,15 @@
       "sha256": "83a4fbeb987032f906cf00d3f6c9dd2fad47dd675e75dd498c4c4188d63a6c0d"
     }
   ],
-  "qualified_engine_revision": "699437d9096c0dbd14cd8d28b4a0e84d1f1a1a71",
-  "qualified_image_id": "sha256:830689e541513583176ba7b55e5e65283110cecaecb7d417ba074ba2e4def0a6",
-  "schema": 1,
-  "scope": "Engine files and benchmark client are byte-identical to the qualified private build. Deployment tooling is new and needs separate installation qualification. The qualified revision is a provenance identifier, not an ancestor in this public history.",
+  "integrated_updates": [
+    "dfbe519ff68a0bd7f145e79f8c12b3fa1680c439",
+    "741a507f44e0111367d0e969e5894e0c3129c987",
+    "90b68e063a0b8bba59aaf13340ef16619e751195"
+  ],
+  "schema": 2,
+  "scope": "Current engine and benchmark-client fingerprints, based on the original qualified build plus the listed selective updates and documented local adaptations. Baseline build identifiers are historical provenance, not public ancestors or a qualification claim for these updated bytes. See deployment/UPSTREAM-V051.md for current validation.",
   "selective_port": "808eb4a1090ca7b79173cc2c799de16da5f923e3",
   "upstream": "https://github.com/bertholomus/TensorFold",
-  "upstream_base": "d5d7bb389ddf4325c1edf4a15dd1c23727040ea1"
+  "upstream_base": "d5d7bb389ddf4325c1edf4a15dd1c23727040ea1",
+  "upstream_review": "90b68e063a0b8bba59aaf13340ef16619e751195"
 }

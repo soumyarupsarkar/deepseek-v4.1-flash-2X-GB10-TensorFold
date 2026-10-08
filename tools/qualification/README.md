@@ -8,6 +8,7 @@ ordinary inference request logs or select/restart the serving profile.
 ```bash
 python3 -B tools/qualification/qualify_capacity.py --phase draft-tuning --record acceptance
 python3 -B tools/qualification/qualify_retention.py --record acceptance-retention
+python3 -B tools/qualification/qualify_loop_guard.py --record acceptance-loop-guard
 ```
 
 The first command checks text and vision, strict schemas/tools, random seeding
@@ -17,6 +18,11 @@ mixed-request soak. The large C32 workload primes an identical document; it
 does not measure 32 independent cold document prefills. Allow several hours.
 The retention command checks 32 distinct cached prefixes, sequential reuse,
 continuation equality and LRU eviction.
+
+The loop-guard smoke checks ordinary non-looping replies, streaming, concurrent
+requests and exclusions for schemas/thinking budgets. Deterministic forced-loop
+and continuation-seed checks use synthetic HTTP engines in
+`tests/test_cuda_loop_guard.py`; they do not reuse real inference traffic.
 
 Each command creates receipts under Git-ignored
 `deployment/.local/qualification/records/`. Use a different `--record` prefix

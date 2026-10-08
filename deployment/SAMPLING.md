@@ -7,3 +7,9 @@ The normal API defaults are temperature 1, top-p 0.95 and top-k 20. Benchmarks e
 This resembles the usual vLLM client expectation of varying unseeded sampling, but is not a promise of bitwise parity with vLLM. Different engines, batch shapes, precision, prefill chunking or model revisions can change results even with the same seed. Reproduction claims must pin those settings too.
 
 Strict JSON/schema and tool-constrained requests use ordinary constrained decoding. The short counting prompt used in headline benchmarks does not exercise that path. Changing the seed mode in the profile requires a rebuilt/requalified configuration; do not edit an initialized installation's private ownership records to bypass configuration checks.
+
+The optional [reasoning-loop guard](UPSTREAM-V051.md#optional-reasoning-loop-guard)
+keeps the same seed when it closes repetitive thinking and resumes generation.
+It is off by default. The v0.5.1 integration also enforces FP32 prompt arithmetic;
+the previous container's TF32 override can produce different replies at the same
+seed, so replay comparisons must include the precision setting.

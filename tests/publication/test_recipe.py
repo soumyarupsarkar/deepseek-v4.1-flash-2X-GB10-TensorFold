@@ -32,6 +32,8 @@ class ConfigurationTests(unittest.TestCase):
         self.assertEqual(result['profile']['parallel'],32)
         self.assertEqual(result['environment']['TF_DS_POOL_TOKENS'],'8650752')
         self.assertEqual(result['environment']['TENSORFOLD_SEED_MODE'],'random')
+        self.assertEqual(result['environment']['TORCH_ALLOW_TF32_CUBLAS_OVERRIDE'],'0')
+        self.assertEqual(result['environment']['TF_LOOP_GUARD'],'0')
 
     def test_dedicated_data_paths_required(self):
         for path in ('/','/home/user','/etc/model','/tmp/../etc/model','relative','/srv/model:rw','/srv/a b'):
