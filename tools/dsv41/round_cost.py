@@ -44,7 +44,7 @@ def main():
     m.forward(sc, torch.tensor(prompt, device="cuda"), 0, host_ids=prompt)
     torch.cuda.synchronize()
     runner = GraphRunner(m, max(rows or [1]))
-    sc.host = prompt[:]
+    sc.host.set(0, prompt)
     out = {"rows": {}, "profile": {}}
     P = a.prompt_len
     for R in rows:

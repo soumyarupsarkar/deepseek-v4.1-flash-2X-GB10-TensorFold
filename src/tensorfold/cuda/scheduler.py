@@ -54,6 +54,7 @@ class Scheduler:
         self.held: tuple | None = None               # a request waiting for memory, admitted before any other
         self.boxes: dict[int, queue.Queue] = {}
         self.yields = 0                              # background streams that gave up their lane
+        self.admitting = False                      # dequeued and being admitted by the owner thread
         if hasattr(decoder, "arrived"):              # a decoder filling prompts lets a new request in between passes
             decoder.arrived = self.waiting.foreground
         self.thread = threading.Thread(target=self._loop, daemon=True)
@@ -127,6 +128,7 @@ class Scheduler:
                 except queue.Empty:
                     break
             self.boxes[id(stream)] = box
+            self.admitting = True
             try:
                 self.decoder.admit(stream)
             except NoRoom as exc:
@@ -139,9 +141,20 @@ class Scheduler:
             except Exception as exc:                 # noqa: BLE001  (this request fails, the others go on)
                 self.boxes.pop(id(stream)).put(("error", exc))
                 continue
+            finally:
+                self.admitting = False
             if stream.done:
                 done.append(stream)
         return done
+
+    def health_state(self) -> dict:
+        # Queue length is sampled under Queue's existing tiny CPU lock. No
+        # decoder/GPU lock is taken; this is an observational scheduler gauge.
+        with self.waiting.mutex:
+            waiting = sum(item[2] is not None for item in self.waiting.queue)
+        held = int(self.held is not None)
+        return dict(queued=waiting+held, waiting=waiting, held_for_capacity=held,
+                    admitting=int(self.admitting), background_yields=self.yields)
 
     def _yield(self) -> None:
         """Lanes full, a foreground request waiting: the newest background stream (no grammar or images) re-queues."""

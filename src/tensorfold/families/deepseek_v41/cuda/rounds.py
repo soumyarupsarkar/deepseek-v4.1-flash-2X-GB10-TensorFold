@@ -4,7 +4,7 @@ stream's position and in its own stream's cache rows (a pool slot), read from de
 A row's arithmetic is its solo window's: every kernel is row-invariant, the cache kernels take the row's slot base
 (the ring, the compressed rows, the indexer keys, the compressor's raw inputs), and selection is a total order
 (``kernels.topk_indices``), so a row's top-k does not depend on the round's bucket or the rows beside it. Rounds keep
-the decode windows' kernels by staying at 16 rows or fewer (the row thresholds the solo windows sit under). Prompts
+the decode windows' kernels with an explicit MoE decode path, up to 64 rows. Prompts
 never come here: a stream's prompt fills its slot through the single-stream path on the slot's views (model.py).
 """
 
@@ -13,6 +13,7 @@ from __future__ import annotations
 import os
 
 import torch
+import torch.nn.functional as F
 
 from ..ops import BF16, F32, fp4_qd
 from . import kernels as K
@@ -22,6 +23,9 @@ from .model import (KV_QUANT, RAW, Model, PoolCache, SeqCache, _candidates, appl
                     l2_fork, l2_join, mm, moe_side, q_proj, store_rows, wo_a_out, wo_a_rot, wo_ab)
 
 MAX_ROWS = K.DECODE_ROWS
+# Each graph otherwise retains its own full-vocabulary logits and drafter taps.
+# Rounds are serial; the multi-batch verifier already copies results before replay.
+SHARED_OUTPUTS = os.environ.get("TF_DS_SHARED_ROUND_OUTPUTS", "0") == "1"
 # TF_DS_ENGRAM_SPLIT=1 (default): a round is one graph a stretch of layers, cut before each Engram layer, so a layer's
 # Engram rows are read while the layers before it run (the arithmetic is the one-graph round's)
 ENGRAM_SPLIT = os.environ.get("TF_DS_ENGRAM_SPLIT", "1") == "1"
@@ -48,11 +52,42 @@ def _candidates_fast(score: torch.Tensor, vis: torch.Tensor, nblocks: int, bsize
     return (s > float("-inf")) | (torch.arange(nb, device=score.device)[None] == last[:, None])
 
 
+class RoundOutputs:
+    """One fixed output plane for every row shape; contents last until the next forward."""
+
+    def __init__(self, rows: int, vocab: int, tap_columns: int, device="cuda"):
+        self.logits = torch.empty((rows, vocab), dtype=F32, device=device)
+        self.taps = torch.empty((rows, tap_columns), dtype=BF16, device=device) if tap_columns else None
+
+    def store_logits(self, gathered: torch.Tensor) -> torch.Tensor:
+        world, rows, vocab_part = gathered.shape
+        if rows > self.logits.shape[0] or world * vocab_part != self.logits.shape[1]:
+            raise ValueError("round logits exceed the fixed output plane")
+        out = self.logits[:rows]
+        # The old permute().reshape() also copies for TP>1. Copy directly into
+        # the fixed plane, preserving rank order without retaining a new tensor.
+        out.view(rows, world, vocab_part).copy_(gathered.permute(1, 0, 2))
+        return out
+
+
+def _candidate_blocks(score: torch.Tensor, vis: torch.Tensor, nblocks: int, bsize: int) -> torch.Tensor:
+    """model._candidates' pool as block ids [rows, nblocks] int32 (-1: no block), for index_keys_cand: the blocks
+    _candidates' mask sets (the same top-k of the block maxima, the newest block pinned in, finite maxima only)."""
+
+    width = score.shape[-1]
+    s = F.pad(score, (0, -width % bsize), value=float("-inf")).unflatten(-1, (-1, bsize)).amax(-1)
+    nb = s.shape[-1]
+    last = (vis - 1) // bsize
+    s = s.masked_fill(torch.arange(nb, device=score.device)[None] == last[:, None], float("inf"))
+    idx = K.topk_indices(s, min(nblocks, nb))
+    return torch.where(s.gather(-1, idx) > float("-inf"), idx, -1).to(torch.int32)
+
+
 class RoundDecoder:
     """Graph-captured forward of R rows from several streams over a pool; inputs in device buffers: token ids,
     positions, slots, Engram rows."""
 
-    def __init__(self, model: Model, pool: PoolCache, rows: int, bucket: int, taps: bool):
+    def __init__(self, model: Model, pool: PoolCache, rows: int, bucket: int, taps: bool, outputs=None):
         if rows > MAX_ROWS:
             raise ValueError(f"a concurrent round holds {MAX_ROWS} rows at most, not {rows}")
         self.m, self.pool, self.R, self.bucket, self.want_taps = model, pool, rows, bucket, taps
@@ -76,6 +111,7 @@ class RoundDecoder:
         self.graph = None
         self.logits = None
         self.taps = None
+        self.outputs = outputs
         self._idx = {}
 
     def _ix(self, key):
@@ -314,18 +350,37 @@ class RoundDecoder:
                 wscale = c.idx_dim ** -0.5 * c.idx_heads ** -0.5
                 wts = K.rowmm_wts(x, lay.idx_proj_h, wscale) if fused else rowmm(x, lay.idx_proj_h).to(BF16) * wscale
                 kk = min(c.idx_topk, nb)
-                if fused and lay.idx != c.cand_source and kk & (kk - 1) == 0:
+                if fused and 0 <= c.cand_source < lay.idx and kk & (kk - 1) == 0 and "cblk" in shared:
+                    # past the pool's width: score the pool's blocks only (the same keys there, -inf keys elsewhere
+                    # left out: the same top-k)
+                    keys = K.index_keys_cand(iq, pool.index_k[src], wts, vis, nb, shared["cblk"], c.cand_block,
+                                             base=cbase)
+                    shared["topk"] = K.topk_select(keys, kk, vis)
+                elif fused and lay.idx != c.cand_source and kk & (kk - 1) == 0:
                     # scores -> (candidate mask) -> top-k keys in one launch, the top-k's indices sorted and masked
                     # in one more (the cand-source layer keeps the scores for _candidates)
                     cand = shared["cand"] if 0 <= c.cand_source < lay.idx else None
-                    keys = K.index_keys(iq, pool.index_k[src], wts, vis, nb, base=cbase, cand=cand,
-                                        cand_block=c.cand_block)
-                    shared["topk"] = K.topk_select(keys, kk, vis)
+                    if nb > K.TOPK_FUSED_MAX and K.on("topk_prune"):
+                        # long buckets: each 64-key tile's maximum too; the top-k from the k best tiles (exact)
+                        keys, tm = K.index_keys(iq, pool.index_k[src], wts, vis, nb, base=cbase, cand=cand,
+                                                cand_block=c.cand_block, tmax=True, pruned_k=kk)
+                        shared["topk"] = K.topk_select_pruned(keys, tm, kk, vis)
+                    else:
+                        keys = K.index_keys(iq, pool.index_k[src], wts, vis, nb, base=cbase, cand=cand,
+                                            cand_block=c.cand_block)
+                        shared["topk"] = K.topk_select(keys, kk, vis)
                 elif fused and lay.idx == c.cand_source and kk & (kk - 1) == 0:
                     # the cand-source layer: the scores for the candidate pool, then their keys' top-k as above
                     score = K.index_score(iq, pool.index_k[src], wts, vis, nb, base=cbase)
-                    shared["cand"] = _candidates_fast(score, vis, c.cand_blocks, c.cand_block)
-                    shared["topk"] = K.topk_select(K.score_keys(score), kk, vis)
+                    if K.on("cand_only") and nb > c.cand_blocks * c.cand_block:
+                        shared["cblk"] = _candidate_blocks(score, vis, c.cand_blocks, c.cand_block)
+                    else:
+                        shared["cand"] = _candidates_fast(score, vis, c.cand_blocks, c.cand_block)
+                    if nb > K.TOPK_FUSED_MAX and K.on("topk_prune"):
+                        keys, tm = K.score_keys(score, tmax=True)
+                        shared["topk"] = K.topk_select_pruned(keys, tm, kk, vis)
+                    else:
+                        shared["topk"] = K.topk_select(K.score_keys(score), kk, vis)
                 else:
                     score = K.index_score(iq, pool.index_k[src], wts, vis, nb, base=cbase)
                     if lay.idx == c.cand_source:
@@ -397,7 +452,7 @@ class RoundDecoder:
                 fn, scale, base = lay.hc_ffn
                 K.hc_pre(h, fn, scale, base, pre_a, lay.ffn_norm, c.eps, c.hc_eps, c.hc_iters, x, pre_f, post, comb,
                          part)
-                y = m.moe(lay, x, shared_side=moe_side())           # the gate is in L2 by then
+                y = m.moe(lay, x, shared_side=moe_side(), decode_window=True)  # the gate is in L2 by then
                 self._l2_next(li, end)
                 K.hc_post(m.comm.gather(y), h, post, comb, h)
                 pre, pre_f = pre_f, pre
@@ -410,12 +465,17 @@ class RoundDecoder:
         xc = K.collapse_norm(h, pre.contiguous(), w.norm, c.eps)
         local = mm(w.head, xc, F32)
         g = m.comm.gather(local)
-        self.logits = g.permute(1, 0, 2).reshape(n, -1)
+        self.logits = (g.permute(1, 0, 2).reshape(n, -1) if self.outputs is None
+                       else self.outputs.store_logits(g))
         if len(taps) == 2 and isinstance(taps[1], int):     # the taps buffer (every tap layer written)
             assert taps[1] * c.dim == taps[0].shape[1]
             self.taps = taps[0]
         else:
-            self.taps = torch.cat(taps, -1) if taps else None
+            if taps and self.outputs is not None:
+                self.taps = self.outputs.taps[:n]
+                torch.cat(taps, -1, out=self.taps)
+            else:
+                self.taps = torch.cat(taps, -1) if taps else None
 
     def _l2_next(self, li: int, end: int) -> None:
         """After layer li's experts: the next layer's first weights into L2 (the head's after the last layer); a
@@ -477,7 +537,8 @@ class RoundDecoder:
                     # one launch a tap, straight into its block of the taps buffer (made at the first tap)
                     if not taps:
                         ntap = sum(1 for i in c.dspark_taps if i < len(m.w.layers))
-                        taps.append(torch.empty((h.shape[0], ntap * c.dim), dtype=BF16, device=h.device))
+                        taps.append(torch.empty((h.shape[0], ntap * c.dim), dtype=BF16, device=h.device)
+                                    if self.outputs is None else self.outputs.taps[:h.shape[0]])
                         taps.append(0)
                     j = taps[1]
                     K.tap(h, taps[0][:, j * c.dim:(j + 1) * c.dim])
@@ -488,7 +549,7 @@ class RoundDecoder:
             join()
             pending = m.comm.gather(y)
             h = pre_mix(h, lay.hc_ffn, pre_a, lay.ffn_norm, pre_f)
-            y = m.moe(lay, x, shared_side=moe_side())               # the gate is in L2 by then
+            y = m.moe(lay, x, shared_side=moe_side(), decode_window=True)  # the gate is in L2 by then
             self._l2_next(li, end)
             join()
             pending = m.comm.gather(y)
@@ -569,9 +630,18 @@ class RoundRunner:
         self.graphs: dict = {} if graphs else None
         self.graph_pool = graph_pool
         self.captures = 0
+        from .graph_budget import widths
+        self.widths = widths(os.environ.get('TF_DS_GRAPH_BUCKETS'),
+                             min(pool.cap, getattr(model, 'rope_context', 0) or
+                                 getattr(model, 'rope_cap', 0) or pool.cap))
+        self.sealed = False
+        self.outputs = None
 
     def bucket(self, deepest: int) -> int:
-        return bucket_for(deepest, self.pool.cap)
+        if getattr(self, 'widths', ()):
+            from .graph_budget import select
+            return select(deepest, self.widths)
+        return bucket_for(deepest, min(self.pool.cap, getattr(self.m, 'rope_cap', 0) or self.pool.cap))
 
     def engram_touch(self, tails: list[list[int]]) -> None:
         """``tails``: each stream's host ids ending with its pending token, the n-gram's tokens before it included (or
@@ -597,7 +667,8 @@ class RoundRunner:
 
     def forward(self, windows: list[tuple], replay: bool = True) -> tuple[torch.Tensor, torch.Tensor | None]:
         """``windows``: each stream's (slot, extent base, extent size, first position, token ids, host ids so far):
-        rows in that order. Returns logits [R, V] and taps [R, 3 d] (the rows in window order); ``replay=False``
+        rows in that order. Returns logits [R, V] and taps [R, 3 d] (the rows in window order; with SHARED_OUTPUTS views of
+        the runner's pair, valid until its next forward); ``replay=False``
         only captures a missing graph (warm-up) and returns (None, None)."""
 
         m = self.m
@@ -635,7 +706,12 @@ class RoundRunner:
         key = (R, b)
         g = self.graphs.get(key) if self.graphs is not None else None
         if g is None:
-            g = RoundDecoder(m, self.pool, R, b, True)
+            if self.graphs is not None and self.sealed:
+                raise RuntimeError(f'decode graph {key} was not warmed before serving')
+            if SHARED_OUTPUTS and self.outputs is None:
+                ntap = sum(1 for i in m.cfg.dspark_taps if i < len(m.w.layers))
+                self.outputs = RoundOutputs(MAX_ROWS, m.cfg.vocab, ntap * m.cfg.dim)
+            g = RoundDecoder(m, self.pool, R, b, True, outputs=self.outputs)
             g.set(ids, pos, slots, base, end)
             if self.graphs is not None:
                 if self.graph_pool is None:

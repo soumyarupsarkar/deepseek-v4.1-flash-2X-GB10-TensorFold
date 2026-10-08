@@ -21,7 +21,7 @@ from tensorfold.cuda.exl3 import prefill as exl3_prefill
 
 from ..config import Cfg
 from . import kernels as K
-from ..ops import (BF16, F32, EngramHasher, fp4_qd, fp8_qd, freqs_cis, hc_split_sinkhorn, rms_norm, rope_,
+from ..ops import (BF16, F32, EngramHasher, HostIds, RopeTables, fp4_qd, fp8_qd, hc_split_sinkhorn, rms_norm, rope_,
                    sparse_attn)
 
 RAW = 64                            # per-position compressor inputs kept (a verify window rolls back by length alone)
@@ -39,7 +39,7 @@ ENGRAM_RANDOM = os.environ.get("TF_DS_ENGRAM_RANDOM", "1") == "1"
 # idle took ~0.6 ms on GB10, two hand-offs made a 6-row window's read ~2 ms (AIO ~0.4-0.8 ms). The same bytes (checked
 # against preads at start; falls back to the pool when the kernel or the filesystem refuses).
 ENGRAM_AIO = os.environ.get("TF_DS_ENGRAM_AIO", "1") == "1"
-ENGRAM_AIO_SLOTS = 1024                                    # reads in flight at most (8 KB bounce slots: 8 MB)
+ENGRAM_AIO_SLOTS = 1024                                    # minimum bounce ring (8 KB per read slot)
 # TF_DS_ENGRAM_TOUCH_ASYNC=1 (default): a round's touch is submitted by engram_io's touch thread (aio_touch), not by the
 # round's thread (whose io_submit of it took ~0.6 ms on one node and held the round); 0: submitted inline as before
 ENGRAM_TOUCH_ASYNC = os.environ.get("TF_DS_ENGRAM_TOUCH_ASYNC", "1") == "1"
@@ -109,7 +109,11 @@ class Comm:
         if self.world == 1:
             return x
         g = self.gather(x)
-        acc = g[0].clone()
+        # gather() owns a fresh output, so its rank-zero slice is already a copy
+        # of x. Reduce there in the same rank order. Cloning it again costs
+        # 200 MiB for a 2048-row Engram projection and can exhaust the allocator
+        # before any arithmetic begins. Callers convert the result to BF16.
+        acc = g[0]
         for r in range(1, self.world):
             acc += g[r]
         return acc
@@ -401,7 +405,7 @@ class SeqCache:
     index_k: dict = field(default_factory=dict)       # kv-source layer -> [cap // ratio, idx_dim] bf16 (fp4-rounded)
     comp_raw: dict = field(default_factory=dict)      # ratio>1 kv-source layer -> (kv, score) [RAW, D] f32 by position
     tokens: torch.Tensor | None = None                # [cap] int64 token ids
-    host: list = field(default_factory=list)          # the same ids on the host (Engram hashes)
+    host: HostIds = field(default_factory=HostIds)    # the same ids on the host (Engram hashes; int32)
     ring_size: int = 0
 
 
@@ -456,6 +460,14 @@ class _AioRead:
         except RuntimeError as exc:
             return exc
         return None
+
+
+def _engram_aio_slots(rows: int, columns: int) -> int:
+    """Room for a complete decode batch's weight and scale reads, at least the existing ring size."""
+    if rows < 1 or columns < 1:
+        raise ValueError("Engram AIO needs positive row and hash-column counts")
+    reads = 2 * rows * columns
+    return max(ENGRAM_AIO_SLOTS, 1 << (reads - 1).bit_length())
 
 
 class Engram:
@@ -517,7 +529,11 @@ class Engram:
         try:
             for fd, path in paths.items():
                 dfd[fd] = os.open(str(path), os.O_RDONLY | os.O_DIRECT)
-            if not self.io.aio_init(ENGRAM_AIO_SLOTS):
+            # Each target row reads a weight and a scale for every local hash column.
+            # TP2's 64 x 12 x 2 reads need 1536 slots, beyond the old fixed 1024.
+            check_rows = max(5, K.DECODE_ROWS * (self.cols[1] - self.cols[0]))
+            slots = _engram_aio_slots(K.DECODE_ROWS, self.cols[1] - self.cols[0])
+            if not self.io.aio_init(slots):
                 raise OSError("io_setup refused")
             dfiles = {name: (dfd[fd], off, rb) for name, (fd, off, rb) in self.files.items()}
             name = next(n for n in self.files if n.endswith("engram.embed.weight"))
@@ -527,6 +543,8 @@ class Engram:
             dw, _, _ = dfiles[name]
             ds, _, _ = dfiles[layer + "engram.embed.scale"]
             idx = torch.tensor([0, 1, 4097, 123457, 7654321], dtype=torch.int64)
+            # Exercise a whole verification batch at startup, not just five reads.
+            idx = idx.repeat(-(-check_rows // idx.numel()))[:check_rows].contiguous()
             m = idx.numel()
             pw, ps = torch.empty((m, rw), dtype=torch.uint8), torch.empty((m, rs), dtype=torch.uint8)
             aw, as_ = torch.empty_like(pw), torch.empty_like(ps)
@@ -535,6 +553,7 @@ class Engram:
             self.io.aio_wait(self.io.aio_start(dw, bw, rw, ds, bs, rs, idx, aw, as_, 1))
             if not (torch.equal(pw, aw) and torch.equal(ps, as_)):
                 raise OSError("AIO rows differ from the preads'")
+            print(f"[tensorfold] Engram AIO: {slots} read slots; verified {m} hash rows", flush=True)
             return dfiles
         except (OSError, RuntimeError, StopIteration) as exc:
             for d in dfd.values():
@@ -691,6 +710,7 @@ class Model:
         c = self.cfg
         self.Hl = c.n_heads // w.world
         self.scratch: dict = {}
+        self.rope = RopeTables(c)
         self._zero = torch.zeros((1,), dtype=torch.int64, device="cuda")
         if not KERNELS and KV_QUANT:
             raise ValueError("TF_DS_KERNELS=0 (the torch path) reads bf16 caches only: also set TF_DS_KV=bf16")
@@ -700,6 +720,8 @@ class Model:
 
     # -- caches ---------------------------------------------------------------------------------------------------
     def new_cache(self, cap: int) -> SeqCache:
+        from tensorfold.cuda.carveout import take_or_zeros
+
         c = self.cfg
         ring = c.window + RING_EXTRA
         sc = SeqCache(cap=cap, ring_size=ring)
@@ -710,16 +732,16 @@ class Model:
             r = c.compress_ratios[i]
             rows = cap // r + 2                          # + a scratch row (graph-captured windows' incomplete groups)
             if KV_QUANT:                                 # packed FP4 (DeepSeek's cache formats), 288 + 68 B a row
-                sc.comp[i] = (torch.zeros((rows, c.head_dim // 2), dtype=torch.uint8, device="cuda"),
-                              torch.zeros((rows, c.head_dim // 16), dtype=torch.uint8, device="cuda"))
+                sc.comp[i] = (take_or_zeros((rows, c.head_dim // 2), dtype=torch.uint8),
+                              take_or_zeros((rows, c.head_dim // 16), dtype=torch.uint8))
             else:
-                sc.comp[i] = torch.zeros((rows, c.head_dim), dtype=BF16, device="cuda")
+                sc.comp[i] = take_or_zeros((rows, c.head_dim), dtype=BF16)
             if i in c.index_sources:
                 if KV_QUANT:
-                    sc.index_k[i] = (torch.zeros((rows, c.idx_dim // 2), dtype=torch.uint8, device="cuda"),
-                                     torch.full((rows, c.idx_dim // 32), 127, dtype=torch.uint8, device="cuda"))
+                    sc.index_k[i] = (take_or_zeros((rows, c.idx_dim // 2), dtype=torch.uint8),
+                                     take_or_zeros((rows, c.idx_dim // 32), dtype=torch.uint8).fill_(127))
                 else:
-                    sc.index_k[i] = torch.zeros((rows, c.idx_dim), dtype=BF16, device="cuda")
+                    sc.index_k[i] = take_or_zeros((rows, c.idx_dim), dtype=BF16)
             if r > 1:
                 sc.comp_raw[i] = (torch.zeros((RAW, c.head_dim), dtype=F32, device="cuda"),
                                   torch.zeros((RAW, c.head_dim), dtype=F32, device="cuda"))
@@ -766,29 +788,30 @@ class Model:
         v.tokens = pool.tokens[base:base + size]
         return v
 
-    def _freqs(self, layer: int, n: int) -> torch.Tensor:
-        c = self.cfg
-        if c.compress_ratios[layer]:
-            return freqs_cis(c.rope_dim, n, c.orig_len, c.compress_theta, c.rope_factor, c.beta_fast, c.beta_slow)
-        return freqs_cis(c.rope_dim, n, 0, c.rope_theta, c.rope_factor, c.beta_fast, c.beta_slow)
-
     def _cs(self, layer: int, sc: SeqCache):
-        """(cos, sin) fp32 [cap, rope_dim / 2] for this layer's rope kind."""
+        """(cos, sin) fp32 [rows, rope_dim / 2] for this layer's rope kind: one table a kind for the engine's whole
+        window (``rope_cap``) whatever the cache, so a stream's prompt and its rounds read the same rows
+        (ops.RopeTables: no row's bits depend on the table's length, and the rows below 2^19 keep the bits of the
+        2^19-row table every earlier lane read)."""
 
-        f = self._f(layer, sc)
-        key = (self.cfg.compress_ratios[layer] > 0, f.shape[0])
-        t = self.scratch.get(("cs", key))
-        if t is None:
-            t = (f.real.contiguous().float(), f.imag.contiguous().float())
-            self.scratch[("cs", key)] = t
-        return t
+        # Pool addresses span independent sequences; positions are local to one request.
+        # Using sc.cap here would allocate tables for the entire 8.65M-token pool.
+        positions = getattr(self, "rope_cap", 0) or sc.cap
+        return self.rope.cs(self.cfg.compress_ratios[layer] > 0, positions)
+
+    def _rot(self, layer: int, sc: SeqCache, idx) -> torch.Tensor:
+        """The complex rotations at positions ``idx`` (a slice or an index tensor): _cs's rows as one complex tensor,
+        the values the complex table held (cos and sin are its real and imaginary parts)."""
+
+        cos, sin = self._cs(layer, sc)
+        return torch.complex(cos[idx], sin[idx])
 
     def _f(self, layer: int, sc: SeqCache) -> torch.Tensor:
-        # one table per rope kind, for the engine's whole window (``rope_cap``) whatever the cache: a table built at
-        # another length can differ in a row's last bits (the CPU's vectorized sin/cos), and a stream's prompt and its
-        # rounds must read the same rows
-        cap = 1 << max(12, (max(sc.cap, getattr(self, "rope_cap", 0)) - 1).bit_length())
-        return self._freqs(layer, cap)
+        """This layer's rotations as one complex table [rows, rope_dim / 2], made from _cs's table and not kept (the
+        engine reads _cs and _rot; this is for tools)."""
+
+        cos, sin = self._cs(layer, sc)
+        return torch.complex(cos, sin)
 
     # -- mHC -------------------------------------------------------------------------------------------------------
     def hc_mixes(self, h: torch.Tensor, params):
@@ -865,13 +888,13 @@ class Model:
         n = x.shape[0]
         rd, hd = c.rope_dim, c.head_dim
         ratio = lay.ratio
-        f = self._f(lay.idx, sc)
+        fs = self._rot(lay.idx, sc, slice(start, start + n))           # this block's rows' rotations
         pos = torch.arange(start, start + n, device=x.device)
         qr = rms_norm(mm(lay.wq_a, x), lay.q_norm, c.eps)
         q = mm(lay.wq_b, qr).view(n, self.Hl, hd)
-        rope_(q[..., -rd:], f[start:start + n])
+        rope_(q[..., -rd:], fs)
         kv = rms_norm(mm(lay.wkv, x), lay.kv_norm, c.eps)
-        rope_(kv[..., -rd:], f[start:start + n])
+        rope_(kv[..., -rd:], fs)
         if KV_QUANT:
             kv = fp8_qd(kv, 32)
         # window keys: the ring's last (window - 1) positions before start, then this block's rows
@@ -891,13 +914,13 @@ class Model:
                 shared["kv_layer"] = lay.idx
                 if lat is not None and lay.idx_wk is not None:
                     k = rms_norm(mm(lay.idx_wk, lat), lay.idx_k_norm, c.eps)
-                    rope_(k[..., -rd:], f[groups * ratio])
+                    rope_(k[..., -rd:], self._rot(lay.idx, sc, groups * ratio))
                     if KV_QUANT:
                         k = fp4_qd(k, 32, e4m3_scale=False)
                     sc.index_k[lay.idx][groups] = k
                 if lat is not None:
                     lat = lat.clone()
-                    rope_(lat[..., -rd:], f[groups * ratio])
+                    rope_(lat[..., -rd:], self._rot(lay.idx, sc, groups * ratio))
                     if KV_QUANT:
                         lat = fp4_qd(lat, 16, e4m3_scale=True)
                     sc.comp[lay.idx][groups] = lat
@@ -909,7 +932,7 @@ class Model:
                     cidx = torch.full((n, 0), -1, dtype=torch.long, device=x.device)
                 else:
                     iq = mm(lay.idx_wq_b, qr).view(n, c.idx_heads, c.idx_dim)
-                    rope_(iq[..., -rd:], f[start:start + n])
+                    rope_(iq[..., -rd:], fs)
                     if KV_QUANT:
                         iq = fp4_qd(iq, 32, e4m3_scale=False)
                     wts = (x.to(F32) @ lay.idx_proj.t()).to(BF16) * (c.idx_dim ** -0.5 * c.idx_heads ** -0.5)
@@ -934,7 +957,7 @@ class Model:
             off = keys_w.shape[0]
             idx = torch.cat([widx, torch.where(cidx >= 0, cidx + off, -1)], -1)
         o = sparse_attn(q, keys, lay.sink, idx, hd ** -0.5)
-        rope_(o[..., -rd:], f[start:start + n], inverse=True)
+        rope_(o[..., -rd:], fs, inverse=True)
         # write this block's window keys into the ring (positions start .. start+n-1)
         keep = min(n, R)
         ring[pos[-keep:] % R] = kv[-keep:]
@@ -949,13 +972,14 @@ class Model:
         rd, ratio = c.rope_dim, lay.ratio
         lat, groups = self._compress(lay, x, sc, start)
         shared["kv_layer"] = lay.idx
+        rot = self._rot(lay.idx, sc, groups * ratio) if lat is not None else None    # the groups' rotations
         if lat is not None and lay.idx_wk is not None:
             k = rms_norm(mm(lay.idx_wk, lat), lay.idx_k_norm, c.eps)
-            rope_(k[..., -rd:], self._f(lay.idx, sc)[groups * ratio])
+            rope_(k[..., -rd:], rot)
             store_rows(sc.index_k[lay.idx], groups, k, 32, False)
         if lat is not None:
             lat = lat.clone()
-            rope_(lat[..., -rd:], self._f(lay.idx, sc)[groups * ratio])
+            rope_(lat[..., -rd:], rot)
             store_rows(sc.comp[lay.idx], groups, lat, 16, True)
 
     def attention_k(self, lay, x: torch.Tensor, sc: SeqCache, start: int, shared: dict, pos: torch.Tensor,
@@ -1009,9 +1033,22 @@ class Model:
                     cidx = torch.empty((n, kk), dtype=torch.int64, device=x.device)
                     # rows in blocks so the [rows, n_comp] score matrix stays bounded at long contexts
                     rb = max(16, min(n, (1 << 26) // (4 * max(n_comp_end, 1))))
+                    # (switch "prompt_keys") layers before the candidate source: the score kernel writes the top-k
+                    # keys and each 64-key tile's maximum, and topk_select_pruned searches only the k tiles with the
+                    # largest maxima (exact: keys are unique), in the same row blocks, so the same kernels score each
+                    # row: the same selection, without the fp32 scores, six torch passes to keys and a full top-k
+                    keyed = (K.on("prompt_keys") and lay.idx != c.cand_source and not 0 <= c.cand_source < lay.idx
+                             and kk & (kk - 1) == 0)
                     cand_parts = []
                     for r0 in range(0, n, rb):
                         r1 = min(n, r0 + rb)
+                        if keyed:
+                            vr = vis[r0:r1].contiguous()
+                            keys, tm = K.index_score(iq[r0:r1].contiguous(), sc.index_k[src],
+                                                     wts[r0:r1].contiguous(), vr, n_comp_end, keys=True, tmax=True)
+                            cidx[r0:r1] = K.topk_select_pruned(keys, tm, kk, vr)
+                            del keys, tm
+                            continue
                         score = K.index_score(iq[r0:r1].contiguous(), sc.index_k[src], wts[r0:r1].contiguous(),
                                               vis[r0:r1].contiguous(), n_comp_end)
                         if lay.idx == c.cand_source:
@@ -1042,10 +1079,11 @@ class Model:
 
     # -- MoE -------------------------------------------------------------------------------------------------------
     def moe(self, lay, x: torch.Tensor, topk: int | None = None, img: torch.Tensor | None = None,
-            shared_side: bool = False) -> torch.Tensor:
+            shared_side: bool = False, decode_window: bool = False) -> torch.Tensor:
         """fp32 partial [n, d] of the MoE. ``shared_side`` (the decode bodies, which prefetch this layer's mHC mix and
         gate into L2 first): with SHARED_OVERLAP a decode window's shared expert runs on a side stream (_shared_side).
-        (Without the gate in L2 the side stream's DRAM traffic slows the gate's matmul by more than it overlaps.)"""
+        (Without the gate in L2 the side stream's DRAM traffic slows the gate's matmul by more than it overlaps.)
+        ``decode_window`` identifies target verification explicitly, including a graph-captured 64-row round."""
         c = self.cfg
         n = x.shape[0]
         topk = topk or c.topk
@@ -1083,19 +1121,22 @@ class Model:
             wts = wts * c.route_scale
             pick = torch.cat([ind, torch.full((n, 1), shared_id, dtype=ind.dtype, device=x.device)], 1).to(torch.int32)
             wts = torch.cat([wts, torch.ones((n, 1), dtype=F32, device=x.device)], 1).contiguous()
-        s = self._moe_scratch(lay, n, slots)
+        s = self._moe_scratch(lay, n, slots, decode_window=decode_window)
         if EXACT_MM:
             return self._moe_exact(lay, x, pick, wts)
         out = exl3_experts.routed(x.contiguous(), pick.contiguous(), wts, lay.experts, s, None, n,
-                                  limit=c.swiglu_limit, act_mode=exl3_experts.ACT_F32, before_down=side_done)
+                                  limit=c.swiglu_limit, act_mode=exl3_experts.ACT_F32, before_down=side_done,
+                                  decode_window=decode_window)
         return out                                                        # fp32 partial [n, d]
 
-    def _moe_scratch(self, lay, n: int, slots: int) -> "exl3_experts.Scratch":
-        prompt = n >= 64
+    def _moe_scratch(self, lay, n: int, slots: int, *, decode_window: bool = False) -> "exl3_experts.Scratch":
+        if decode_window and not 0 < n <= 64:
+            raise ValueError("DeepSeek verification must hold 1 to 64 rows")
+        prompt = n >= 64 and not decode_window
         skey = ("moe", slots, lay.experts.count, prompt)
         s = self.scratch.get(skey)
         if s is None or s.rows < n:
-            # decode / verify windows (< 64 rows) take one scratch of 64 rows made once and never replaced: CUDA graphs
+            # Decode / verify windows take one scratch of 64 rows made once and never replaced: CUDA graphs
             # captured with it keep writing into its memory, so freeing it for a bigger one would corrupt whatever
             # reused that memory (an illegal access on the next replay). Prompt chunks (eager only) may grow theirs.
             assert prompt or s is None, "decode scratch must not be replaced"
@@ -1182,9 +1223,8 @@ class Model:
         if self.engram is not None:
             if host_ids is None:
                 host_ids = ids.tolist()
-            del sc.host[start:]
-            sc.host.extend(int(t) for t in host_ids)
-            hashes = self.engram.hashes(sc.host, start, n)                          # [n, L, cols] host
+            sc.host.set(start, host_ids)
+            hashes = self.engram.hashes(sc.host.view(), start, n)                   # [n, L, cols] host
         shared: dict = {}
         if KERNELS:
             return self._forward_k(sc, ids, start, all_logits, taps, h, pre, hashes, shared, replay, img)
@@ -1227,6 +1267,7 @@ class Model:
         post = torch.empty((n, c.hc), dtype=F32, device=dev)
         comb = torch.empty((n, c.hc, c.hc), dtype=F32, device=dev)
         floor, kv_done = 0, False
+        h_alt = None                                             # (switch "hc_pf") the streams' second buffer
         self.taps_start = start
         for lay in w.layers:
             if replay is not None and lay.idx == c.n_layers // 2:
@@ -1260,19 +1301,32 @@ class Model:
             if taps is not None and lay.idx in c.dspark_taps:
                 taps.append(h.to(F32).mean(1).to(BF16))
             fn, scale, base = lay.hc_attn
+            hc_pf = K.on("hc_pf") and c.dim % 1024 == 0
             with _T("hc"):
-                K.hc_pre(h, fn, scale, base, pre, lay.attn_norm, c.eps, c.hc_eps, c.hc_iters, x, pre_a, post, comb,
-                         part)
+                if hc_pf:
+                    K.hc_pre2(h, fn, scale, base, pre, lay.attn_norm, c.eps, c.hc_eps, c.hc_iters, x, pre_a, post,
+                              comb, part)
+                else:
+                    K.hc_pre(h, fn, scale, base, pre, lay.attn_norm, c.eps, c.hc_eps, c.hc_iters, x, pre_a, post,
+                             comb, part)
             with _T("attn_r%d" % (2 if lay.comp_wkv is not None else 1 if lay.idx_wq_b is not None else 0)):
                 pa = self.attention_k(lay, x, sc, start, shared, pos, floor=floor,
                                       kv_done=kv_done and lay.idx == c.n_layers // 2)
             with _T("gather"):
                 g = self.comm.gather(pa)
             with _T("hc"):
-                K.hc_post(g, h, post, comb, h)
                 fn, scale, base = lay.hc_ffn
-                K.hc_pre(h, fn, scale, base, pre_a, lay.ffn_norm, c.eps, c.hc_eps, c.hc_iters, x, pre_f, post, comb,
-                         part)
+                if hc_pf:
+                    # (switch "hc_pf") the attention post fused into the FFN mixes: the posted streams go to the
+                    # other buffer (programs still read h), which becomes h
+                    if h_alt is None or h_alt.shape != h.shape:
+                        h_alt = torch.empty_like(h)
+                    h, h_alt = K.hc_pre2(h, fn, scale, base, pre_a, lay.ffn_norm, c.eps, c.hc_eps, c.hc_iters, x,
+                                         pre_f, post, comb, part, gathered=g, h_out=h_alt), h
+                else:
+                    K.hc_post(g, h, post, comb, h)
+                    K.hc_pre(h, fn, scale, base, pre_a, lay.ffn_norm, c.eps, c.hc_eps, c.hc_iters, x, pre_f, post,
+                             comb, part)
             with _T("moe"):
                 pm = self.moe(lay, x, img=img)
             with _T("gather"):

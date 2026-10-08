@@ -505,3 +505,51 @@ def test_fused_decode_rows_are_independent_and_graphs_replay_exactly():
             gr.replay()
             torch.cuda.synchronize()
             assert torch.equal(ob, solo[idx]), (rep, R)
+
+
+@pytest.mark.parametrize('dims,width,cb', [(512,256,0), (512,256,1), (512,256,2), (4096,1152,2)])
+def test_explicit_large_decode_graphs_equal_small_windows(dims, width, cb):
+    """Cross the 64-row prompt threshold without host reads or row-dependent arithmetic.
+
+    Different graph sizes share one scratch and repeatedly change inputs, expert
+    assignments and routing weights. A prompt call between replays must not
+    affect the captured decode buffers. The last shape matches a TP2 Spark layer.
+    """
+    from tensorfold.cuda.exl3 import experts
+
+    E, SLOTS = 24, 7
+    ex, _ = _layer(E, dims, width, [(4,6,8)]*E, cb, seed=91+cb)
+    g = torch.Generator().manual_seed(71)
+    count = 128
+    x = torch.randn((count,dims), generator=g).to(torch.bfloat16).cuda()
+    picks, weights = _picks(E-1, count, SLOTS-1, g, shared=True)
+    scratch = experts.Scratch(ex, count, SLOTS)
+    prompt_scratch = experts.Scratch(ex, 64, SLOTS, prompt=True)
+
+    def reference(indices):
+        return torch.cat([experts.routed(x[j:j+1], picks[j:j+1], weights[j:j+1], ex,
+            scratch, None, 1, decode='old').clone() for j in indices])
+
+    solo = reference(range(count))
+    shapes = (32,63,64,128) if dims == 512 else (32,63,64)
+    captured = []
+    for R in shapes:
+        xb, pb, wb = x[:R].clone(), picks[:R].clone(), weights[:R].clone()
+        ob = torch.empty((R,dims), dtype=torch.float32, device='cuda')
+        experts.routed(xb,pb,wb,ex,scratch,ob,R,decode='fused',decode_window=True)
+        torch.cuda.synchronize()
+        graph = torch.cuda.CUDAGraph()
+        with torch.cuda.graph(graph):
+            experts.routed(xb,pb,wb,ex,scratch,ob,R,decode='fused',decode_window=True)
+        captured.append((R,graph,xb,pb,wb,ob))
+    rnd = random.Random(37)
+    for trial in range(6):
+        # Existing prompt dispatch remains usable and separate from verification.
+        experts.routed(x[:64],picks[:64],weights[:64],ex,prompt_scratch,None,64)
+        for R,graph,xb,pb,wb,ob in captured:
+            indices = rnd.sample(range(count),R)
+            xb.copy_(x[indices]);pb.copy_(picks[indices]);wb.copy_(weights[indices])
+            ob.fill_(float('nan'))
+            graph.replay()
+            torch.cuda.synchronize()
+            assert torch.equal(ob,solo[indices]), (dims,width,cb,trial,R)

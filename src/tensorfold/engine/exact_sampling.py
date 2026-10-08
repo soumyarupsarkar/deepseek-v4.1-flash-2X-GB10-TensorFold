@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import hashlib
 import math
 import os
+import secrets
 from typing import Any, Sequence
 
 import numpy as np
@@ -46,12 +47,32 @@ def _salt_from_env() -> int:
 SEED_SALT = _salt_from_env()
 
 
+def _seed_mode_from_env() -> str:
+    """Choose the fallback for requests without a seed; captured once when the server imports sampling."""
+
+    mode = os.environ.get("TENSORFOLD_SEED_MODE", "prompt").strip().lower()
+    if mode not in ("prompt", "random"):
+        raise ValueError("TENSORFOLD_SEED_MODE must be prompt or random")
+    return mode
+
+
+SEED_MODE = _seed_mode_from_env()
+
+
 def seed_for(tokens: Sequence[int], salt: int | None = None) -> int:
     """A reproducible seed from the prompt: the same conversation samples the same reply (for one salt)."""
 
     salt = SEED_SALT if salt is None else salt
     digest = hashlib.sha256((",".join(str(int(t)) for t in tokens) + f"|{salt}").encode()).digest()
     return int.from_bytes(digest[:8], "little") & ((1 << 63) - 1)
+
+
+def request_seed(tokens: Sequence[int], seed: int | None = None) -> int:
+    """Resolve once per request, then keep that seed for every rank, token and draft verification."""
+
+    if seed is not None:
+        return int(seed)
+    return secrets.randbits(63) if SEED_MODE == "random" else seed_for(tokens)
 
 
 def _mix(x: np.ndarray) -> np.ndarray:
@@ -200,5 +221,5 @@ def _nucleus_rows(logits: Any, positions: Sequence[int], s: Sampling) -> list[in
     return out if any(token is not None for token in out) else None
 
 
-__all__ = ["MARGIN", "Sampling", "choose", "choose_rows", "sample_rows", "seed_for", "top_candidates", "uniform",
+__all__ = ["MARGIN", "Sampling", "choose", "choose_rows", "request_seed", "sample_rows", "seed_for", "top_candidates", "uniform",
            "uniform_rows"]

@@ -86,9 +86,26 @@ class Health:
         body = {"ok": True, "backend": "tensorfold", "busy": running > 0, "requests_running": running, **body}
         scheduler = getattr(getattr(app, "engine", None), "scheduler", None)     # /health answers whatever the app
         decoder = getattr(scheduler, "decoder", None)
+        scheduler_state = getattr(scheduler, 'health_state', None)
+        if scheduler_state is not None:
+            body['scheduler'] = scheduler_state()
         if decoder is not None:                         # read, never locked: sizes of the decoder's own tables
             body["streams"] = {"decoding": len(getattr(decoder, "streams", ())),
                                "prefilling": len(getattr(decoder, "filling", ())), "max": scheduler.max_streams}
+            watch = getattr(decoder, 'watch', None)
+            broken = getattr(watch, 'broken', None)
+            if broken:
+                body.update(ok=False, fatal=str(broken))
+            body['progress'] = dict(rounds=getattr(decoder, 'rounds', 0),
+                                    prefilling_tokens=sum(getattr(s, 'filled', 0)
+                                                          for s in list(getattr(decoder, 'filling', ()))),
+                                    admissions=getattr(decoder, 'next_id', 0))
+            memory_state = getattr(decoder, 'memory_state', None)
+            if memory_state is not None:
+                body['memory'] = memory_state()
+        capacity = getattr(getattr(app, 'engine', None), 'capacity_plan', None)
+        if capacity is not None:
+            body['capacity'] = capacity
         window = getattr(app, "effective_context_window", None)
         if window:
             body["context_length"] = int(window)

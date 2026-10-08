@@ -54,6 +54,7 @@ class DsEngine:
         from .weights import load
 
         torch.cuda.set_device(0)
+        self.model_dir = Path(model_dir)
         self.rank, self.world, self._master = rank, world, master
         # NCCL only moves prompt chunks' partials ([2048, 5120] fp32): the Simple protocol on 4 channels took 3.8 ms a
         # gather on the CX7 link against 7.1 with NCCL's choice (decode windows go over the RDMA gather)
@@ -111,8 +112,16 @@ class DsEngine:
         self.drafts = drafts
         self.limit = int(context or 65536)
         self.max_rows = drafts + 1
+        self.model.rope_context = self.limit                   # user positions, before speculative scratch padding
         self.model.rope_cap = self.limit + self.max_rows + 8      # every cache reads the same RoPE table
         self.eos = (int(json.loads((Path(model_dir) / "config.json").read_text()).get("eos_token_id", 1)),)
+        if os.environ.get("TF_DS_GRAMMAR", "0") == "1":
+            from tensorfold.engine import grammar
+
+            compiler = grammar.compiler(self, self.model_dir, self.eos)
+            compiler.compile(grammar.Spec("json"))
+            if grammar.tool_grammar_mode() != "off":
+                compiler.tools_compiler()
         self.request = threading.local()
         self.quiet = False
         # --parallel N: up to N requests decoded together (multi.MultiDecoder), each in a slot of one cache pool
@@ -122,12 +131,28 @@ class DsEngine:
             import sys
 
             from .multi import MultiDecoder
+            from .capacity import plan
+            from .model import KV_QUANT
+            from .rounds import MAX_ROWS
 
             # the scheduler thread shares the GIL with every reply's HTTP thread: at Python's default 5 ms switch
             # interval it waited ~10 ms a round for the GIL between rounds (4 streams); 0.5 ms hands it back sooner
             sys.setswitchinterval(float(os.environ.get("TF_DS_SWITCH_INTERVAL") or 0.0005))
 
-            self.multi = MultiDecoder(self, slots=int(parallel), cap=self.limit + self.max_rows + 8)
+            raw_cfg = json.loads((self.model_dir / "config.json").read_text())
+            native = int(raw_cfg.get("text_config", raw_cfg).get("max_position_embeddings", 1048576))
+            self.capacity_plan = plan(cfg, context=self.limit, slots=int(parallel),
+                                      pool_tokens=int(os.environ.get("TF_DS_POOL_TOKENS") or self.limit),
+                                      decode_rows=MAX_ROWS, native_context=native, quantized=KV_QUANT)
+            self._pool_admission()
+            self.multi = MultiDecoder(self, slots=int(parallel), cap=self.capacity_plan['allocated_pool_rows'])
+            from tensorfold.cuda import carveout
+
+            display = carveout.get()
+            actual = display.tensor_bytes if display is not None else 0
+            if actual != self.capacity_plan.get('display_bytes', 0):
+                raise RuntimeError('display KV placement differs from its capacity plan')
+            self.capacity_plan['display_bytes_allocated'] = actual
             mu = self.multi                              # the warm-up's prompts run on slot 0 over the whole window
             self.sc = self.model.pool_view(mu.pool, 0, 0, mu.extents.total)
             self.dc = mu.slots[0].dc
@@ -165,6 +190,47 @@ class DsEngine:
             print(f"[tensorfold] DeepSeek-V4.1 engine ready: {world} rank(s), context {self.limit}, "
                   f"{'DSpark ' + str(drafts) + ' drafts' if self.drafter else 'serial decode'}", flush=True)
 
+    def _pool_admission(self) -> None:
+        """Agree on capacity and reject a pool that would consume the host floor."""
+        from .multi import OutOfStep, VERIFY_BATCHED, DEPTH_BY, DEPTH_POLICY
+        from .capacity import display_placement
+        from tensorfold.cuda import carveout
+
+        plan = self.capacity_plan
+        from .graph_budget import widths
+        from .rounds import MAX_ROWS, SHARED_OUTPUTS
+        graph_widths = widths(os.environ.get('TF_DS_GRAPH_BUCKETS'),
+                              min(plan['allocated_pool_rows'], self.limit))
+        plan['decode_graph_widths'] = list(graph_widths)
+        plan['bounded_round_graphs'] = len(graph_widths) * MAX_ROWS
+        plan['target_decode_rows'] = MAX_ROWS
+        plan['shared_round_outputs'] = SHARED_OUTPUTS
+        plan['verification_batched'] = VERIFY_BATCHED
+        display = carveout.get()                      # registration must succeed before crediting any memory
+        plan['display_bytes'] = display_placement(plan['sparse_plane_bytes'], display.size) if display else 0
+        plan['ordinary_pool_bytes'] = plan['pool_bytes'] - plan['display_bytes']
+        fields = ['per_request_tokens', 'shared_pool_tokens', 'allocated_pool_rows', 'parallel', 'pool_bytes']
+        available = int(next(line.split()[1] for line in open('/proc/meminfo')
+                             if line.startswith('MemAvailable:'))) * 1024
+        floor = int(float(os.environ.get('TF_DS_MEM_FLOOR_GIB') or 2) * 2**30)
+        fits = available >= plan['ordinary_pool_bytes'] + floor
+        settings = (graph_widths, MAX_ROWS, SHARED_OUTPUTS, VERIFY_BATCHED, DEPTH_BY, DEPTH_POLICY, self.drafts)
+        policy = int.from_bytes(hashlib.sha256(repr(settings).encode()).digest()[:8], 'little') & ((1 << 63) - 1)
+        values = [int(plan[k]) for k in fields] + [policy, int(fits)]
+        if self.world > 1:
+            mine = torch.tensor(values, dtype=torch.int64, device='cuda')
+            every = torch.empty((self.world * len(values),), dtype=torch.int64, device='cuda')
+            self.nccl.all_gather(mine, every)
+            rows = every.view(self.world, -1).tolist()
+            if any(row[:-1] != rows[0][:-1] for row in rows):
+                raise OutOfStep('ranks requested different per-request or shared-pool capacities')
+            fits = all(row[-1] for row in rows)
+        if not fits:
+            raise ValueError(f"shared KV pool needs {plan['ordinary_pool_bytes'] / 2**30:.2f} GiB of host RAM "
+                             "plus the host floor; "
+                             "at least one rank lacks that memory; lower TF_DS_POOL_TOKENS")
+        print(f"[tensorfold] rank {self.rank} capacity: {json.dumps(plan, sort_keys=True)}", flush=True)
+
     def _memory_ceiling(self) -> None:
         """After the warm-up, torch may grow only while the host keeps TF_DS_MEM_FLOOR_GIB (default 2; 0: no ceiling)
         available: a step that would need more fails with CUDA's out-of-memory error (that request fails, the lane's
@@ -182,10 +248,24 @@ class DsEngine:
         torch.cuda.synchronize()
         total = torch.cuda.mem_get_info()[1]
         reserved = torch.cuda.memory_reserved()
+        allocated = torch.cuda.memory_allocated()
         ceiling = reserved + max(0, available - int(floor * 2**30))
+        # A stricter reproducible budget for qualification (never increases the
+        # host-derived ceiling). Host background use otherwise changes it each boot.
+        asked = os.environ.get('TF_DS_ALLOCATOR_LIMIT_GIB')
+        if asked is not None:
+            limit = float(asked)
+            if not 0 < limit <= total / 2**30:
+                raise ValueError('TF_DS_ALLOCATOR_LIMIT_GIB must be positive and fit physical device memory')
+            ceiling = min(ceiling, int(limit * 2**30))
         torch.cuda.set_per_process_memory_fraction(min(1.0, ceiling / total))
+        if hasattr(self, 'capacity_plan'):
+            self.capacity_plan.update(torch_allocated_bytes=allocated, torch_reserved_bytes=reserved,
+                                      host_available_after_warm=available, host_floor_bytes=int(floor * 2**30),
+                                      torch_allocator_ceiling_bytes=ceiling)
         print(f"[tensorfold] rank {self.rank}: allocator ceiling {ceiling / 2**30:.1f} GiB (holds "
-              f"{reserved / 2**30:.1f}, host available {available / 2**30:.1f}, floor {floor:.1f})", flush=True)
+              f"{reserved / 2**30:.1f}, live tensors {allocated / 2**30:.1f}, "
+              f"host available {available / 2**30:.1f}, floor {floor:.1f})", flush=True)
 
     def warm(self) -> None:
         """Same steps on every rank, in the same order (prefills and graph captures issue real collectives)."""
@@ -311,14 +391,16 @@ class DsEngine:
 
     def generate(self, prompt: list[int], max_tokens: int, sampling, on_tokens, draft: bool = True,
                  constraint=None, vision=None, **_: Any) -> dict[str, Any]:
-        if constraint is not None:
-            raise ValueError("structured output is not served by the DeepSeek-V4.1 engine yet")
+        from tensorfold.engine import grammar
+        from . import structured
+
+        draft = bool(draft) and constraint is None
         stop_eos = bool(getattr(self.request, "stop_eos", True))
         if self.scheduler is not None:
             if vision is not None and getattr(vision, "spans", None) and self.tower is None:
                 raise ValueError("image input needs the server started with --vision")
             return self.scheduler.submit(list(prompt), max_tokens, sampling, bool(draft), on_tokens,
-                                         stop_eos=stop_eos, vision=vision)
+                                         stop_eos=stop_eos, vision=vision, constraint=constraint)
         positions, rows = [], None
         if vision is not None and getattr(vision, "spans", None):
             if self.tower is None:
@@ -333,14 +415,19 @@ class DsEngine:
                   *_f64(sampling.min_p if sampling else 0.0), len(positions)]
         self._share(header)
         self._share(list(prompt))
+        packed = self._share(grammar.pack(constraint))
+        constraint = structured.ready(self, constraint, packed)
         image = None
         if positions:
             self._share(positions)
             image = (positions, self._share_rows(rows, len(positions)))
-        return self._run(list(prompt), max_tokens, sampling, stop_eos, on_tokens, draft, image=image)
+        return self._run(list(prompt), max_tokens, sampling, stop_eos, on_tokens, draft, image=image,
+                         constraint=constraint)
 
     def follow(self) -> None:
         from tensorfold.engine.exact_sampling import Sampling
+        from tensorfold.engine.grammar import GrammarError
+        from . import structured
 
         if self.multi is not None:
             from .multi import Link
@@ -350,6 +437,11 @@ class DsEngine:
         while True:
             (max_tokens, stop_eos, draft, seed, t0, t1, top_k, p0, p1, m0, m1, n_img) = self._share(None)
             prompt = self._share(None)
+            packed = self._share(None)
+            try:
+                constraint = structured.ready(self, None, packed)
+            except GrammarError:
+                continue
             image = None
             if n_img:
                 positions = self._share(None)
@@ -357,7 +449,11 @@ class DsEngine:
             temperature = _f64_back(t0, t1)
             sampling = (Sampling(seed, temperature, top_k, _f64_back(p0, p1), _f64_back(m0, m1))
                         if temperature > 0 else None)
-            self._run(prompt, max_tokens, sampling, bool(stop_eos), lambda new: None, bool(draft), image=image)
+            try:
+                self._run(prompt, max_tokens, sampling, bool(stop_eos), lambda new: None, bool(draft), image=image,
+                          constraint=constraint)
+            except GrammarError:
+                continue
 
     # -- one request -----------------------------------------------------------------------------------------------
     def _sample(self, logits: torch.Tensor, positions: list[int], sampling) -> list[int]:
@@ -385,7 +481,7 @@ class DsEngine:
         m = self.model
         assert start % PREFILL_CHUNK == 0 and start < len(prompt), (start, len(prompt))
         sc.length = start
-        del sc.host[start:]
+        sc.host.truncate(start)
         use_drafts = dc is not None
         if use_drafts:
             dc.absorbed = 0
@@ -445,17 +541,19 @@ class DsEngine:
         return last
 
     def _run(self, prompt: list[int], max_tokens: int, sampling, stop_eos: bool, on_tokens: Callable,
-             draft: bool, image: tuple | None = None) -> dict[str, Any]:
+             draft: bool, image: tuple | None = None, constraint=None) -> dict[str, Any]:
         """``image``: (ascending positions of the prompt's image-span tokens, their rows [k, dim] bf16)."""
         m = self.model
-        eos = self.eos if stop_eos else ()
+        from . import structured
+
+        eos = self.eos if stop_eos or constraint is not None else ()
         if len(prompt) + max_tokens > self.limit:
             max_tokens = max(1, self.limit - len(prompt))
         need = len(prompt) + max_tokens + self.max_rows + 8
         if getattr(self, "sc", None) is None or self.sc.cap < need:
             self.sc = m.new_cache(max(need, self.limit + self.max_rows + 8))
         sc = self.sc
-        use_drafts = bool(draft) and self.drafter is not None
+        use_drafts = bool(draft) and self.drafter is not None and constraint is None
         dc = None
         if use_drafts:
             if getattr(self, "dc", None) is None:
@@ -465,14 +563,14 @@ class DsEngine:
         last = self.prefill(sc, dc, prompt, image)
         self.last_prefill_logits = last
         torch.cuda.empty_cache()          # a long prompt's chunk buffers back to the node (unified memory)
-        first = self._sample(last, [len(prompt)], sampling)[0]
+        first = structured.sample(self, last, [len(prompt)], sampling, constraint)[0]
         stats: dict[str, Any] = {"prefill_s": time.perf_counter() - t0}
         t1 = time.perf_counter()
         if use_drafts:
             out, st = self._spec(sc, dc, first, max_tokens, sampling, eos, on_tokens)
             stats.update(rounds=st[0], drafted=st[1], accepted=st[2], **self.last_spec_times)
         else:
-            out = self._serial(sc, first, max_tokens, sampling, eos, on_tokens)
+            out = self._serial(sc, first, max_tokens, sampling, eos, on_tokens, constraint)
         dt = time.perf_counter() - t1
         stats.update(decode_s=dt, tokens=len(out), tokens_per_second=(len(out) - 1) / dt if dt > 0 else 0.0,
                      sha256=hashlib.sha256(json.dumps(out).encode()).hexdigest()[:16])
@@ -483,7 +581,9 @@ class DsEngine:
                      if use_drafts else ""), flush=True)
         return stats
 
-    def _serial(self, sc, first, max_tokens, sampling, eos, on_tokens) -> list[int]:
+    def _serial(self, sc, first, max_tokens, sampling, eos, on_tokens, constraint=None) -> list[int]:
+        from . import structured
+
         out = [first]
         on_tokens([first])
         tok = first
@@ -493,7 +593,7 @@ class DsEngine:
                 lg, _ = self.runner.forward(sc, [tok], p, False)
             else:
                 lg = self.model.forward(sc, torch.tensor([tok], dtype=torch.long, device="cuda"), p, host_ids=[tok])
-            tok = self._sample(lg, [p + 1], sampling)[0]
+            tok = structured.sample(self, lg, [p + 1], sampling, constraint)[0]
             out.append(tok)
             on_tokens([tok])
         return out

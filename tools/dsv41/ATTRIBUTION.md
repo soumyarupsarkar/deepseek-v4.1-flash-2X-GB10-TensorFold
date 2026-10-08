@@ -1,5 +1,30 @@
 # Attribution: the `deepseek_v41` family
 
+The original account below describes Bertholomus's family implementation. Local
+deployment additions and later selective ports are identified separately here
+and in [`deployment/COMPARISON.md`](../../deployment/COMPARISON.md#attribution).
+
+## Local selective v0.5 port, October 2026
+
+Soumyarup Sarkar's deployment ports compact host token histories, cosine/sine-only
+RoPE tables, exact pruned top-k selection, candidate-only index scoring, invisible
+attention-tile skipping, grouped-expert work lists and prompt scratch reductions
+from [Bertholomus's v0.5 release](https://github.com/bertholomus/TensorFold/commit/508bfb34743f88d35abcb514f7013ef531ce34a5),
+reviewed at commit `808eb4a1090ca7b79173cc2c799de16da5f923e3`. The associated upstream
+correctness probes are retained under `tools/dsv41/`. Existing license and author
+notices remain in place.
+
+The local adaptation bounds positional tables by the request limit, retains the
+explicit 32/64-row decode workspace and bounded graph/checkpoint policies, and
+uses the existing switchable shared round outputs. It does not merge the entire
+TensorFold 0.6.6 framework or enable the upstream experimental MMA/mHC paths.
+[`UPSTREAM-V05.md`](../../deployment/UPSTREAM-V05.md) records the adaptation,
+source pins, measurements, rejected settings and rollback. Performance credits
+for the imported kernels belong to Bertholomus and the credited TensorFold/EXL3
+contributors; local serving results are measurements of the combined system.
+
+## Original family provenance
+
 The `deepseek_v41` family of this TensorFold fork (`src/tensorfold/families/deepseek_v41/`, the RDMA gather in
 `src/tensorfold/cuda/rdma.py` and `rdma_gather.cu`, and `tools/dsv41/`) was written independently. It is clean-room
 with respect to the MiaAI-Lab vLLM kit (AGPL-3.0, only run as a black box) and the jayleaton recipe (never opened).

@@ -76,7 +76,7 @@ def main():
     if os.environ.get("GRAPH") == "1":
         from tensorfold.families.deepseek_v41.cuda.graph import GraphRunner
         runner = GraphRunner(model, 4)
-        sc.host = hl[:]
+        sc.host.set(0, hl)
 
     def step(tok, pos):
         if runner is not None:

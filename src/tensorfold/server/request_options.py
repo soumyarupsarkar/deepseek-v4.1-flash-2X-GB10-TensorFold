@@ -143,16 +143,16 @@ class RequestOptions:
 
     def _resolve_sampling(self, fields: dict[str, Any] | None, temperature: float,
                           prompt_ids: list[int]) -> Any:
-        """Omitted or null fields keep model defaults; an omitted seed is keyed to the prompt."""
+        """Omitted or null fields keep model defaults; missing seeds follow TENSORFOLD_SEED_MODE."""
 
-        from tensorfold.engine.exact_sampling import Sampling, seed_for
+        from tensorfold.engine.exact_sampling import Sampling, request_seed
 
         options = {k: v for k, v in parse_numbers(self.default_sampling or {}).items() if v is not None}
         options.update({k: v for k, v in parse_numbers(fields or {}).items() if v is not None})
         temp = options.get("temperature", 0.0)
         if temp <= 0.0:
             return None
-        return Sampling(seed=options.get("seed", seed_for(prompt_ids)), temperature=temp,
+        return Sampling(seed=request_seed(prompt_ids, options.get("seed")), temperature=temp,
                         top_k=options.get("top_k", 0), top_p=options.get("top_p", 1.0),
                         min_p=options.get("min_p", 0.0))
 

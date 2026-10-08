@@ -415,6 +415,8 @@ class BatchDraftGraph:
         self.packed = torch.cat([out[:, 1:].to(F32), conf], 1)           # [N, 2 steps]: one host read a round
 
     def capture(self, pool=None):
+        if self.graph is not None:
+            return
         s = torch.cuda.Stream()
         s.wait_stream(torch.cuda.current_stream())
         with torch.cuda.stream(s):
@@ -425,6 +427,10 @@ class BatchDraftGraph:
         with torch.cuda.graph(self.graph, pool=pool):
             self._body()
         torch.cuda.synchronize()
+
+    @property
+    def graph_count(self):
+        return int(self.graph is not None)
 
     def run(self, tokens: list[int], q0: list[int], slots: list[int]) -> list[list[int]]:
         if _rounds.ONE_COPY:
@@ -441,6 +447,79 @@ class BatchDraftGraph:
         rows = self.packed.tolist()
         self.last_conf = [row[n:] for row in rows]       # the confidence head's logits, a list a stream
         return [[int(x) for x in row[:n]] for row in rows]
+
+
+class DraftGraphGroup:
+    """Several graph-safe drafter batches, replayed and read back in stream order.
+
+    The five-row DSpark block reaches the host-synchronizing prompt MoE at 13
+    streams. Keep each leaf below 64 rows instead. Read its output to the host
+    before replaying the next leaf: their graph-pool storage may alias. The
+    target still verifies every proposal; no sampling or acceptance rule changes.
+    """
+
+    def __init__(self, streams, steps, parts):
+        self.N = streams
+        self.steps = steps
+        # MultiDecoder initializes these before capture. Leaves get the matching
+        # slice, including their actual global slot IDs, rather than slot zero.
+        self.inputs = torch.zeros((3, streams), dtype=torch.long, device='cuda')
+        self.tokens, self.q0, self.slots = self.inputs.unbind(0)
+        self.parts = parts
+
+    def capture(self, pool=None):
+        for start, graph in self.parts:
+            if not graph.graph_count:
+                graph.inputs.copy_(self.inputs[:, start:start+graph.N])
+                graph.capture(pool)
+
+    @property
+    def graph_count(self):
+        return sum(graph.graph_count for graph in {id(g):g for _,g in self.parts}.values())
+
+    def run(self, tokens, q0, slots):
+        if not len(tokens) == len(q0) == len(slots) == self.N:
+            raise ValueError('drafter batch input lengths differ from its stream count')
+        output, confidence = [], []
+        for start, graph in self.parts:
+            end = start + graph.N
+            # A previously warmed leaf may compute a longer Markov prefix.
+            # Its leading proposals/confidences are unchanged; keep only the
+            # depth this logical group can verify, without another CUDA graph.
+            output.extend(row[:self.steps] for row in graph.run(tokens[start:end], q0[start:end], slots[start:end]))
+            confidence.extend(row[:self.steps] for row in graph.last_conf)
+        self.last_conf = confidence
+        return output
+
+
+def draft_graph(drafter, sc, dpool, streams, steps=None, leaves=None):
+    """Capture-safe proposal runner; existing batches up to twelve are unchanged."""
+    from tensorfold.cuda.exl3.experts import EXACT_ROWS
+
+    # Model._moe_scratch also separates permanent decode and resizable prompt
+    # scratch at 64. Both thresholds must be respected by a captured leaf.
+    if drafter.size < 1:
+        raise ValueError('drafter block must be positive for a graph-safe batch')
+    per_batch = (min(64, EXACT_ROWS)-1) // drafter.size
+    if streams < 1 or per_batch < 1:
+        raise ValueError('drafter block and stream count must fit a graph-safe batch')
+    steps = max(1, min(drafter.size, steps or drafter.size))
+    # Share each shape across logical stream counts, including repeated leaves
+    # within one group. run() reads the previous result before reusing a leaf.
+    leaves = {} if leaves is None else leaves
+    def leaf(n):
+        compatible = [g for (count, depth),g in leaves.items() if count == n and depth >= steps]
+        if compatible:
+            return min(compatible, key=lambda g:g.steps)
+        key = (n, steps)
+        if key not in leaves:
+            leaves[key] = BatchDraftGraph(drafter, sc, dpool, n, steps)
+        return leaves[key]
+    if streams <= per_batch:
+        graph = leaf(streams)
+        return graph if graph.steps == steps else DraftGraphGroup(streams, steps, [(0,graph)])
+    return DraftGraphGroup(streams, steps, [(start, leaf(min(per_batch, streams-start)))
+                                          for start in range(0, streams, per_batch)])
 
 
 @dataclass

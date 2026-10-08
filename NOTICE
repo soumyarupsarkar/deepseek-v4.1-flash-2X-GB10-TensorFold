@@ -47,3 +47,28 @@ Modified upstream files:
   .gitignore                                   ignores macOS ._* files
 
 The "git log" of this branch and tools/dsv41/ATTRIBUTION.md describe the changes and their sources.
+
+Local deployment additions (Soumyarup Sarkar, 2026):
+  deployment/                                  reversible two-node lifecycle, asset pins, measurements and rollback
+  src/tensorfold/cuda/health.py                 low-overhead KV/scheduler diagnostics
+  src/tensorfold/cuda/scheduler.py              queue, capacity-hold and admission gauges
+  src/tensorfold/families/deepseek_v41/cuda/     local structured-output, capacity, bounded graph,
+                                               draft batching, 64-row verification, occupancy, bounded
+                                               prefix checkpoints and calibrated draft-allocation trials
+  tests/                                       regression coverage for the local changes
+  README.md                                    local deployment and measured comparison links
+
+This publication checkout preserves the public upstream history and introduces
+the qualified local engine as a curated change. Private installation history is
+not included. release/engine-source.json records file hashes and the measured
+source identity; benchmarks/ contains selected, sanitized historical summaries.
+The portable deployment tooling is new and requires separate hardware qualification.
+
+The October 2026 local integration selectively ports Bertholomus v0.5 changes
+(release 508bfb34743f88d35abcb514f7013ef531ce34a5, reviewed at 808eb4a1090ca7b79173cc2c799de16da5f923e3)
+into the family ops, model, kernels, graph and round code and the already listed
+EXL3 expert files. It adds the associated correctness probes under tools/dsv41/.
+Local adaptations preserve request-bounded positional tables, explicit decode
+workspace and bounded retained state. Source attribution and scope are in
+tools/dsv41/ATTRIBUTION.md and deployment/UPSTREAM-V05.md; the framework remains
+based on TensorFold 0.6.3 rather than a complete 0.6.6 merge.

@@ -138,3 +138,35 @@ The multimodal rotary and image-feature integration is adapted from MiaAI-Lab's
 [Flash Next vision patch 0008](https://github.com/MiaAI-Lab/Qwen3.8-Flash-Next-Single-DGX-Spark-TensorFold/blob/a3aa89835022c55ca8e55008c37785954834e04f/patches/0008-flash-next-vision.patch),
 MIT License, Copyright (c) 2026 MiaAI-Lab. The license is included in `LICENSES/MiaAI-Lab-MIT.txt`.
 The port preserves the v0.5 CUDA execution APIs and adds an offline EXL3 vision adapter.
+
+
+## Local Bertholomus serving extensions
+
+The DSML reply parser and its tests, and the strict tool grammar portions of
+`engine/grammar.py`, are adapted from urtho/TensorFold revision
+`27404275d0f14bba8e97e7ca801de4c956d369be`. The parser and grammar adapters
+originate in Jay Leaton's DeepSeek/GLM Spark serving code, MIT License,
+Copyright (c) 2026 Jay Leaton and TensorFold contributors. Source notices are
+preserved; the license is included in `LICENSES/JayLeaton-MIT.txt`. The CUDA
+server's DSML integration follows the same urtho revision; unrelated server
+changes are not imported. xgrammar's built-in DeepSeek-V4.1 structural tag is
+used through its API (Apache-2.0).
+
+The capacity-test fixture `tests/fixtures/deepseek_v41/config.json` is the
+pinned Mia EXL3 checkpoint configuration, revision
+`64ba41b6c916a587db06eae2e19b7845f7be6e6b`, based on DeepSeek-V4.1-Flash
+(MIT License, Copyright (c) 2023 DeepSeek). It contains configuration only.
+
+`cuda/carveout.py` is adapted from urtho/TensorFold revision
+`27404275d0f14bba8e97e7ca801de4c956d369be` (Apache-2.0). It independently
+implements the Linux DRM and CUDA driver APIs, crediting Emi/coolbho3k's idea
+of using GB10 display-reserved memory for sparse KV reads. No AGPL source from
+`display_kv.c` is copied; the source attribution is retained in the module.
+
+The bounded decode-width policy and widest-first warm-up in
+`deepseek_v41/cuda/graph_budget.py`, `rounds.py` and `multi.py` follow the approach
+in urtho/TensorFold revision `8b05ee70ef2891c579ce7f3292a65dfd39fe600c`,
+`cuda/serial.py` and `cuda/engine.py` (Apache-2.0). Its accounting for CUDA graph
+driver memory and use of PyTorch expandable segments inform the deployment's
+memory qualification. The implementation retains Bertholomus' kernels, split
+Engram graphs, vision path and speculative verification.

@@ -1,5 +1,5 @@
 """DeepSeek-V4.1's concurrent decoding (``--parallel N``): up to N requests on the lane at once, every live stream's
-verify window in one forward a round, each reply exactly its solo run.
+verify windows in graph-safe forwards, each reply exactly its solo run.
 
 - **Pool.** One cache plane a layer holds every slot (``Model.new_pool``). A stream's prompt fills its slot through
   the single-stream path on the slot's views, so its prompt bits are the solo prompt's. (v1: the whole prompt fills at
@@ -7,8 +7,8 @@ verify window in one forward a round, each reply exactly its solo run.
 - **Rounds.** Every live stream's pending token and drafts go through one forward (``rounds.RoundRunner``): each row
   at its own position and slot. Every kernel is row-invariant, the cache kernels read each row's own stream and
   selection is a total order, so a row's logits are the solo run's at that position, and each stream samples its own
-  rows by its own rule: its reply is its solo reply, whatever else runs beside it. A round holds 16 rows at most
-  (the decode windows' kernels): each stream's depth comes from ``DEPTH_BY`` by how many streams decode.
+  rows by its own rule: its reply is its solo reply, whatever else runs beside it. Each forward holds TF_DS_DECODE_ROWS rows (up to 64); opt-in verification
+  batching permits multiple forwards in one round. Depth comes from ``DEPTH_BY`` and the live stream count.
 - **Drafts.** Each stream's DSpark drafter runs on its slot's own drafter cache (a captured graph a slot). Drafts
   only propose: they change speed, never a reply.
 - **Ranks.** Rank 0 schedules (``tensorfold.cuda.scheduler``) and sends each step to the followers over a TCP link
@@ -25,7 +25,8 @@ verify window in one forward a round, each reply exactly its solo run.
   give their room back, oldest first, whenever an admission needs it.
 
 Ported from our GLM-5.3 fork's ``glm_moe_dsa/cuda/multi.py`` (the same design, pipeline/CONCURRENCY-DESIGN.md).
-Structured output and logprobs are not served with ``--parallel``.
+Structured output uses one masked target token per round; unconstrained streams
+retain drafting. Logprobs are not served with ``--parallel``.
 """
 
 from __future__ import annotations
@@ -37,6 +38,8 @@ import time
 
 import torch
 
+from ..ops import HostIds
+
 from tensorfold.cuda.memory_gate import NoRoom
 from tensorfold.cuda.streams import Stream
 
@@ -45,6 +48,9 @@ from .model import RAW
 # the most drafts a stream verifies a round by how many streams decode ("5,5,3,3": up to the drafter's block of five
 # alone or beside one other, three at three or four streams: 16 rows at four), capped by the engine's --mtp-drafts
 DEPTH_BY = [int(x) for x in (os.environ.get("TF_DS_PARALLEL_DEPTH") or "5,5,3,3").split(",") if x.strip()]
+# Opt-in: keep drafting when all target rows are occupied by pending tokens.
+# Verification then uses consecutive graph-safe batches, preserving window order.
+VERIFY_BATCHED = os.environ.get("TF_DS_VERIFY_BATCHED", "0") == "1"
 # while prompts fill, decoding keeps this share of the time (a prompt chunk runs once the rounds since the last one
 # took share / (1 - share) of its time); a prompt whose rest fits in QUICK_ROWS tokens fills before the next round
 DECODE_SHARE = float(os.environ.get("TF_DS_DECODE_SHARE") or 0.5)
@@ -83,6 +89,18 @@ ROUND_MS = [float(x) for x in (os.environ.get("TF_DS_ROUND_MS") or
 # the drafter pass in the depth choice (ms): 3.5 = its measured cost on the pair since the vocabulary-split Markov loop
 # (5.4 before; set-b code at 1 stream over test-server starts: 5.4 -> 99.6, 3.5 -> 100.1-100.7, 7.5 -> 98.9)
 DRAFT_MS = float(os.environ.get("TF_DS_DRAFT_MS") or 3.5)
+# Experimental whole-round allocation from an immutable calibrated cost model.
+# Both ranks load the same pinned JSON before any weights or requests. An
+# inline launch value permits calibration without rebuilding the engine image.
+COST_MODEL = None
+if DEPTH_POLICY == "budget":
+    from pathlib import Path
+    from .draft_policy import CostModel
+    cost_path = os.environ.get("TF_DS_COST_MODEL")
+    cost_json = os.environ.get("TF_DS_COST_MODEL_JSON")
+    if bool(cost_path) == bool(cost_json) or VERIFY_BATCHED:
+        raise ValueError("budget draft policy needs exactly one cost-model source and single-pass verification")
+    COST_MODEL = CostModel(json.loads(cost_json if cost_json else Path(cost_path).read_text()))
 # TF_DS_EAGER_ABSORB=1 (default): every drafting stream's window rows go into its drafter rings right after the forward
 # is launched, on a side stream behind the forward (its host launches overlap the forward, not the gap between rounds),
 # instead of the kept rows after sampling. Rows past the kept ones sit at positions the drafter does not read (it reads
@@ -99,6 +117,13 @@ STEP_TIMEOUT = float(os.environ.get("TF_DS_STEP_TIMEOUT") or 900.0)
 KEEP = os.environ.get("TF_DS_KEEP", "1") == "1"
 KEEP_ENTRIES = int(os.environ.get("TF_DS_KEEP_ENTRIES") or 8)
 KEEP_MARKS = int(os.environ.get("TF_DS_KEEP_MARKS") or 10)
+# Opt-in bounded retention: keep only the newest checkpoint boundaries. The
+# default landmark policy preserves its historical doubling boundaries.
+KEEP_MARK_POLICY = os.environ.get("TF_DS_KEEP_MARK_POLICY", "landmarks")
+if KEEP_MARK_POLICY not in ("landmarks", "recent") or KEEP_ENTRIES < 0:
+    raise ValueError("retained-prefix policy needs landmarks/recent and a nonnegative entry limit")
+if KEEP_MARK_POLICY == "recent" and KEEP_MARKS < 1:
+    raise ValueError("recent retained-prefix policy needs a positive checkpoint limit")
 
 
 ALIGN = 2048                     # extents start and end on multiples of this many positions
@@ -337,7 +362,7 @@ class Kept:
     kept chunk boundary; ``host`` the prompt's host ids to ``top`` (Engram's n-grams); ``keys`` (rank 0 only) the
     prompt's ids to ``top`` with each image span's positions keyed by its picture; ``tick`` when it was last used."""
 
-    def __init__(self, eid: int, base: int, size: int, top: int, host: list, snaps: dict, replay: bool, keys,
+    def __init__(self, eid: int, base: int, size: int, top: int, host: HostIds, snaps: dict, replay: bool, keys,
                  tick: int) -> None:
         self.eid, self.base, self.size, self.top, self.host = eid, base, size, top, host
         self.snaps, self.replay, self.keys, self.tick, self.hits = snaps, replay, keys, tick, 0
@@ -375,11 +400,14 @@ class MultiDecoder:
         self.extents = Extents(self.cap)              # every stream takes an extent of the one window
         self._table_view = m.pool_view(self.pool, 0, 0, self.extents.total)   # RoPE tables for any position
         self.drafters: dict[int, object] = {}            # batched drafter graphs by drafting streams
+        self.draft_leaves: dict[tuple[int, int], object] = {}  # shared shapes, not one graph per logical group
         self.free = list(range(slots))
         self.max_rows = MAX_ROWS
-        if not engine.drafts + 1 <= MAX_ROWS < 64:     # a solo verify window must take the decode kernels, a round too
+        if COST_MODEL is not None and self.max_rows > COST_MODEL.max_rows:
+            raise ValueError("verification row budget exceeds the calibrated cost model")
+        if not engine.drafts + 1 <= MAX_ROWS <= 64:   # explicit verification keeps the fixed 64-row decode scratch
             raise ValueError(f"TF_DS_DECODE_ROWS={MAX_ROWS} must hold a verify window ({engine.drafts + 1} rows) "
-                             "and stay under the 64-row prompt kernels")
+                             "and fit the fixed 64-row decode scratch")
         self.depth_most = engine.drafts
         graphs = engine.runner is not None
         self.runner = RoundRunner(m, self.pool, graphs=graphs,
@@ -392,23 +420,45 @@ class MultiDecoder:
         self.link: Link | None = None
         self.watch: Watchdog | None = None
         self.rounds = 0
+        self.peak_drafting_streams = 0
+        self.verification_batches_total = 0
+        self.max_verification_batches = 0
+        self.peak_verification_rows = 0
         self.round_log: list[tuple[int, int, float, int]] = []
         self.stage = {}                                 # ROUND_STATS: streams -> [rounds, rows, tokens, seconds a stage]
+        self.calibration = {}                           # profiling-only totals by streams/drafters/rows/prompt size
         self.conf_depth = [[0, 0] for _ in range(8)]     # CONF_LOG: (drafts reached, kept) by depth
         self.conf_bins = [[0, 0] for _ in range(10)]     # CONF_LOG: (drafts, kept) by sigmoid(confidence) tenths
         self.conf_rounds = 0
         self.k_hist: dict[int, list[int]] = {}           # CONF_LOG: drafts verified a stream a round, by streams live
         self.kept: dict[int, Kept] = {}                  # kept prompts by id
+        self.retention_config = dict(enabled=KEEP, max_prefixes=KEEP_ENTRIES,
+                                     checkpoint_policy=KEEP_MARK_POLICY, checkpoints=KEEP_MARKS)
         self.next_kept, self.ticks = 0, 0
         self.keep_stats: dict[str, int] = {}             # admissions that continued a kept prompt, by placement
+        self._publish_occupancy()
 
-    def warm(self, buckets=(1024, 2048, 4096, 8192)) -> None:
-        """Before serving, on every rank in the same order: round graphs for 1 .. 16 rows at the small context
-        buckets (synthetic rows on slot 0, which a request rewrites before it reads them) and each slot's drafter
-        graph."""
+    def warm(self, buckets=None) -> None:
+        """Capture the configured round widths and drafter counts before serving.
+
+        Bounded widths are captured largest first on the shared pool and sealed:
+        neither allocator buffers nor driver graph objects may grow on requests.
+        An unset TF_DS_GRAPH_BUCKETS preserves the historical small-width warmup.
+        """
 
         t0 = time.perf_counter()
         n = 0
+        reserved_before = torch.cuda.memory_reserved()
+        def available():
+            try:
+                return next(int(line.split()[1]) * 1024 for line in open('/proc/meminfo')
+                            if line.startswith('MemAvailable:'))
+            except (OSError, StopIteration, ValueError):
+                return None
+        available_before = available()
+        bounded = buckets is None and bool(getattr(self.runner, 'widths', ()))
+        if buckets is None:
+            buckets = reversed(self.runner.widths) if bounded else (1024, 2048, 4096, 8192)
         for b in buckets:
             if b > self.cap:
                 break
@@ -418,33 +468,53 @@ class MultiDecoder:
                     continue
                 self.runner.forward([(0, 0, self.extents.total, b - R, host[b - R:b], host)], replay=False)
                 n += 1
+        if bounded and self.runner.graphs is not None:
+            expected = self.max_rows * len(self.runner.widths)
+            if len(self.runner.graphs) != expected:
+                raise RuntimeError(f'warmed {len(self.runner.graphs)} round graphs, expected {expected}')
+            self.runner.sealed = True
         if self.e.drafter is not None:
             for k in range(1, len(self.slots) + 1):
+                # Avoid graphs excluded by the configured depth policy.
+                if self._depth(k) == 0:
+                    continue
                 self._drafts([0] * k, [1] * k, list(range(k)))
         torch.cuda.synchronize()
+        available_after = available()
+        reserved_growth = torch.cuda.memory_reserved() - reserved_before
+        draft_graphs = sum(g.graph_count for g in getattr(self, 'draft_leaves', {}).values())
+        warm_memory = dict(round_graphs=n, drafter_graphs=len(self.drafters), drafter_cuda_graphs=draft_graphs,
+                           reserved_growth_bytes=reserved_growth,
+                           host_available_before=available_before, host_available_after=available_after)
+        if available_before is not None and available_after is not None:
+            warm_memory['outside_allocator_estimate_bytes'] = max(0, available_before - available_after - reserved_growth)
+        if hasattr(self.e, 'capacity_plan'):
+            self.e.capacity_plan['graph_warm_memory'] = warm_memory
         if self.e.rank == 0:
-            print(f"[tensorfold] --parallel warm-up: {n} round graphs, {len(self.drafters)} drafter graphs, "
+            print(f"[tensorfold] --parallel warm-up: {n} round graphs, {len(self.drafters)} drafter configurations "
+                  f"({draft_graphs} CUDA graphs), "
                   f"{time.perf_counter() - t0:.1f}s", flush=True)
+            print(f"[tensorfold] graph warm memory (host changes include other processes): {warm_memory}", flush=True)
 
     def _drafts(self, tokens: list[int], q0: list[int], slots: list[int]) -> list[list[int]]:
-        """Every drafting stream's drafts from one batched drafter pass (a graph a stream count)."""
+        """Every stream's proposals from graph-safe batches, preserving stream order."""
 
-        from .dspark import BatchDraftGraph
+        from .dspark import draft_graph
 
         N = len(tokens)
         g = self.drafters.get(N)
         if g is None:
             # as deep as any round with N drafting streams may verify ("even": the whole block)
             steps = None if DEPTH_POLICY == "even" else max(self._depth(L) for L in range(N, len(self.slots) + 1))
-            g = BatchDraftGraph(self.e.drafter, self.m.pool_view(self.pool, 0, 0, self.extents.total), self.dpool, N,
-                                steps=steps)
+            g = draft_graph(self.e.drafter, self.m.pool_view(self.pool, 0, 0, self.extents.total), self.dpool, N,
+                            steps=steps, leaves=self.draft_leaves)
             g.tokens.copy_(torch.tensor(tokens, dtype=torch.long))
             g.q0.copy_(torch.tensor(q0, dtype=torch.long))
             g.slots.copy_(torch.tensor(slots, dtype=torch.long))
             if self.e.runner is not None:
                 if self.e.runner.pool is None:
                     self.e.runner.pool = torch.cuda.graph_pool_handle()
-                g.capture(self.e.runner.pool)
+                g.capture(self.e.runner.pool)  # capture only missing shared leaves
             self.drafters[N] = g
         _ht("drafter run")
         return g.run(tokens, q0, slots)
@@ -461,6 +531,14 @@ class MultiDecoder:
     def _step(self, busy: bool) -> None:
         if self.watch is not None:
             self.watch.busy = time.monotonic() if busy else None
+        if not busy:
+            self._publish_occupancy()
+
+    def _publish_occupancy(self) -> None:
+        # One writer at completed-step boundaries; health readers see an entire
+        # immutable snapshot, never half an extent transfer or a mutable iterator.
+        from .occupancy import snapshot
+        self._pool_snapshot = snapshot(self)
 
     def _broken(self, exc: BaseException) -> None:
         """A step that raised past its digest check (out of memory under the allocator ceiling, a bug) may have left
@@ -468,7 +546,13 @@ class MultiDecoder:
         step's collectives pairing with the wrong ones. OutOfStep and NoRoom happen on every rank at the same point."""
 
         if self.watch is not None and not isinstance(exc, (OutOfStep, NoRoom)):
+            from .memory_stats import failure
+            failure(self, exc)
             self.watch.abort(f"a step failed on rank {self.e.rank} ({type(exc).__name__}: {str(exc)[:160]})")
+
+    def memory_state(self) -> dict:
+        from .memory_stats import snapshot
+        return snapshot(self)
 
     def _alive(self) -> None:
         if self.watch is not None and self.watch.broken is not None:
@@ -531,11 +615,15 @@ class MultiDecoder:
         return None if best is None else [best[0].eid, best[1]]
 
     def _marks(self, n: int) -> set[int]:
-        """The chunk boundaries a prompt of n tokens keeps its rings at: doubling from the first, and its last two."""
+        """Checkpoint boundaries required by the selected completed-prefix policy."""
 
         from .engine import PREFILL_CHUNK as C
 
         marks = set(range(C, n + 1, C)[-2:])
+        if KEEP_MARK_POLICY == "recent":
+            # The final boundaries are known before prefill. Do not allocate
+            # discarded landmark snapshots while 32 independent prompts fill.
+            return set(range(C, n + 1, C)[-KEEP_MARKS:])
         b = C
         while b <= n:
             marks.add(b)
@@ -622,12 +710,17 @@ class MultiDecoder:
 
     @staticmethod
     def _kept_marks(snaps: dict) -> list[int]:
-        """The boundaries a finished stream keeps, KEEP_MARKS at most: the doubling ones, its last two, then the
-        earliest."""
+        """Finished-stream checkpoints: legacy landmarks or a strict newest-only bound.
+
+        Landmarks may exceed KEEP_MARKS when mandatory doubling/final boundaries
+        alone exceed it. Recent retention always honors the configured bound.
+        """
 
         from .engine import PREFILL_CHUNK as C
 
         marks = sorted(snaps)
+        if KEEP_MARK_POLICY == "recent":
+            return marks[-KEEP_MARKS:]
         if len(marks) > KEEP_MARKS:
             must = {b for b in marks if (b // C) & (b // C - 1) == 0} | set(marks[-2:])
             rest = [b for b in marks if b not in must]
@@ -646,7 +739,7 @@ class MultiDecoder:
         if s.size > size:
             self.extents.give(s.base + size, s.size - size)
         keys = getattr(s, "keys", None)
-        k = Kept(self.next_kept, s.base, size, top, list(s.st.sc.host[:top]), {b: s.snaps[b] for b in marks},
+        k = Kept(self.next_kept, s.base, size, top, s.st.sc.host.copy(top), {b: s.snaps[b] for b in marks},
                  self._replay(), None if keys is None else keys[:top], self.ticks)
         self.kept[k.eid] = k
         self.next_kept += 1
@@ -668,23 +761,32 @@ class MultiDecoder:
             top = max(marks)
             for k in self.kept.values():
                 if (k.eid not in drops and k.keys is not None and k.top <= top and k.replay == self._replay()
-                        and set(k.snaps) <= marks and np.array_equal(k.keys, keys[:k.top])):
+                        and (KEEP_MARK_POLICY == "recent" or set(k.snaps) <= marks)
+                        and np.array_equal(k.keys, keys[:k.top])):
+                    # Recent-only retention intentionally replaces old branch
+                    # checkpoints. Keeping both conversation versions would
+                    # evict an unrelated conversation at the entry limit.
                     drops.append(k.eid)
         return drops
 
     def _ends(self, s: Stream) -> tuple[int, ...]:
-        return self.eos if s.stop_eos else ()
+        return self.eos if s.stop_eos or s.constraint is not None else ()
 
     @torch.no_grad()
     def admit(self, s: Stream) -> None:
         """A request into the lowest free slot: its prompt fills the slot now, then it decodes in the rounds."""
 
-        if s.constraint is not None or s.probabilities is not None:
-            raise ValueError("structured output and logprobs are not served with --parallel on DeepSeek-V4.1")
-        room = self.extents.total - len(s.prompt) - self.max_rows - 8 - 4
+        from tensorfold.engine import grammar
+
+        if s.probabilities is not None:
+            raise ValueError("logprobs are not served with --parallel on DeepSeek-V4.1")
+        if s.constraint is not None:
+            s.draft = False
+        room = min(self.e.limit - len(s.prompt),
+                   self.extents.total - len(s.prompt) - self.max_rows - 8 - 4)
         if room < 1:
             raise ValueError(f"a prompt of {len(s.prompt)} tokens leaves no room in the {self.extents.total}-token "
-                             "context")
+                             "shared pool or the per-request context limit")
         s.count = max(1, min(s.count, room))
         if not self.free:
             raise NoRoom("every stream slot is busy")
@@ -695,23 +797,28 @@ class MultiDecoder:
         s.keys = self._keys(s) if KEEP else None
         reuse = self._match(s, s.keys) if KEEP and self.kept else None
         self._send(["admit", list(s.prompt), s.count, _pack(s.sampling), bool(s.draft), bool(s.stop_eos), index,
-                    positions, reuse])
-        self._admit(s, index, positions, reuse)
+                    positions, reuse, grammar.pack(s.constraint)])
+        self._admit(s, index, positions, reuse, grammar.pack(s.constraint))
 
     def _need(self, s: Stream) -> int:
         """A stream's positions: its prompt, its reply, a round's rows and its extent's scratch row (a group long)."""
 
         return len(s.prompt) + s.count + self.max_rows + 8 + 4
 
-    def _admit(self, s: Stream, index: int, positions: list[int], reuse: list | None = None) -> None:
+    def _admit(self, s: Stream, index: int, positions: list[int], reuse: list | None = None,
+               packed: list[int] = ()) -> None:
         """Its slot, its extent, its image rows (shared from rank 0) and its prompt's chunk steps; ``_fill`` runs
         them. ``reuse`` [kept id, boundary]: the prompt continues that kept prompt from the boundary."""
 
         e = self.e
+        from tensorfold.engine.grammar import GrammarError
+        from . import structured
+
         self._step(True)
         try:
+            s.constraint = structured.ready(e, s.constraint, list(packed))
             self._agree("admission", [self._shape(), list(s.prompt), s.count, _pack(s.sampling), bool(s.draft),
-                                      bool(s.stop_eos), index, positions, reuse])
+                                      bool(s.stop_eos), index, positions, reuse, list(packed)])
             self.ticks += 1
             need = self._need(s)
             src = self.kept.get(int(reuse[0])) if reuse else None
@@ -738,7 +845,7 @@ class MultiDecoder:
                     print(f"[tensorfold] kept prompt {src.eid}: continued at {cut} of {len(s.prompt)} ({how})",
                           flush=True)
                 self._restore(index, src.snaps[cut])
-                slot.sc.host = list(src.host[:cut])
+                slot.sc.host = src.host.copy(cut)
                 s.snaps = {b: v for b, v in src.snaps.items() if b <= cut}
             image = None
             later = [p for p in positions if p >= cut]
@@ -761,6 +868,11 @@ class MultiDecoder:
                                       snap=snap)
             s.filled, s.prefill_s, s.cached = cut, 0.0, cut
             self.filling.append(s)
+            from .memory_stats import trace
+            trace(self, 'admit', prompt_tokens=len(s.prompt), cached=cut)
+        except GrammarError:
+            # No slot was allocated and the compile result was agreed on both ranks.
+            raise
         except Exception as exc:
             self._broken(exc)
             raise
@@ -787,15 +899,20 @@ class MultiDecoder:
             dt = time.perf_counter() - t0
             s.prefill_s += dt
             self.chunk_s, self.since_fill = dt, 0.0
+            from .memory_stats import trace
+            trace(self, 'fill', prompt_tokens=len(s.prompt), filled=s.filled)
             self.round_end = None                      # (ROUND_STATS: a fill is not host time between rounds)
             if last is None:
                 return []
             self.filling.remove(s)
             s.steps = None
-            first = e._sample(last, [len(s.prompt)], s.sampling)[0]
             s.started = time.perf_counter()
-            s.pending = first
             self.streams[s.sid] = s
+            chosen = self._sample_stream(s, last, [len(s.prompt)])
+            if not chosen:
+                return [s]
+            first = chosen[0]
+            s.pending = first
             s.take([first], self._ends(s))
             return [s] if s.done else []
         except Exception as exc:
@@ -803,6 +920,18 @@ class MultiDecoder:
             raise
         finally:
             self._step(False)
+
+    def _sample_stream(self, s: Stream, logits, positions) -> list[int]:
+        from tensorfold.engine.grammar import GrammarError
+        from . import structured
+
+        try:
+            return structured.sample(self.e, logits, positions, s.sampling, s.constraint)
+        except GrammarError as exc:
+            # Both ranks exchanged the result after the model forward completed.
+            # Other streams can safely continue their already computed rows.
+            s.error, s.done, s.finished = exc, True, time.perf_counter()
+            return []
 
     def _absorb_eager(self, items: list):
         """absorb_many of ``items`` on the side stream once the forward (on the current stream) has run; returns the
@@ -834,11 +963,22 @@ class MultiDecoder:
             if kk > 0:
                 surv *= 1.0 / (1.0 + math.exp(-float(conf[kk - 1])))
                 exp_tokens += surv
-            rows = min(len(ROUND_MS), others + kk + 1)
-            v = exp_tokens * live / (ROUND_MS[rows - 1] + DRAFT_MS)
+            v = exp_tokens * live / (self._forward_cost(others + kk + 1) + DRAFT_MS)
             if v > best_v:
                 best, best_v = kk, v
         return best
+
+    def _budget_k(self, live: list[Stream], drafting: list[Stream], confs: list, k: int) -> dict:
+        """One expected-throughput objective for all streams and the actual row total."""
+        from .draft_policy import select_depths
+
+        context = max(len(s.prompt) for s in live)
+        caps = [min(k,len(cf),max(0,s.count-len(s.out)-1)) for s,cf in zip(drafting,confs)]
+        depths = select_depths(confs,caps,live=len(live),row_budget=self.max_rows,
+                               forward_ms=lambda rows:(COST_MODEL.forward(rows,context,live=len(live))
+                                                       +COST_MODEL.sampling(len(live),context)),
+                               draft_ms=COST_MODEL.draft(len(drafting),context))
+        return {s.sid:depth for s,depth in zip(drafting,depths)}
 
     def _even_k(self, live: list[Stream], drafting: list[Stream], confs: list, k: int) -> dict:
         """TF_DS_DEPTH_POLICY=even: each drafting stream's k (a pure function of state every rank holds)."""
@@ -865,10 +1005,11 @@ class MultiDecoder:
             ks[s.sid] = kk
             rows += kk
         s, cf = drafting[c], confs[c]
-        top = max(0, min(self.depth_most, s.count - len(s.out), len(cf), self.max_rows - rows))
+        budget = max(self.max_rows, len(live) * (k + 1)) if VERIFY_BATCHED else self.max_rows
+        top = max(0, min(self.depth_most, s.count - len(s.out), len(cf), budget - rows))
         best, best_v = 0, -1.0
         for kk in range(top + 1):
-            v = expected(cf, kk) / (ROUND_MS[min(len(ROUND_MS), rows + kk) - 1] + DRAFT_MS)
+            v = expected(cf, kk) / (self._forward_cost(rows + kk) + DRAFT_MS)
             if v > best_v:
                 best, best_v = kk, v
         ks[s.sid] = best
@@ -876,7 +1017,58 @@ class MultiDecoder:
 
     def _depth(self, live: int) -> int:
         k = DEPTH_BY[min(live, len(DEPTH_BY)) - 1] if DEPTH_BY else self.depth_most
-        return max(0, min(k, self.depth_most, self.max_rows // max(live, 1) - 1))
+        room = self.max_rows // max(live, 1) - 1
+        # One proposal per stream above the single-batch capacity. Lower
+        # concurrency keeps the existing depth policy and single forward.
+        return max(0, min(k, self.depth_most, max(1, room) if VERIFY_BATCHED else room))
+
+    def _forward_cost(self, rows: int) -> float:
+        """Existing heuristic table, charging for each additional target pass."""
+        if not VERIFY_BATCHED or rows <= self.max_rows:
+            return ROUND_MS[min(len(ROUND_MS), rows) - 1]
+        full, tail = divmod(rows, self.max_rows)
+        return full * ROUND_MS[min(len(ROUND_MS), self.max_rows) - 1] + (
+            ROUND_MS[min(len(ROUND_MS), tail) - 1] if tail else 0)
+
+    def _verify(self, windows):
+        """Run complete stream windows in order, preserving shared-pool outputs.
+
+        A subsequent graph replay may overwrite both logits and drafter taps.
+        Clone each earlier batch before replay, then join in original row order
+        for the unchanged per-stream sampling and acceptance code.
+        """
+        batches, batch, rows, total = [], [], 0, 0
+        for window in windows:
+            n = len(window[4])
+            if not 0 < n <= self.max_rows:
+                raise ValueError('a verification window must fit the target row budget')
+            if rows + n > self.max_rows:
+                batches.append(batch)
+                batch, rows = [], 0
+            batch.append(window)
+            rows += n
+            total += n
+        if batch:
+            batches.append(batch)
+        if not batches:
+            raise ValueError('verification needs at least one window')
+        if len(batches) > 1 and not VERIFY_BATCHED:
+            raise ValueError('verification exceeds target rows; enable TF_DS_VERIFY_BATCHED')
+        self.verification_batches_total += len(batches)
+        self.max_verification_batches = max(self.max_verification_batches, len(batches))
+        self.peak_verification_rows = max(self.peak_verification_rows, total)
+        if len(batches) == 1:
+            return self.runner.forward(batches[0])
+        logits, taps = [], []
+        for i, group in enumerate(batches):
+            out, hidden = self.runner.forward(group)
+            last = i == len(batches) - 1
+            logits.append(out if last else out.clone())
+            if hidden is not None:
+                taps.append(hidden if last else hidden.clone())
+        if taps and len(taps) != len(batches):
+            raise RuntimeError('inconsistent drafter taps across verification batches')
+        return torch.cat(logits, 0), torch.cat(taps, 0) if taps else None
 
     @torch.no_grad()
     def round(self, told: list | None = None) -> list[Stream]:
@@ -925,9 +1117,12 @@ class MultiDecoder:
                     marks.append(time.perf_counter())
 
             want = {s.sid: (min(k, s.count - len(s.out)) if s.draft else 0) for s in live}
+            if DEPTH_POLICY == "budget":
+                want = {s.sid:min(want[s.sid],max(0,s.count-len(s.out)-1)) for s in live}
             drafting = [s for s in live if want[s.sid] > 0]
+            self.peak_drafting_streams = max(self.peak_drafting_streams, len(drafting))
             if drafting:                                 # the rows known before the drafts: their Engram rows now
-                self.runner.engram_touch([s.st.sc.host[max(0, s.st.sc.length - 8):s.st.sc.length] + [s.pending]
+                self.runner.engram_touch([[*s.st.sc.host[max(0, s.st.sc.length - 8):s.st.sc.length].tolist(), s.pending]
                                           for s in live])
             proposed, confs = {}, {}
             _ht("touched")
@@ -936,7 +1131,9 @@ class MultiDecoder:
                                     [s.st.index for s in drafting])
                 conf_rows = self.drafters[len(drafting)].last_conf
                 even = None
-                if DEPTH_POLICY == "even" and len(drafting) > 1 and \
+                if DEPTH_POLICY == "budget":
+                    even = self._budget_k(live,drafting,conf_rows,k)
+                elif DEPTH_POLICY == "even" and len(drafting) > 1 and \
                         max(s.rounds for s in drafting) - min(s.rounds for s in drafting) <= EVEN_COHORT:
                     even = self._even_k(live, drafting, conf_rows, k)
                 for s, r, cf in zip(drafting, rows, conf_rows):
@@ -955,12 +1152,11 @@ class MultiDecoder:
                 P = sc.length
                 drafts: list[int] = proposed.get(s.sid, [])
                 window = [s.pending] + drafts
-                del sc.host[P:]
-                sc.host.extend(int(t) for t in window)
-                windows.append((s.st.index, s.base, s.size, P, window, sc.host))
+                sc.host.set(P, window)
+                windows.append((s.st.index, s.base, s.size, P, window, sc.host.view()))
                 kept.append((s, P, drafts))
             _ht("drafts back + plan")
-            logits, taps = self.runner.forward(windows)
+            logits, taps = self._verify(windows)
             _ht("forward launched")
             absorb_done = None
             if EAGER_ABSORB and taps is not None:
@@ -977,7 +1173,11 @@ class MultiDecoder:
             absorbs = []
             for (s, P, drafts), (_, _, _, _, window, _) in zip(kept, windows):
                 n = len(window)
-                target = e._sample(logits[r0:r0 + n], [P + 1 + i for i in range(n)], s.sampling)
+                target = self._sample_stream(s, logits[r0:r0 + n], [P + 1 + i for i in range(n)])
+                if not target:
+                    r0 += n
+                    done.append(s)
+                    continue
                 a = 0
                 while a < len(drafts) and drafts[a] == target[a]:
                     a += 1
@@ -1050,6 +1250,13 @@ class MultiDecoder:
             del self.round_log[:-4096]
             if ROUND_STATS:
                 mark()
+                key = f'{len(live)}:{len(drafting)}:{r0}:{max(len(s.prompt) for s in live)}'
+                previous = self.calibration.get(key, [0, 0., 0., 0., 0])
+                # Publish a replacement tuple; health readers never see a
+                # partially incremented calibration row. Syncs remain opt-in.
+                self.calibration[key] = [previous[0]+1, previous[1]+marks[1]-marks[0],
+                                         previous[2]+marks[2]-marks[1],
+                                         previous[3]+marks[3]-marks[2], previous[4]+tokens]
                 st = self.stage.setdefault(len(live), [0, 0, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
                 st[9] += pre if between < 1.0 else 0.0
                 st[0] += 1
@@ -1111,6 +1318,7 @@ class MultiDecoder:
                 self._forget(self.kept[int(eid)])
         while len(self.kept) > KEEP_ENTRIES:
             self._forget(min(self.kept.values(), key=lambda k: k.tick))
+        self._publish_occupancy()
 
     def drop(self) -> list[Stream]:
         """Every live stream fails (a step raised); their slots are free again."""
@@ -1130,10 +1338,13 @@ class MultiDecoder:
         self.filling.clear()
         for k in list(self.kept.values()):              # (the ranks may disagree about them now)
             self._forget(k)
+        self._publish_occupancy()
 
     # -- followers ----------------------------------------------------------------------------------------------
     def follow(self, link: Link) -> None:
         """A follower rank: rank 0's steps, in order, forever (or until the link or the lane breaks)."""
+
+        from tensorfold.engine.grammar import GrammarError
 
         while True:
             op = link.receive()
@@ -1143,11 +1354,11 @@ class MultiDecoder:
             kind = op[0]
             try:
                 if kind == "admit":
-                    _, prompt, count, sampling, draft, stop_eos, index, positions, reuse = op
+                    _, prompt, count, sampling, draft, stop_eos, index, positions, reuse, packed = op
                     s = Stream(list(prompt), int(count), _unpack(sampling), draft=bool(draft), stop_eos=bool(stop_eos))
                     s.emit = lambda new: None
                     s.keys = None
-                    self._admit(s, int(index), list(positions), reuse)
+                    self._admit(s, int(index), list(positions), reuse, packed)
                 elif kind == "fill":
                     self._fill(next(f for f in self.filling if f.sid == int(op[1])))
                 elif kind == "round":
@@ -1156,6 +1367,8 @@ class MultiDecoder:
                     self._finish([int(x) for x in op[1]], [int(x) for x in op[2]])
                 elif kind == "drop":
                     self._drop()
+            except GrammarError:
+                continue                            # agreed compile failure, before allocating a slot
             except OutOfStep as exc:
                 print(f"[tensorfold] rank {self.e.rank}: {exc}", flush=True)
                 self._drop()
