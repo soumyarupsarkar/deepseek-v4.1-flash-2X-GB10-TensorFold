@@ -186,6 +186,20 @@ class AssetTests(unittest.TestCase):
         self.assertNotEqual(p.returncode,0)
         self.assertIn('inventory differs',p.stderr)
 
+    def test_full_verification_and_cached_fingerprints_reject_changed_bytes(self):
+        for sub in ('model','engram','vision-extra'):(self.root/sub).mkdir()
+        f=self.root/'model/weights';f.write_bytes(b'original')
+        manifest={'model/weights':dict(bytes=8,sha256=hashlib.sha256(b'original').hexdigest())}
+        def run(full,previous=None):
+            return subprocess.run([sys.executable,'-B','-c',assets.VERIFY],input=json.dumps(
+                dict(root=str(self.root),manifest=manifest,full=full,previous=previous)),capture_output=True,text=True)
+        result=run(True);self.assertEqual(result.returncode,0,result.stderr)
+        previous={'files':json.loads(result.stdout)}
+        self.assertEqual(run(False,previous).returncode,0)
+        f.write_bytes(b'changed!')
+        self.assertNotEqual(run(False,previous).returncode,0)
+        self.assertNotEqual(run(True).returncode,0)
+
     def test_reuse_validates_pins_and_preserves_source_when_new_link_removed(self):
         source=self.root/'old';dest=self.root/'new';source.mkdir();dest.mkdir()
         original=source/'weight';original.write_bytes(b'checked weights')
