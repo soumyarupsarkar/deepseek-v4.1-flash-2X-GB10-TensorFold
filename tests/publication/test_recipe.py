@@ -221,6 +221,30 @@ class AssetTests(unittest.TestCase):
         args=cfg.launch_args(value,'head',str(uuid.uuid4()),'image',rails,prepared_readonly=True)
         self.assertIn(value['head']['data_root']+'/prepared:/prepared:ro',args)
 
+    def test_prepared_import_requires_owned_destination_and_complete_footer(self):
+        import struct
+        old=self.root/'old';new=self.root/'new'
+        (old/'prepared').mkdir(parents=True);(new/'prepared').mkdir(parents=True)
+        identity=str(uuid.uuid4())
+        runtime.atomic(new/'.spark-owned.json',dict(deployment_id=identity))
+        cache=old/'prepared/rank0of2-fixture.bin'
+        index=json.dumps([['tensor','uint8',[4],0,4]]).encode()
+        cache.write_bytes(b'data'+index+struct.pack('<Q',4)+b'TFDSRK01');cache.chmod(0o444)
+        payload=dict(source=str(old),root=str(new),rank=0,id='wrong')
+        def run():
+            return subprocess.run([sys.executable,'-B','-c',reuse.PREPARED],
+                                  input=json.dumps(payload),capture_output=True,text=True)
+        self.assertNotEqual(run().returncode,0)
+        self.assertEqual(list((new/'prepared').iterdir()),[])
+        payload['id']=identity
+        result=run();self.assertEqual(result.returncode,0,result.stderr)
+        self.assertEqual(json.loads(result.stdout)['sha256'],hashlib.sha256(cache.read_bytes()).hexdigest())
+        self.assertEqual(cache.stat().st_mode&0o777,0o444)
+        (new/'prepared'/cache.name).unlink()
+        cache.chmod(0o644);cache.write_bytes(b'incomplete')
+        self.assertNotEqual(run().returncode,0)
+        self.assertEqual(list((new/'prepared').iterdir()),[])
+
 
 class RestorationTests(unittest.TestCase):
     def setUp(self):
