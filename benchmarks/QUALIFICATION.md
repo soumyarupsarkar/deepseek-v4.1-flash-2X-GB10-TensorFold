@@ -1,6 +1,6 @@
 # Historical engine qualification
 
-These are summaries of the original installation's completed acceptance work, not results from the portable lifecycle in this repository. The engine files match [the qualified source](../release/engine-source.json). The original raw host journals and operational receipts are private and are not bundled; a public release needs fresh portable-install receipts with the same relevant gates.
+These are summaries of the original installation's completed acceptance work. The later [portable cutover report](../deployment/CUTOVER.md) records the verified-reuse migration separately. The engine files match [the qualified source](../release/engine-source.json). Original raw host journals and operational receipts are private and are not bundled.
 
 | Gate | Historical observation |
 |---|---|
@@ -21,4 +21,4 @@ The combined qualification took 3,010.9 seconds. The parent missed three of 1,42
 
 The Keys overlay was checked for tensor identity, coverage, precedence and combined functioning. These tests do not quantify abliteration effectiveness or guarantee unchanged reasoning/vision quality. Likewise, successful three-needle retrieval is not a comprehensive million-context quality evaluation.
 
-The new installation needs to reproduce acquisition, build, paired launch and restoration as well as these inference gates. Its offline tests exercise ownership, failure paths and command construction; they cannot establish GPU correctness, resource fit or actual host recovery.
+The portable cutover reproduced image build, paired launch, restoration and the relevant inference gates with verified existing assets. Fresh acquisition and an actual reboot-recovery exercise remain release work. Offline tests exercise ownership, failure paths and command construction; they cannot establish GPU correctness, resource fit or actual host recovery.

@@ -1,6 +1,6 @@
 # Portable two-GB10 setup
 
-**Candidate tooling: not yet qualified end to end on a fresh pair.** See [release gates](../release/STATUS.md). The defaults mirror a previously measured engine/profile; a successful offline plan is not proof that an installation will fit or recover correctly.
+**The verified asset-reuse path has paired hardware evidence.** The [cutover report](CUTOVER.md) covers a fresh portable image, inference/capacity, failure cleanup and restoration. Fresh model download/extraction remains an end-to-end [release gate](../release/STATUS.md). A successful offline plan alone does not establish resource fit or recovery.
 
 Run the controller on the head node. Both nodes need an already configured compatible NVIDIA driver, Docker with NVIDIA GPU support, RDMA tools, Python 3.12+, rsync, verified passwordless SSH, and noninteractive sudo for the documented Docker/display operations. Host CUDA development packages and host NCCL are not installed by this recipe. Use two connected RoCE rails, stable IPv4 addresses, Ethernet MTU 9000 and active RDMA MTU 4096; `doctor` checks those settings without changing them.
 

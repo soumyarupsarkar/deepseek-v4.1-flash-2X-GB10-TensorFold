@@ -1,0 +1,192 @@
+{
+  "asset_policy": {
+    "independent_mutable_kernel_caches": true,
+    "old_assets_and_images_preserved": true,
+    "shared_model_and_prepared_mounts_readonly": true,
+    "source_loader_identity_checked": true,
+    "verified_completed_prepared_caches": true,
+    "verified_existing_model_assets": true
+  },
+  "broader_restoration": [
+    {
+      "check": "after-asset-import",
+      "differences": [],
+      "hosts_checked": 2,
+      "status": "passed"
+    },
+    {
+      "check": "after-interrupted-controller",
+      "differences": [],
+      "hosts_checked": 2,
+      "status": "passed"
+    },
+    {
+      "check": "before-old-fallback",
+      "differences": [],
+      "hosts_checked": 2,
+      "status": "passed"
+    },
+    {
+      "check": "after-old-fallback",
+      "differences": [],
+      "hosts_checked": 2,
+      "status": "passed"
+    }
+  ],
+  "compared_host_categories": [
+    "packages",
+    "persistent_configuration_hashes",
+    "services",
+    "kernel",
+    "driver",
+    "user_groups",
+    "Docker_version_and_runtimes",
+    "display_and_DRM_state",
+    "physical_network_addresses_and_MTU",
+    "absence_of_GPU_compute_processes"
+  ],
+  "final_selected_start": {
+    "allocation_ooms": 0,
+    "allocation_retries": 0,
+    "available_gib": {
+      "head": 3.6567649841308594,
+      "worker": 3.184886932373047
+    },
+    "baseline_text_vision": true,
+    "context": 1048576,
+    "lan_access_from_worker": "passed",
+    "model": "DeepSeek-V4.1-Flash-Keys",
+    "paired_monitor": "active",
+    "parallel": 32,
+    "random_sampling_and_seed_replay": true,
+    "same_image_on_both_ranks": true,
+    "sealed_graphs": 96,
+    "shared_asset_mounts_readonly": true,
+    "shared_pool_tokens": 8650752,
+    "source_detached_at_selected_commit": true,
+    "status": "passed",
+    "strict_output": true
+  },
+  "finished": "2026-10-08T07:30:37.654183+00:00",
+  "identity": {
+    "dependency_differences": [],
+    "dependency_inventory_lines": 225,
+    "installed_runtime_differences": [],
+    "pinned_source_files_checked": 476,
+    "source_readmes_not_packaged_in_installed_wheel": 3
+  },
+  "idle_worker_failure": {
+    "automatic_paired_cleanup": true,
+    "both_hosts_restored": true,
+    "injection": "SIGKILL to the idle owned worker rank",
+    "seconds": 51.529,
+    "status": "passed"
+  },
+  "image_id": "sha256:07cd312dca050f9be3c14c5ca9c3ec728c3a28d1b9c2142e45c6a4d1fe54f98b",
+  "interrupted_controller": {
+    "both_hosts_restored": true,
+    "durable_journals_survived": true,
+    "injected_exit_code": 97,
+    "seconds": 10.324,
+    "status": "passed"
+  },
+  "old_server_fallback": {
+    "hosts_restored": true,
+    "status": "passed",
+    "stopped_after_test": true,
+    "text_vision_and_structured_checks": true
+  },
+  "privacy": "Raw inventories, ownership records, endpoint addresses, paths and host journals remain private. Receipt hashes identify that evidence; they are not download links.",
+  "scope": "Fresh portable image and verified asset-reuse migration, interrupted-controller and owned-worker failure, normal host restoration, preserved-server fallback, and selected restart. No fresh Hugging Face acquisition or host reboot was performed.",
+  "setup_recovery": {
+    "initial_prepared_import": "Interrupted after the model view completed; available evidence pointed to protected root-owned hardlinks.",
+    "original_error_stderr_retained": false,
+    "resolution": "Scoped protected hardlinks and cache-only resume; successful resumed import and full verification.",
+    "source_bytes_ownership_and_permissions_preserved": true,
+    "status": "recovered"
+  },
+  "source_receipts": [
+    {
+      "receipt": "lifecycle-cutover-interrupted.json",
+      "sha256": "38727fb0269c61161b6372ecf1960462197baa8e934ca01838c2a240f7c0daf1"
+    },
+    {
+      "receipt": "lifecycle-cutover-worker-loss.json",
+      "sha256": "cfb71bbb2f789a298446273f80387c02c50c996137e185601f31fd4c5b3e3b20"
+    },
+    {
+      "receipt": "image-identity.json",
+      "sha256": "8665ebc0f4ab60b771bebf92c27793e3820b0c74173a195c781b2ef905f435a9"
+    },
+    {
+      "receipt": "old-fallback.json",
+      "sha256": "3e9f20a4b24169bc528b93a1e7cc7a86003cd08068b341bb5d4be12a2d172af3"
+    },
+    {
+      "receipt": "final-start.json",
+      "sha256": "4de2df0a63e678a1f8935f342fa2506d59ee825c6ee79bc73ce53b4414b74565"
+    },
+    {
+      "receipt": "after-asset-import.json",
+      "sha256": "464d5b53b5bde59583fb499928b77d96993f2fa439e6395fdfe813f31c30faa3"
+    },
+    {
+      "receipt": "after-interrupted-controller.json",
+      "sha256": "9e6f32f92b3d73b8fb3818c917749615bfa5f86afea5fb8c7e558b90e5eb3269"
+    },
+    {
+      "receipt": "before-old-fallback.json",
+      "sha256": "b0a6855a8ba137a4033718d07487143988bb4932c220e79d4eaa60b8a8c25de1"
+    },
+    {
+      "receipt": "after-old-fallback.json",
+      "sha256": "0a62d2244718a09c44e8cf4676d4c527b3fc2c3404cf1399b72a8b65f0e47cb0"
+    },
+    {
+      "receipt": "prepared-import-result.json",
+      "sha256": "7a6698e5e711f9c8afbb19364a6f185f0fe6d5b07bb7ddac6090ae09ff612b6e"
+    },
+    {
+      "receipt": "runtime-verify-result.json",
+      "sha256": "38dd0cbefeb79c413908465879fd20e9a13c1bd3bb7918d2901d5c86067b4731"
+    },
+    {
+      "receipt": "image-build-result.json",
+      "sha256": "aa3745bfbee3d7f36fbb71cb3a3560554b6c3bb729ab6ccdcff42298f7dd3561"
+    },
+    {
+      "receipt": "kernel-precompile-result.json",
+      "sha256": "3eee78233551963c8444ec16205128daf6501a52b280a2cb5e7ecd4b67ad9d91"
+    },
+    {
+      "receipt": "first-start-result.json",
+      "sha256": "12f975ab31d021280d13612796d23405e63baa87424705f687997a40aee7cb7b"
+    }
+  ],
+  "source_revision": "2f65892284376d6a59eda1270e3a9ab59f79897b",
+  "stages": [
+    {
+      "name": "prepared-import",
+      "returncode": 0
+    },
+    {
+      "name": "runtime-verify",
+      "returncode": 0
+    },
+    {
+      "name": "image-build",
+      "returncode": 0
+    },
+    {
+      "name": "kernel-precompile",
+      "returncode": 0
+    },
+    {
+      "finished": "2026-10-08T05:38:47.576728+00:00",
+      "name": "first-start",
+      "returncode": 0,
+      "started": "2026-10-08T05:36:20.609711+00:00"
+    }
+  ],
+  "status": "passed"
+}

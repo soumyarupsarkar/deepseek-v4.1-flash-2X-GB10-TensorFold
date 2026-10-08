@@ -1,6 +1,6 @@
 # Measurement definitions and reproduction
 
-All bundled throughput results are historical measurements from the original two-GB10 deployment on 2026-10-07. The engine fingerprint is in [engine-source.json](../release/engine-source.json); the new portable installer has not produced these results. Sanitized summaries retain ranges and source-receipt hashes. Private raw operational receipts, host inventories and logs are not bundled; their hashes are provenance references, not links to downloadable files.
+The bundle contains original two-GB10 measurements from 2026-10-07 and portable-cutover measurements from 2026-10-08 (UTC). The cutover built a fresh image and reused fully verified model/prepared assets. The engine fingerprint is in [engine-source.json](../release/engine-source.json). Sanitized summaries retain ranges and source-receipt hashes. Private raw operational receipts, host inventories and logs are not bundled; their hashes are provenance references, not links to downloadable files.
 
 ## Two distinct methods
 
@@ -9,6 +9,40 @@ All bundled throughput results are historical measurements from the original two
 **Local fixed-input protocol 4:** [benchmark.py](../deployment/scripts/benchmark.py) uses the same prompt corpus where applicable, explicit sampling seeds, and forced output lengths. The suite runs two repetitions with separately retained unscored warm-up, verified zero prefix hits, and exact usage/counter checks. C16/C32 use distinct 1,024-token synthetic prompts and 256 generated tokens per request. Concurrency means observed active decoders, not merely launched HTTP clients. Whole-wave rates include admission, prefill and replies. Sampled steady rates require full requested decode occupancy, no prefill/queued work, adjacent health polls at most three seconds apart, and at least two seconds of eligible observations. Insufficient windows remain null. Engine-only prefill is distinct from input/TTFT.
 
 The local benchmark client differs from its original deployment version only in imports and receipt paths. Its calculation method is retained. The unchanged upstream kit is separately source-pinned. Neither method is an application-quality evaluation, and the prompt named `structured` is a counting task, not grammar-constrained JSON.
+
+## Portable cutover measurements
+
+Source `2f65892284376d6a59eda1270e3a9ab59f79897b`, local image ID
+`sha256:07cd312dca050f9be3c14c5ca9c3ec728c3a28d1b9c2142e45c6a4d1fe54f98b`,
+profile `c32-keys-v05`, 109 GiB allocator upper bound. The startup host floor can
+lower the effective ceiling. Engine files and dependency inventory match the
+previous selected deployment.
+
+| Matched method | Original | Cutover |
+|---|---:|---:|
+| Kit C1 code / prose / counting, output tok/s | 94.4 / 58.8 / 138.8 | 93.9 / 58.2 / 136.7 |
+| Kit cold 32K / 128K, input divided by TTFT | 2,006 / 1,843 | 2,021 / 1,852 |
+| Local C1 code / prose / counting, output tok/s | 93.2 / 58.6 / 137.9 | 94.1 / 59.0 / 137.0 |
+| Local cold 32K / 128K, input divided by TTFT | 1,959 / 1,756 | 1,936 / 1,767 |
+| Local C16 / C32 steady aggregate output tok/s | 209.6 / 267.5 | 214.5 / 266.9 |
+| Local C16 / C32 whole-wave aggregate output tok/s | 112.3 / 139.8 | 108.6 / 133.0 |
+
+The local suites used the same prompts and usage budgets: **178/178** token and
+text hashes matched, with 46,336 scored output tokens in each suite. The cutover
+retains both repetitions and all three unscored warm-up waves. Cold whole-wave
+throughput was lower at C16 and C32 even though steady
+decode stayed close; the [full local ranges](evidence/cutover-headlines.json)
+include those results. Counting's eligible steady window was too short and
+remains null; its C1 number uses the response's first-to-last-content span.
+
+The [unchanged-kit receipt](evidence/cutover-upstream-kit.json) includes three
+runs per C1 prompt and per prefill length. Every C1 reply reached the 384-token
+maximum. The wrapper checked the owned pair, exact request/token counters and
+zero prefill prefix hits. Kit C4 burst/sustained was not repeated for the cutover.
+No speed claim combines the kit and local timing definitions.
+
+The [cutover report](../deployment/CUTOVER.md) covers acquisition scope, capacity,
+memory headroom and lifecycle validation separately from these speed samples.
 
 ## Historical headlines
 
@@ -31,9 +65,9 @@ The matched local control had 69.6 / 49.3 / 89.9 C1 code/prose/counting output t
 
 The 8,650,752 logical-token pool stores active and retained KV states. Its tensor allocation was 7.49 GiB per rank; this is not total process memory, original input bytes, or the sum of clients' requested maxima. Thirty-two slots share that pool. Allocation fragmentation and prefix retention can cause waiting before every slot is active.
 
-The large-session qualification used an identical primed document, 261,120 input plus 1,024 output tokens per stream, twice at C32. It is evidence of populated simultaneous session states, not cold ingestion of 32 independent 262K documents. See [historical qualification](QUALIFICATION.md) for observed occupancy, recovery, memory headroom and observation gaps. NVMe session KV retention is disabled; prepared weight/kernel caches and logs still write to disk.
+The large-session qualification used an identical primed document, 261,120 input plus 1,024 output tokens per stream, twice at C32. It is evidence of populated simultaneous session states, not cold ingestion of 32 independent 262K documents. Both the [cutover](../deployment/CUTOVER.md) and [historical qualification](QUALIFICATION.md) record observed occupancy, recovery, memory headroom and observation gaps. NVMe session KV retention is disabled; prepared weight/kernel caches and logs still write to disk.
 
-## Reproduce after the portable installation qualifies
+## Reproduce on an idle qualified installation
 
 Use an otherwise idle pair and record the source, image, asset/profile hashes, dependencies, drivers, power/temperature state, client revision and complete workload. Keep output outside Git. These commands send substantial inference workloads; they are not preparation checks.
 

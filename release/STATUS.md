@@ -1,23 +1,63 @@
-# Publication preparation status
+# Publication and qualification status
 
-This is a publication candidate, not a released installer. The publication destination is [soumyarupsarkar/deepseek-v4.1-flash-2X-GB10-TensorFold](https://github.com/soumyarupsarkar/deepseek-v4.1-flash-2X-GB10-TensorFold). Preparing and publishing this source does not change the existing deployment or its rollback repository. Hardware qualification and release gates below remain pending.
+The source is published at [soumyarupsarkar/deepseek-v4.1-flash-2X-GB10-TensorFold](https://github.com/soumyarupsarkar/deepseek-v4.1-flash-2X-GB10-TensorFold).
+The portable controller has paired hardware evidence for **verified existing-asset
+reuse and a fresh image build**. Fresh model acquisition is a separate gate.
+There is no release tag associated with this qualification.
 
-## Prepared
+## Completed evidence
 
-- Public upstream ancestry retained; private deployment commits, host journals and raw operational logs omitted.
-- Qualified engine snapshot identified by per-file hashes in [engine-source.json](engine-source.json). The private revision and image identifiers are provenance, not publicly fetchable artifacts.
-- Portable configuration, pinned asset acquisition, paired lifecycle and restoration tools, with offline contract tests.
-- Historical benchmark summaries, reproducible clients, methodology, attribution and release boundaries.
-- Local Git author settings; no global Git configuration changes.
+- Public upstream ancestry retained; private deployment commits, host journals,
+  credentials and raw operational logs omitted.
+- The 476 engine/client files match the qualified source fingerprints in
+  [engine-source.json](engine-source.json). The original private engine/image
+  identifiers are provenance, not publicly fetchable artifacts.
+- Source `2f65892284376d6a59eda1270e3a9ab59f79897b` built and transferred as the
+  identical image on both GB10s. All 225 dependency-inventory lines match the
+  previous image; installed runtime source identity was checked.
+- Existing pinned model/Keys/Engram/vision files and completed prepared caches
+  were verified, reused under new ownership, and served through read-only
+  shared-asset mounts. Mutable kernel caches were compiled separately.
+- Text, vision, strict JSON/schema/tools, sampling, C16/C24/C32 parity, two full
+  C32 session waves, native-million retrieval, admission/cancellation, mixed
+  soak and 32-prefix retention passed. [Acceptance receipt](cutover-acceptance.json).
+- The complete local headline suite and unchanged upstream C1/cold-prefill
+  methods were repeated. All 178 matched local replies retained the original
+  token and text hashes. [Measurements](../benchmarks/README.md).
+- Interrupted-controller cleanup and idle worker-loss cleanup restored both
+  hosts. The preserved old server also passed its fallback checks and was stopped
+  before the selected new restart. The [lifecycle receipt](cutover-lifecycle.json)
+  and [cutover report](../deployment/CUTOVER.md) record scope, host checks and limits.
+- Thirty-nine offline contract tests and source/publication checks passed.
+  [Hosted CI for the deployed source](https://github.com/soumyarupsarkar/deepseek-v4.1-flash-2X-GB10-TensorFold/actions/runs/37735776995)
+  also passed. Git identity is configured locally; global Git configuration is
+  unchanged.
 
-Completed preparation checks are recorded in [preparation-checks.json](preparation-checks.json). That receipt distinguishes offline checks from pending hardware acceptance.
+The [original preparation receipt](preparation-checks.json) is a historical
+snapshot from before publication and hardware cutover. Its then-pending gates
+and publication flags do not describe the current state. Later documentation
+and evidence commits do not change the pinned serving source/image; see the
+[development/deployment workflow](../deployment/WORKFLOW.md).
 
-## Required before a release tag
+## Remaining before a release tag or stronger claims
 
-1. Use a fresh checkout on an idle two-GB10 pair. Exercise asset fetch/extraction, hash verification, image build/transfer, kernel precompile, start, stop and host restoration. Record dependency inventory and compare with the historical image; the Dockerfile's inventory is not a hermetic package lock.
-2. Re-run text, vision, strict JSON/schema/tools, sampling, ordinary/drafted parity, C32 capacity, native-million, queue/cancel, retention and soak tests on the portable build. Exercise an idle worker failure, an interrupted start and reboot-aware cleanup. Prove both hosts return to their own captured baseline.
-3. Repeat headline benchmarks on that build with the documented workload and timing boundaries. Keep slow runs and failures. Add matched long-context C1 and quality evaluations before making stronger performance or overlay-quality claims.
-4. Finish the code/model/container license and modified-file notice review. Preserve Apache and MIT notices and verify the exact pinned asset terms. Confirm that inherited upstream history is suitable for the intended public fork.
-5. Re-run secret and private-identifier scans on every ref being published and inspect the final diff. The GitHub destination and initial source publication have been authorized. Configure a reporting contact and confirm the hosted CI result before a release tag.
+1. Exercise fresh Hugging Face download/extraction, replication and the complete
+   lifecycle on an idle pair. The reuse migration did not download or regenerate
+   the existing model assets. The Docker dependency inventory is not a hermetic
+   package lock.
+2. Exercise actual reboot recovery. Reboot-aware decisions have offline coverage;
+   this cutover tested interrupted-controller and worker-process failure without
+   rebooting either host.
+3. Finish code/model/container licensing and modified-file notice review, retain
+   Apache/MIT notices, verify the exact pinned asset terms, and confirm inherited
+   history is suitable for the intended public fork.
+4. Add broader long-context and overlay-quality evaluations before making stronger
+   quality or comparative performance claims. A finite capacity/soak run and one
+   three-needle retrieval test do not establish indefinite uptime or general
+   million-context quality. The measured head RAM margin is limited.
+5. Re-scan every publication ref and inspect the final diff for each release;
+   configure a reporting contact and confirm CI for the exact release commit.
 
-No live server restart, model download, image build or privileged host operation is part of these preparation checks. Unit tests and source identity do not substitute for paired hardware qualification.
+No raw host inventory, private recovery journal, credential or ordinary inference
+traffic is needed in the public evidence bundle. Keep those records with the
+installation so it can be stopped and restored with its own controller.

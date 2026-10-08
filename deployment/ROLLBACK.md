@@ -1,6 +1,6 @@
 # Restore the pre-installation host state
 
-The portable lifecycle is awaiting hardware qualification. These are the intended recovery operations; perform and record them during the fresh-pair release gate.
+The [portable cutover](CUTOVER.md) exercised interrupted-controller recovery and idle worker-loss cleanup on both hosts. The operations below restore recipe-managed state using each installation's own journals. Actual reboot recovery remains a hardware release gate; its decision paths have offline test coverage.
 
 ## Normal stop
 

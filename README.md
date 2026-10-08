@@ -4,18 +4,18 @@
 
 Run DeepSeek-V4.1-Flash across two NVIDIA GB10s with Mia's EXL3 weights, drowzeys' Keys overlay and a TensorFold TP2 engine built on Bertholomus's work. This fork combines measured concurrency and memory improvements with a reversible deployment workflow.
 
-| Headline | Qualified engine / historical measurement |
+| Headline | Portable cutover measurement |
 |---|---|
 | Shared KV pool | **8,650,752 logical tokens** across **32 active slots** |
 | Maximum context | **1,048,576 tokens per request**, prompt plus reply |
-| C1 code / prose / counting decode | **94.4 / 58.8 / 138.8 output tok/s** |
-| Cold 32K / 128K prefill | **2,006 / 1,843 input tok/s**, measured as input/TTFT |
-| C16 / C32 steady decode | **209.6 / 267.5 aggregate output tok/s** |
+| C1 code / prose / counting decode | **93.9 / 58.2 / 136.7 output tok/s** |
+| Cold 32K / 128K prefill | **2,021 / 1,852 input tok/s**, measured as input/TTFT |
+| C16 / C32 steady decode | **214.5 / 266.9 aggregate output tok/s** |
 | Model features | **Vision, Keys abliteration and strict structured output** enabled together |
 
-Measured on the original two-GB10 deployment on 2026-10-07. C1 and prefill use the unchanged upstream benchmark client; C16/C32 use the local suite. [Workloads and timing boundaries](#benchmarks) matter when comparing these numbers. Active and retained sessions share the pool; 32 slots do not mean 32 simultaneously full million-token histories.
+Measured on the portable two-GB10 build on 2026-10-08 using fully verified existing model and prepared-cache assets. C1 and prefill use the unchanged upstream benchmark client; C16/C32 use the local suite. [Workloads and timing boundaries](#benchmarks) matter when comparing these numbers. Active and retained sessions share the pool; 32 slots do not mean 32 simultaneously full million-token histories.
 
-> **Publication candidate:** the engine files match the qualified deployment. The new portable installer has passed offline checks, but fresh two-node installation and rollback qualification are still required before release. [Release status](release/STATUS.md).
+> **Hardware-qualified reuse path:** image build, paired inference/capacity, failure cleanup and host restoration have been exercised on two GB10s. Fresh model download/extraction remains a separate release gate. [Cutover evidence and limits](deployment/CUTOVER.md) · [Release status](release/STATUS.md).
 
 [Credits](#credits) · [Setup](#setup) · [Rollback](#rollback) · [Benchmarks](#benchmarks) · [License](#license)
 
@@ -39,7 +39,7 @@ Performance results describe the combined system. [Detailed attribution and sour
 
 ## Setup
 
-Run the controller from this repository on the **head node**; it manages the worker over SSH. The workflow below is the portable installer awaiting hardware qualification. The [full installation runbook](deployment/README.md) covers asset recovery and build details.
+Run the controller from this repository on the **head node**; it manages the worker over SSH. The verified asset-reuse path has completed paired hardware qualification; fresh acquisition still needs that end-to-end check. The [full installation runbook](deployment/README.md) covers both paths, asset recovery and build details.
 
 ### Prerequisites
 
@@ -178,32 +178,37 @@ Removing retained data or image tags is a separate, optional step after restorat
 - Temporary DRM allocation, bounded graph/scratch memory, admission diagnostics and up to 32 retained prefixes with two recent checkpoints each. Pool tensors consume 7.49 GiB per rank in the measured configuration.
 - The Keys overlay, image input, strict structured output and configurable random or prompt-derived request seeds. The recipe selects random seeds; explicit request seeds still work.
 - A measured draft-cost policy, shared round outputs and bounded 8K/262K/1M graph widths. The selected 32-row target budget uses ordinary decoding at C17–32 and resumes drafting as concurrency falls. Experimental 64-row profiles are outside this portable candidate.
-- New installation ownership, pinned asset acquisition, paired failure handling and journaled host restoration, with offline contract tests and CI.
+- Installation ownership, pinned asset acquisition, verified immutable asset reuse, paired failure handling and journaled host restoration, with offline contract tests, CI and paired hardware evidence.
 
-Session KV writes to NVMe are off. Prepared weights, compiled kernels and logs still write to disk. [Integration decisions](deployment/UPSTREAM-V05.md) and [historical qualification](benchmarks/QUALIFICATION.md) describe the selected engine and its limits.
+Session KV writes to NVMe are off. Prepared weights, compiled kernels and logs still write to disk. [Integration decisions](deployment/UPSTREAM-V05.md), [portable cutover qualification](deployment/CUTOVER.md) and [historical qualification](benchmarks/QUALIFICATION.md) describe the selected engine and its limits.
 
 ## Benchmarks
 
-Historical measurements from 2026-10-07, using two GB10s, Mia 2.9-bpw + Keys, 1K prefill chunks, 32 slots and the shared pool above. These are not measurements of a fresh install from this repository.
+Matched methods on the same two GB10s, with Mia 2.9-bpw + Keys, 1K prefill chunks, 32 slots and the shared pool above. The cutover built a fresh portable image and reused verified assets. Dates below are UTC.
 
-| Workload | Result | Measurement |
-|---|---:|---|
-| C1 code / prose / counting decode | **94.4 / 58.8 / 138.8 output tok/s** | Unchanged upstream client, set-b, T=0, 384-token maximum, medians of 3 |
-| Cold 32K / 128K input throughput | **2,006 / 1,843 input tok/s** | Input divided by first-content latency, upstream client, medians of 3 |
-| C4 burst / sustained | **120.9 / 133.0 aggregate output tok/s** | Upstream client; median of 9 bursts / one 90-second window |
-| C16 / C32 steady decode | **209.6 / 267.5 aggregate output tok/s** | Local suite; distinct 1K prompts, 256 forced outputs, medians of 2 |
-| C16 / C32 whole cold wave | **112.3 / 139.8 aggregate output tok/s** | Same suite, including admission and prefill |
-| Large-session capacity | **32 × 262,144 total tokens**, twice | Identical primed document, independent active session states; not 32 cold independent document prefills |
-| Native-million retrieval | **1,048,576 total tokens** | Cold input, all three embedded passphrases recovered |
-| Vision / Keys / strict output | Enabled and tested together | Constrained requests use ordinary decoding |
+| Workload | Original, Oct 7 | Cutover, Oct 8 | Measurement |
+|---|---:|---:|---|
+| C1 code / prose / counting decode | 94.4 / 58.8 / 138.8 | **93.9 / 58.2 / 136.7** | Output tok/s; unchanged upstream client, set-b, T=0, 384-token maximum, medians of 3 |
+| Cold 32K / 128K input throughput | 2,006 / 1,843 | **2,021 / 1,852** | Input tok/s through first-content latency; upstream client, medians of 3 |
+| C16 / C32 steady decode | 209.6 / 267.5 | **214.5 / 266.9** | Aggregate output tok/s; local suite, distinct 1K prompts, 256 forced outputs, medians of 2 |
+| C16 / C32 whole cold wave | 112.3 / 139.8 | **108.6 / 133.0** | Same suite, including admission and prefill |
+| Large-session capacity | 32 × 262,144, twice | **32 × 262,144, twice** | Identical primed document, independent active session states; not 32 cold independent document prefills |
+| Native-million retrieval | 1,048,576 | **1,048,576** | Total prompt + reply tokens, cold input, all three passphrases recovered |
+| Vision / Keys / strict output | Passed together | **Passed together** | Constrained requests use ordinary decoding |
 
-The configured pool budget differs from populated history. The large-session test sampled 8,388,416 populated logical tokens; retained prefixes share the pool, and contiguous-allocation requirements can queue requests before every slot fills. The counting benchmark is not a strict-JSON benchmark. Feature qualification does not establish the overlay's quality across all tasks.
+All **178** local benchmark replies matched the previous deployment's token and text hashes; each suite generated 46,336 scored output tokens. Whole cold-wave rates are lower in this cutover run even though steady-decode rates stayed close. The historical upstream C4 burst/sustained results (120.9 / 133.0 aggregate tok/s) were not repeated here.
 
-[Methods, ranges and reproduction](benchmarks/README.md) · [Historical qualification](benchmarks/QUALIFICATION.md) · [Comparison with Bertholomus, Urtho and coolbho3k](deployment/COMPARISON.md).
+The configured pool budget differs from populated history. The cutover's large-session test sampled 8,388,288 populated logical tokens; retained prefixes share the pool, and contiguous-allocation requirements can queue requests before every slot fills. The counting benchmark is not a strict-JSON benchmark. Feature qualification does not establish the overlay's quality across all tasks.
+
+[Methods, ranges and reproduction](benchmarks/README.md) · [Cutover qualification](deployment/CUTOVER.md) · [Historical qualification](benchmarks/QUALIFICATION.md) · [Comparison with Bertholomus, Urtho and coolbho3k](deployment/COMPARISON.md).
 
 ![Historical throughput and first-content latency by concurrency](benchmarks/throughput.svg)
 
 ## Development and release status
+
+Keep development and the pinned serving checkout separate. The
+[cutover and update workflow](deployment/WORKFLOW.md) covers source/image pins,
+private state, qualification and restoration.
 
 Run the offline checks without downloading weights or contacting either host:
 
@@ -213,7 +218,7 @@ python3 -B scripts/check_release.py
 python3 -B cluster --config deployment/config/cluster.example.json plan
 ```
 
-The engine source is fingerprinted against the qualified snapshot. The portable installer's fresh hardware acceptance and final licensing review remain release gates. [Preparation checks](release/preparation-checks.json) · [Release status](release/STATUS.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md).
+The engine source is fingerprinted against the qualified snapshot. The verified-reuse cutover has hardware evidence; fresh acquisition, an actual reboot-recovery exercise and final licensing review remain release work. [Historical preparation checks](release/preparation-checks.json) · [Release status](release/STATUS.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md).
 
 The inherited TensorFold families and backends remain in the source tree. This recipe covers the DeepSeek-V4.1 CUDA TP2 configuration described above. Consult [upstream TensorFold](https://github.com/ashhart/TensorFold) for its other configurations.
 
