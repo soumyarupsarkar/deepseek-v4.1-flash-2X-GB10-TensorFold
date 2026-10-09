@@ -11,11 +11,11 @@ BACKUPS = 7
 
 
 def host_sample(pair, host, pid, *, floor_bytes, detail=False):
-    args = ['sudo', '-n', 'python3', '-B', '-c', HOST_PROBE, '--pid', str(pid),
+    args = ['sudo', '-n', 'python3', '-B', '-', '--pid', str(pid),
             '--warning-bytes', str(floor_bytes+2**30)]
     if detail:
         args.append('--detail')
-    return json.loads(pair.run(host, args, timeout=20).stdout)
+    return json.loads(pair.run(host, args, input=HOST_PROBE, timeout=20).stdout)
 
 
 def numeric(values):

@@ -1,6 +1,7 @@
 """Memory evidence and shutdown contracts, using synthetic /proc and rank state."""
 import json
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -15,6 +16,17 @@ import runtime
 
 
 class ProbeTests(unittest.TestCase):
+    def test_probe_source_is_stdin_not_a_logged_command_argument(self):
+        pair = runtime.Pair(configuration.read(configuration.CONFIG/'cluster.example.json'))
+        with patch.object(pair, 'run', return_value=subprocess.CompletedProcess([], 0, '{"ok":true}')) as run:
+            self.assertEqual(memory_watch.host_sample(pair, 'worker', 42, floor_bytes=2*2**30), {'ok': True})
+        args, kwargs = run.call_args
+        self.assertEqual(args[0], 'worker')
+        self.assertEqual(args[1][:5], ['sudo', '-n', 'python3', '-B', '-'])
+        self.assertNotIn(memory_watch.HOST_PROBE, args[1])
+        self.assertEqual(kwargs['input'], memory_watch.HOST_PROBE)
+        self.assertEqual(kwargs['timeout'], 20)
+
     def test_rank_descendants_and_private_mappings_without_request_or_argv_reads(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -89,6 +101,58 @@ class HistoryTests(unittest.TestCase):
         self.assertEqual(selected['memory']['kv_pool'], {'active_requests': 2})
         self.assertNotIn('PRIVATE', json.dumps(selected))
         self.assertNotIn('token_ids', selected['memory'])
+
+
+class WatchConnectionTests(unittest.TestCase):
+    def setUp(self):
+        self.pair = runtime.Pair(configuration.read(configuration.CONFIG/'cluster.example.json'))
+
+    def test_one_private_socket_scoped_to_watch_and_closed_on_error(self):
+        calls = []
+        def run(args, **kwargs):
+            calls.append(args)
+            if args[0] == 'ssh' and '-O' not in args:
+                self.pair._worker_control.touch()  # emulate the master's socket
+            return subprocess.CompletedProcess(args, 0, '')
+        with patch('runtime.subprocess.run', side_effect=run):
+            with self.assertRaisesRegex(RuntimeError, 'rank failed'):
+                with self.pair.watch_connection():
+                    path = self.pair._worker_control
+                    self.assertEqual(path.parent.stat().st_mode & 0o777, 0o700)
+                    self.assertLess(len(str(path)), 100)
+                    self.pair.run('worker', ['true'])
+                    self.pair.run('head', ['true'])
+                    self.pair.run('worker', ['true'])
+                    raise RuntimeError('rank failed')
+        worker = [args for args in calls if args[0] == 'ssh' and '-O' not in args]
+        self.assertEqual(len(worker), 2)
+        self.assertTrue(all('ControlPath='+str(path) in args for args in worker))
+        self.assertTrue(all('ControlPersist=30' in args for args in worker))
+        self.assertTrue(all('StrictHostKeyChecking=yes' in args and 'BatchMode=yes' in args for args in worker))
+        self.assertIn(['true'], calls)  # head commands are unaffected
+        self.assertIn('-O', calls[-1]); self.assertIn('exit', calls[-1])
+        self.assertIsNone(self.pair._worker_control)
+        self.assertFalse(path.parent.exists())
+        with patch('runtime.subprocess.run', return_value=subprocess.CompletedProcess([], 0, '')) as run:
+            self.pair.run('worker', ['true'])
+        self.assertFalse(any(arg.startswith('ControlPath=') for arg in run.call_args.args[0]))
+
+    def test_master_cleanup_timeout_does_not_hide_the_original_fault(self):
+        with patch('runtime.subprocess.run', side_effect=subprocess.TimeoutExpired('ssh', 5)):
+            with self.assertRaisesRegex(RuntimeError, 'original fault'):
+                with self.pair.watch_connection():
+                    path = self.pair._worker_control
+                    path.touch()
+                    raise RuntimeError('original fault')
+        self.assertIsNone(self.pair._worker_control)
+        self.assertFalse(path.parent.exists())
+
+    def test_temp_directory_failure_keeps_the_watchdog_running(self):
+        with patch('runtime.tempfile.TemporaryDirectory', side_effect=PermissionError('unavailable')), \
+             patch.object(self.pair, '_watch') as watch:
+            self.pair.watch()
+        watch.assert_called_once()
+        self.assertIsNone(getattr(self.pair, '_worker_control', None))
 
 
 class WatchdogTests(unittest.TestCase):

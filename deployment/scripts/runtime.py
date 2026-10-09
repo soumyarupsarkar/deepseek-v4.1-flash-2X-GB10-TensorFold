@@ -9,6 +9,7 @@ import pwd
 import shlex
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.request
 import uuid
@@ -100,13 +101,54 @@ class Pair:
         self.config = validate(config)
         self.state = Path(state)
 
+    def _ssh(self):
+        return ['ssh','-T','-o','BatchMode=yes','-o','ConnectTimeout=10',
+                '-o','ServerAliveInterval=15','-o','ServerAliveCountMax=3',
+                '-o','StrictHostKeyChecking=yes','-o','UpdateHostKeys=no']
+
+    @contextlib.contextmanager
+    def watch_connection(self):
+        """Reuse one private SSH login for polling; never edit the user's SSH config.
+
+        A short socket path avoids Unix-domain path limits in long checkouts.
+        ControlPersist bounds an orphan's idle lifetime if the watcher is killed;
+        the systemd monitor also owns its children in the same service cgroup.
+        """
+        if getattr(self, '_worker_control', None) is not None:
+            raise RuntimeError('Watch connection already open')
+        try:
+            temporary = tempfile.TemporaryDirectory(prefix='deepseek-watch-', dir='/tmp')
+        except OSError as exc:
+            # Reuse is an optimization, not a prerequisite for memory safety.
+            print('Watch SSH reuse unavailable: '+type(exc).__name__, file=sys.stderr, flush=True)
+            yield
+            return
+        with temporary as directory:
+            control = Path(directory)/'ssh'
+            self._worker_control = control
+            try:
+                yield
+            finally:
+                self._worker_control = None
+                if control.exists():
+                    try:
+                        subprocess.run([*self._ssh(), '-o', 'ControlPath='+str(control),
+                                        '-O', 'exit', self.config['worker']['ssh']],
+                                       capture_output=True, text=True, timeout=5, check=False)
+                    except (OSError, subprocess.TimeoutExpired):
+                        # Do not replace a failure being handled by paired stop.
+                        # With no clients, ControlPersist closes the master shortly.
+                        pass
+
     def run(self, host, args, **kwargs):
         args = [str(a) for a in args]
         if host == 'worker':
-            args = ['ssh','-T','-o','BatchMode=yes','-o','ConnectTimeout=10',
-                    '-o','ServerAliveInterval=15','-o','ServerAliveCountMax=3',
-                    '-o','StrictHostKeyChecking=yes','-o','UpdateHostKeys=no',
-                    self.config['worker']['ssh'], shlex.join(args)]
+            options = []
+            control = getattr(self, '_worker_control', None)
+            if control is not None:
+                options = ['-o','ControlMaster=auto','-o','ControlPersist=30',
+                           '-o','ControlPath='+str(control)]
+            args = [*self._ssh(), *options, self.config['worker']['ssh'], shlex.join(args)]
         elif host != 'head':
             raise ValueError('Unknown host')
         return subprocess.run(args, capture_output=True, text=True, check=True, **kwargs)
@@ -391,6 +433,10 @@ class Pair:
             raise
 
     def watch(self):
+        with self.watch_connection():
+            self._watch()
+
+    def _watch(self):
         from memory_watch import History, health_sample, host_sample
         expected = read(self.state/'launch.json')
         history = History(self.state/'memory')

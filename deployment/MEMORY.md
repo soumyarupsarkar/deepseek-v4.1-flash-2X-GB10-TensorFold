@@ -36,6 +36,15 @@ The collector reads neither process command lines/environment nor inference
 prompts, replies or token IDs. Process names and machine-local identifiers are
 still operational data: keep these receipts private.
 
+While running, the watchdog reuses one SSH connection through a private
+temporary control socket. This avoids creating a new worker login for every
+Docker or memory poll, which can repeatedly activate login and desktop-service
+callbacks. Host-key checking and command timeouts remain enabled. The socket
+is closed on normal exit; an orphaned master expires after 30 idle seconds.
+No SSH configuration file is changed. The probe source travels through standard
+input so the full program is not repeated in sudo's command log. If the private
+socket directory cannot be created, polling continues with ordinary SSH.
+
 Files live under the installation's ignored `deployment/.local/memory/`:
 
 - `samples.jsonl` plus seven rotations: up to 32 MiB of frequent samples.
