@@ -8,6 +8,7 @@ from pathlib import Path
 import pwd
 import shlex
 import subprocess
+import sys
 import time
 import urllib.request
 import uuid
@@ -390,19 +391,35 @@ class Pair:
             raise
 
     def watch(self):
+        from memory_watch import History, health_sample, host_sample
         expected = read(self.state/'launch.json')
+        history = History(self.state/'memory')
+        floor = int(expected['profile']['minimum_available_gib']*2**30)
+        last_health = None
+        last_health_at = None
+        next_detail = 0.0
         failed = 0; previous = None; changed = time.monotonic()
         while True:
             reason = None
+            sample = dict(schema=1, time=now(), minimum_available_bytes=floor,
+                          image=expected['image'], hosts={})
+            detail = time.monotonic() >= next_detail
+            if detail:
+                next_detail = time.monotonic()+60
             try:
                 for host in ('head','worker'):
                     rows = self.containers(host)
                     if (len(rows)!=1 or not rows[0]['State']['Running']
                             or rows[0]['Id']!=expected['containers'][host]):
                         raise RuntimeError(host+': rank absent, exited or replaced')
-                    if self.memory(host)['MemAvailable'] < expected['profile']['minimum_available_gib']*2**30:
+                    host_memory = host_sample(self, host, rows[0]['State']['Pid'],
+                                              floor_bytes=floor, detail=detail)
+                    sample['hosts'][host] = host_memory
+                    if host_memory['meminfo']['MemAvailable'] < floor:
                         raise RuntimeError(host+': host memory floor crossed')
                 health = self.get('/health')
+                last_health = sample['health'] = health_sample(health)
+                last_health_at = time.monotonic()
                 if not health.get('ok') or health.get('fatal'):
                     raise RuntimeError('API reports an unhealthy runtime')
                 progress = (health.get('requests_total'),health.get('completion_tokens_total'),
@@ -414,9 +431,23 @@ class Pair:
                 failed = 0
             except Exception as exc:
                 reason = str(exc); failed += 1
+            sample['failure_count'] = failed
+            if reason:
+                sample['reason'] = reason
+                if last_health_at is not None:
+                    sample['last_health_age_seconds'] = round(time.monotonic()-last_health_at, 3)
+            try:
+                history.append(sample)
+            except Exception as exc:
+                print('Memory history recording failed: '+type(exc).__name__, file=sys.stderr, flush=True)
             if failed >= 2:
-                atomic(self.state/'fault.json',dict(time=now(),reason=reason))
-                with self.lock():
-                    self.stop()
+                try:
+                    atomic(self.state/'fault.json',dict(time=now(),reason=reason,
+                           sample=sample,last_health=last_health,recent_samples=list(history.recent)))
+                finally:
+                    # Even a full/read-only history filesystem must not prevent
+                    # the original paired cleanup and host restoration.
+                    with self.lock():
+                        self.stop()
                 return
             time.sleep(5)

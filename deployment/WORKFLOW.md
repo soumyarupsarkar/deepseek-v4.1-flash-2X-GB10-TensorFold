@@ -41,6 +41,10 @@ against unrelated processes or prove indefinite uptime. Preserve the monitor's
 memory checks and qualify large-context/concurrent workloads after changing
 memory policy. A short smoke test does not establish C32 or million-token fit.
 
+The paired monitor retains bounded, private [memory diagnostics](MEMORY.md).
+Preserve its history and fault snapshot before investigating a memory-floor
+shutdown; the allocator ceiling does not account for every host allocation.
+
 ## Restore normal host operation
 
 Use the active installation's saved configuration:
