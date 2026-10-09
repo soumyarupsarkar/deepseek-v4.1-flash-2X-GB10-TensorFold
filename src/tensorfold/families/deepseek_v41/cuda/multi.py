@@ -436,6 +436,8 @@ class MultiDecoder:
                                      checkpoint_policy=KEEP_MARK_POLICY, checkpoints=KEEP_MARKS)
         self.next_kept, self.ticks = 0, 0
         self.keep_stats: dict[str, int] = {}             # admissions that continued a kept prompt, by placement
+        self.kv_compactions = self.kv_compacted_rows = 0
+        self.kv_compacted_streams = self.kv_compacted_prefills = self.kv_compaction_evictions = 0
         self._publish_occupancy()
 
     def warm(self, buckets=None) -> None:
@@ -573,8 +575,8 @@ class MultiDecoder:
 
     def _shape(self) -> list:
         return [self.next_id, list(self.free), list(self.extents.gaps),
-                [[s.sid, s.st.index, s.st.sc.length, len(s.out), bool(s.done)] for s in self.streams.values()],
-                [[s.sid, s.st.index, s.filled] for s in self.filling],
+                [[s.sid, s.st.index, s.base, s.size, s.st.sc.length, len(s.out), bool(s.done)] for s in self.streams.values()],
+                [[s.sid, s.st.index, s.base, s.size, s.filled] for s in self.filling],
                 [[k.eid, k.base, k.size, k.top, k.tick, sorted(k.snaps)] for k in self.kept.values()]]
 
     # -- kept prompts ---------------------------------------------------------------------------------------------
@@ -651,7 +653,7 @@ class MultiDecoder:
                 for h, x in enumerate(pair):
                     x[index * RAW:(index + 1) * RAW].copy_(raw[j, h])
 
-    def _copy_rows(self, src: int, dst: int, n: int) -> None:
+    def _copy_rows(self, src: int, dst: int, n: int, *, max_temporary_bytes: int | None = None) -> None:
         """Positions [src, src + n) of the window's compressed, indexer and token rows to [dst, dst + n) (through a
         copy where the two overlap)."""
 
@@ -659,14 +661,20 @@ class MultiDecoder:
             return
         c = self.m.cfg
         overlap = src < dst + n and dst < src + n
+        def copy(t, a, b, count):
+            if max_temporary_bytes is None:
+                t[b:b + count].copy_(t[a:a + count].clone() if overlap else t[a:a + count])
+            else:
+                from .compaction import copy_range
+                copy_range(t,a,b,count,max_temporary_bytes)
         for planes in (self.pool.comp, self.pool.index_k):
             for i, x in planes.items():
                 r = c.compress_ratios[i]
                 a, b, k = src // r, dst // r, n // r
                 for t in (x if isinstance(x, tuple) else (x,)):
-                    t[b:b + k].copy_(t[a:a + k].clone() if overlap else t[a:a + k])
+                    copy(t,a,b,k)
         t = self.pool.tokens
-        t[dst:dst + n].copy_(t[src:src + n].clone() if overlap else t[src:src + n])
+        copy(t,src,dst,n)
 
     def _forget(self, k: Kept, give: bool = True) -> None:
         self.kept.pop(k.eid, None)
@@ -681,6 +689,57 @@ class MultiDecoder:
         for k in self.kept.values():
             ex.give(k.base, k.size)
         return any(b - a >= ex.size(need) for a, b in ex.gaps)
+
+    def _compaction_plan(self, need: int):
+        from .compaction import plan
+
+        active = [(s.sid,s.base,s.size) for s in list(self.streams.values())+self.filling]
+        kept = [(k.eid,k.base,k.size,k.tick) for k in self.kept.values()]
+        return plan(self.extents.total,self.extents.align,active,kept,need)
+
+    @torch.no_grad()
+    def _compact(self, need: int) -> None:
+        """Both ranks pack extents between scheduler steps, retaining cache-object identity.
+
+        Prefill generators hold their SeqCache object across chunk boundaries.
+        Rebind its physical row views in place; logical length, host ids, slot
+        rings, compressor inputs and drafter state do not move. Round graphs
+        address the unchanged pool storage through refreshed base/end inputs.
+        """
+        self._step(True)
+        try:
+            placement = self._compaction_plan(need)
+            self._agree('KV compaction',[self._shape(),need,placement])
+            if placement is None:
+                raise OutOfStep('an agreed KV compaction cannot fit its incoming request')
+            active = {s.sid:s for s in list(self.streams.values())+self.filling}
+            filling = {s.sid for s in self.filling}
+            for ident in placement['dropped']:
+                self._forget(self.kept[ident])
+            for move in placement['moves']:
+                self._copy_rows(move['source'],move['destination'],move['size'],
+                                max_temporary_bytes=8*2**20)
+                if move['kind']=='retained':
+                    self.kept[move['id']].base = move['destination']
+                else:
+                    stream = active[move['id']]
+                    cache = stream.st.sc
+                    view = self.m.pool_view(self.pool,stream.st.index,move['destination'],stream.size)
+                    cache.comp,cache.index_k,cache.tokens = view.comp,view.index_k,view.tokens
+                    stream.base = move['destination']
+                    self.kv_compacted_streams += 1
+                    self.kv_compacted_prefills += int(stream.sid in filling)
+                self.kv_compacted_rows += move['size']
+            used = placement['used_rows']
+            self.extents.gaps = [(used,self.extents.total)] if used < self.extents.total else []
+            self.kv_compactions += 1
+            self.kv_compaction_evictions += len(placement['dropped'])
+            self._publish_occupancy()
+        except Exception as exc:
+            self._broken(exc)
+            raise
+        finally:
+            self._step(False)
 
     def _place(self, need: int, src: Kept | None) -> tuple[int | None, str]:
         """An extent for ``need`` positions (every rank the same): a free one (``src``'s rows get copied in, "copy"),
@@ -791,7 +850,11 @@ class MultiDecoder:
         if not self.free:
             raise NoRoom("every stream slot is busy")
         if not self._room(self._need(s)):
-            raise NoRoom("the window's free extents are too small for this request now")
+            need = self._need(s)
+            if self._compaction_plan(need) is None:
+                raise NoRoom("the window's free extents are too small for this request now")
+            self._send(['compact',need])
+            self._compact(need)
         positions = s.vision.positions() if s.vision is not None and getattr(s.vision, "spans", None) else []
         index = self.free[0]
         s.keys = self._keys(s) if KEEP else None
@@ -1361,6 +1424,8 @@ class MultiDecoder:
                     self._admit(s, int(index), list(positions), reuse, packed)
                 elif kind == "fill":
                     self._fill(next(f for f in self.filling if f.sid == int(op[1])))
+                elif kind == "compact":
+                    self._compact(int(op[1]))
                 elif kind == "round":
                     self.round(told=op)
                 elif kind == "finish":

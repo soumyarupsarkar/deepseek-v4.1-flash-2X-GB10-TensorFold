@@ -663,6 +663,10 @@
       "sha256": "409e3139a8fcef0f937e2ae1e9b97c4b10ae801b54c1496d2201633af4418e9f"
     },
     {
+      "path": "src/tensorfold/families/deepseek_v41/cuda/compaction.py",
+      "sha256": "73d4b07436e247dec6bd7628276668a7986d5b55eab4aa7fcb2ba96046e08c68"
+    },
+    {
       "path": "src/tensorfold/families/deepseek_v41/cuda/draft_policy.py",
       "sha256": "b4b3a004349375c79ceffa954f3208a5827ed0ae355562fe447bf9f53b4bcfe2"
     },
@@ -704,7 +708,7 @@
     },
     {
       "path": "src/tensorfold/families/deepseek_v41/cuda/memory_stats.py",
-      "sha256": "e97c1778465991422ab72eedd67a26c1b1738c79e4a5912e027959f43d96a27b"
+      "sha256": "80468db190441af3c88b2b2418a03835861399ef71118c6db98d3e6383d9cc4e"
     },
     {
       "path": "src/tensorfold/families/deepseek_v41/cuda/model.py",
@@ -712,7 +716,7 @@
     },
     {
       "path": "src/tensorfold/families/deepseek_v41/cuda/multi.py",
-      "sha256": "5622755320e4e0b52c27a5dd10091083412e795655f55e72490c6536af0c921b"
+      "sha256": "ef3d08b2ac78e683cffaf5a557cb4fcfd2bdb4b1606e5e493ac357528dcf5be8"
     },
     {
       "path": "src/tensorfold/families/deepseek_v41/cuda/occupancy.py",
@@ -1913,7 +1917,7 @@
     "90b68e063a0b8bba59aaf13340ef16619e751195"
   ],
   "schema": 2,
-  "scope": "Current engine and benchmark-client fingerprints, based on the original qualified build plus the listed selective updates and documented local adaptations. Baseline build identifiers are historical provenance, not public ancestors or a qualification claim for these updated bytes. See deployment/UPSTREAM-V051.md for current validation.",
+  "scope": "Current engine and benchmark-client fingerprints, based on the original qualified build plus the listed selective updates and documented local adaptations. Baseline build identifiers are historical provenance, not public ancestors or a qualification claim for these updated bytes. See deployment/UPSTREAM-V051.md for the preceding validation and deployment/MEMORY.md for the compaction candidate and its pending hardware/endurance gates.",
   "selective_port": "808eb4a1090ca7b79173cc2c799de16da5f923e3",
   "upstream": "https://github.com/bertholomus/TensorFold",
   "upstream_base": "d5d7bb389ddf4325c1edf4a15dd1c23727040ea1",

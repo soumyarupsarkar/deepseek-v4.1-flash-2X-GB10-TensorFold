@@ -19,6 +19,23 @@ does not measure 32 independent cold document prefills. Allow several hours.
 The retention command checks 32 distinct cached prefixes, sequential reuse,
 continuation equality and LRU eviction.
 
+For a warm-pool compaction regression check, run identical full-context waves
+after mixed retention/schema traffic:
+
+```bash
+python3 -B tools/qualification/qualify_memory.py --record warm-compaction \
+  --streams 32 --rounds 2 --initial-tokens 261120 --growth 0 --reply-tokens 1024 \
+  --shared-prefix --identical --require-concurrency --require-replay-parity \
+  --require-compaction
+```
+
+This requires 32 simultaneous decoders in each wave, identical output token
+hashes for each fixed seed across the two waves, and at least one compaction.
+If the starting layout needs no compaction, the command fails that coverage
+gate; it does not silently claim to have tested relocation. Receipts retain
+hashes rather than full output token lists. Cold prefills of 32 independent
+documents and compaction performance require separate measurements.
+
 The loop-guard smoke checks ordinary non-looping replies, streaming, concurrent
 requests and exclusions for schemas/thinking budgets. Deterministic forced-loop
 and continuation-seed checks use synthetic HTTP engines in

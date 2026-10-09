@@ -1,6 +1,7 @@
 """Repeat growing histories at concurrency; capture live memory, never user content."""
 import argparse
 import concurrent.futures
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -31,11 +32,16 @@ def main():
     parser.add_argument('--require-concurrency',action='store_true',
                         help='Require all requested streams to be observed decoding in every cycle')
     parser.add_argument('--no-draft',action='store_true',help='Compare ordinary decoding for raw full-session requests')
+    parser.add_argument('--require-replay-parity', action='store_true',
+                        help='Require identical token IDs by fixed seed across identical, non-growing raw waves')
+    parser.add_argument('--require-compaction', action='store_true',
+                        help='Require this workload to exercise live KV relocation at least once')
     args = parser.parse_args()
     assert re.fullmatch('[a-z0-9-]+',args.record)
     assert not args.shared_prefix or args.mode=='raw'
     assert not args.identical or args.shared_prefix
     assert not args.no_draft or args.mode=='raw'
+    assert not args.require_replay_parity or (args.identical and args.growth == 0 and args.rounds >= 2)
     path = ROOT / ('records/validation-' + args.record + '.json')
     assert not path.exists(), 'Choose a new receipt name; preserve the comparison.'
     record = dict(started=now(), contract_version=2, parameters=vars(args), health_before=get('/health'),
@@ -106,7 +112,11 @@ def main():
                     route = '/v1/chat/completions'
                 gate.wait(timeout=60)
                 result = post(body, route, timeout=1800, shared_prompt=shared_prompt)
-                r = result['response']; tf = dict(r.get('tensorfold',{})); tf.pop('token_ids',None)
+                r = result['response']; tf = dict(r.get('tensorfold',{})); ids = tf.pop('token_ids',None)
+                token_ids_sha256 = None
+                if args.require_replay_parity:
+                    assert isinstance(ids, list) and len(ids) == args.reply_tokens, 'Missing complete token IDs'
+                    token_ids_sha256 = hashlib.sha256(json.dumps(ids, separators=(',', ':')).encode()).hexdigest()
                 calls = r['choices'][0].get('message',{}).get('tool_calls',[])
                 if args.mode == 'tools':
                     assert calls and all(c['function']['name']=='read_file' for c in calls), (
@@ -120,7 +130,8 @@ def main():
                     if args.no_draft:
                         assert tf.get('drafts') is False
                 return dict(case_index=i,seconds=result['seconds'],usage=r.get('usage'),tensorfold=tf,
-                            finish=r['choices'][0]['finish_reason'],tool_calls=len(calls))
+                            finish=r['choices'][0]['finish_reason'],tool_calls=len(calls),
+                            token_ids_sha256=token_ids_sha256)
             t = time.monotonic()
             results, errors = [], []
             with concurrent.futures.ThreadPoolExecutor(max_workers=args.streams) as pool:
@@ -137,10 +148,20 @@ def main():
             if errors: raise RuntimeError(f'{len(errors)} requests failed: {errors[0]}')
             if args.require_concurrency:
                 assert peak == args.streams, ('not all full-context sessions decoded together',peak,args.streams)
+            if args.require_replay_parity and cycle:
+                reference = {r['case_index']: r['token_ids_sha256'] for r in record['cycles'][0]['results']}
+                assert all(r['token_ids_sha256'] == reference[r['case_index']] for r in results), (
+                    'fixed-seed token IDs changed between identical full-context waves', cycle)
+                item['replay_parity_passed'] = True
             h=get('/health');assert h['ok'] and not h['requests_running']
             item['health_after']=h
             atomic(path,record)
             print('cycle',cycle,'passed',round(time.monotonic()-started),'seconds; memory',h.get('memory'),flush=True)
+        if args.require_compaction:
+            before = record['health_before']['memory'].get('kv_compactions', 0)
+            after = get('/health')['memory'].get('kv_compactions', 0)
+            assert after > before, 'No KV compaction occurred; this run did not exercise relocation'
+            record['compactions_exercised'] = after-before
         record['vision_after']=vision((240,20,20))
         assert 'red' in text(record['vision_after']).lower()
         record.update(status='passed',health_after=get('/health'))

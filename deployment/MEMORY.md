@@ -13,6 +13,48 @@ that receipt alone cannot distinguish a leak, an allocation peak or host
 background pressure. The new diagnostics address that evidence gap. They are
 not a claim that the cause has been fixed or that a long stability run passed.
 
+## Reading GB10 memory counters
+
+GB10 shares system DRAM between the CPU and GPU. NVIDIA documents that
+whole-device `nvidia-smi` memory totals are unsupported on this platform even
+when per-process GPU usage is available. It also notes that `cudaMemGetInfo`
+does not include memory that the CPU could free by moving pages to swap.
+See NVIDIA's [DGX Spark memory-accounting guidance](https://docs.nvidia.com/dgx/dgx-spark/known-issues.html).
+
+Treat these as different observations: the PyTorch allocator tracks its own
+allocations, process counters describe particular mappings, and host
+`MemAvailable` estimates RAM available without swapping. Flat allocator or
+GPU-process counters alone cannot explain a fall in host availability, or
+establish that the host-memory floor is unnecessary. The monitor continues to
+use host available RAM; unused swap is not added to the 2 GiB floor.
+
+## KV fragmentation and compaction
+
+A separate warm-capacity test on 2026-10-09 found 31 active full-context
+reservations and one queued request, with 526,336 free rows split across three
+holes. The largest hole was 184,320 rows; the incoming request needed a
+264,192-row aligned reservation. The server stayed healthy, but could not
+admit all 32 requests together. This is distinct from the host-memory-floor
+shutdown above.
+
+When eviction alone cannot provide a contiguous reservation but aggregate
+space is sufficient, the allocator now packs extents between scheduler steps.
+Both ranks agree on the same layout before moving any data. Active reservations
+keep their full size, retained prefixes are evicted only as needed, and existing
+pool storage remains in place for captured graphs. Overlapping copies use at
+most 8 MiB of temporary tensor storage at a time. Paused prefills retain their
+cache objects and resume through updated views; slot rings and drafter state
+do not move.
+
+Health memory counters report `kv_compactions`, `kv_compacted_rows`,
+`kv_compacted_streams`, `kv_compacted_prefills` and `kv_compaction_evictions`.
+Compaction may add an admission pause. It does not increase the shared pool,
+reduce a context reservation, alter model tokens or weaken the host-memory
+watchdog. CPU planning, tensor-copy and allocator integration tests are covered
+in `tests/publication/test_kv_compaction.py` and
+`tests/test_dsv41_compaction.py`. Hardware parity, warm C32 capacity and a fresh
+day-long stability run remain qualification gates for this candidate.
+
 ## Evidence collected by the monitor
 
 Each normal watchdog cycle records, on both machines:
