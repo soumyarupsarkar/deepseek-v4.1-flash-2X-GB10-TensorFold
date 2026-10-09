@@ -24,6 +24,25 @@ requests and exclusions for schemas/thinking budgets. Deterministic forced-loop
 and continuation-seed checks use synthetic HTTP engines in
 `tests/test_cuda_loop_guard.py`; they do not reuse real inference traffic.
 
+For CPU-grammar pressure, a separate probe creates distinct strict JSON schemas
+and tool sets, checks short constant answers, then replays its first wave:
+
+```bash
+# Offline fixture summary; sends no inference or host commands.
+python3 -B tools/qualification/qualify_schema_churn.py --describe --streams 4 --tools 8
+# Run only on an otherwise idle installation, between other acceptance jobs.
+python3 -B tools/qualification/qualify_schema_churn.py --record schemas-c4 --streams 4 --tools 8
+```
+
+Increase `--streams` (up to 32), `--tools` (up to 64) and `--rounds` deliberately.
+`--variant-base` offsets fixture names/constants so repeated runs can exercise
+fresh compilation; the default is zero. `--mode tools` or `--mode json` isolates
+one compiler instead of the default mixed workload. Receipts verify the pair's
+identity, answers, sealed graph count and unchanged allocation-error counters.
+They keep at most 4,096 scalar health/memory observations, with the total sample
+count reported separately. This probe does not establish endurance, throughput,
+or full-context capacity by itself.
+
 Each command creates receipts under Git-ignored
 `deployment/.local/qualification/records/`. Use a different `--record` prefix
 for another run. Preserve failures and slow runs. Receipts contain installation
