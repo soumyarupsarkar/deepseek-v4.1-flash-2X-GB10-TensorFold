@@ -1,10 +1,12 @@
 # Native engine migration (qualification in progress)
 
-The native candidate has passed the live feature and capacity checks summarized
-below. It has **not** passed all production cutover gates. Matched performance,
-an independent cold compaction reference, recovery and a new 24-hour endurance
-run are still required. The published Python deployment remains the qualified
-fallback; it is stopped while this loopback-only hardware qualification runs.
+The native candidate is **not qualified for production**. The image that passed
+the feature and capacity checks below later failed the 614k deep-context test.
+Both ranks stopped and both hosts passed restoration checks. The alignment fix
+passes CPU regression tests; a new image and renewed hardware qualification are
+required. Matched performance, an independent cold compaction reference,
+recovery and a new 24-hour endurance run remain open. The published Python
+deployment remains the qualified fallback and is stopped during this work.
 
 ## Exact inputs and evidence
 
@@ -12,7 +14,7 @@ The native engine starts at Bertholomus's
 [`4e80f05`](https://github.com/bertholomus/TensorFold/commit/4e80f05ecba89a4e90d16375ade2eddbdc0a10c4),
 with the v0.6.1 recipe and kernel builders at
 [`5e90ec9`](https://github.com/bertholomus/deepseek-v4.1-tensorfold-tp2-2xgb10/tree/5e90ec9302149049e8f019ea035827cb24c206f8).
-The current hardware results belong to runtime source
+The hardware results below belong to the failed candidate's runtime source
 `80b399cd023d3a88ad69501c8261143ea622328b` and image
 `sha256:5835a26f281d1dd2ddd868648a5ac6048d6924e02ca0d1a5a1cd1324949cbb6d`.
 Later documentation and qualification-client commits do not change which
@@ -30,7 +32,7 @@ selected counters, and the remaining acceptance gates. Raw installation records
 remain private. The export does not include real inference traffic or establish
 a throughput advantage.
 
-## Completed checks on the current image
+## Completed checks on the previous candidate image
 
 | Area | Observed result | Scope |
 | --- | --- | --- |
@@ -56,8 +58,27 @@ Partial-prefill compaction remains provisional. A populated partial prefill
 was observed relocating and its continued reply matched the client's solo
 comparison, but that comparison did not require zero cached tokens. Acceptance
 requires reproducing the saved post-relocation reply prefix from an independent
-cold request on the same unchanged launch. The public qualification client now
+cold request. The failed launch has ended, so the new image must repeat the
+relocation and independent cold comparison together. The public client now
 evicts retained checkpoints and requires zero cached tokens for that comparison.
+
+## 614k failure and correction
+
+The deep-context suite completed both 32k, 128k and 256k repetitions, then failed
+while prefilling 613,376 tokens for a 1,024-token reply. Both ranks reported
+`MissingTritonVariant` for the FP32 index-score kernel. Its captured variants
+require a 16-byte-aligned visibility pointer. The scratch-budget calculation
+selected 27-row blocks; each visibility entry is eight bytes, so the second
+block violated that alignment. The later peer-disconnect messages followed
+paired shutdown and were not the initial failure.
+
+Multi-block strides now round down to an even number of rows (26 in this case).
+Single odd blocks remain unchanged. Two CPU regressions fail with the original
+calculation and pass with the correction, including adjacent and odd context
+sizes. This preserves the configured request limit, shared KV pool and scratch
+budget. The actual failing GPU request and full qualification must still pass
+on the corrected image. Six completed waves out of ten do not constitute a
+passing deep-context suite or a complete comparison graph.
 
 ## Primary matched measurements (partial qualification)
 
@@ -160,7 +181,9 @@ a known format/loader revision, not proof of which commit wrote an imported file
 
 ## Remaining cutover gates
 
-1. Complete the independent cold partial-prefill compaction comparison.
+1. Build the alignment correction, reproduce the formerly failing 614k request
+   successfully, and repeat selected-image feature/capacity checks, including
+   the independent cold partial-prefill compaction comparison.
 2. Finish matched synthetic throughput, latency and memory comparisons against
    the Python reference, including temperature-1 sampling and deep context.
    Require a measured benefit without unexplained material regressions; investigate

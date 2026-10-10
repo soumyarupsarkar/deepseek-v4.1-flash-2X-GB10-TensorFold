@@ -2,11 +2,18 @@
 
 This branch is a migration candidate, not a qualified production release.
 
-The current image passed 291 CPU/server tests, the C++ grammar bridge, GPU
+The previous image passed 291 CPU/server tests, the C++ grammar bridge, GPU
 primitives, router widths 1–48, and full native rank-cache comparison on both
 hosts. Twenty live synthetic client runs completed, including serving features,
 strict outputs at C32, two full-window C32 replay waves, and cold million-token
 retrieval with small requests completing during prefill.
+
+That image subsequently failed the 614k deep-context prefill with
+`MissingTritonVariant`: an odd indexer block stride misaligned its visibility
+view. Both ranks stopped and host restoration passed. The correction preserves
+the context and memory budgets and passes CPU regression tests; a new image and
+renewed hardware qualification are pending. The failed deep suite completed
+six of ten waves and must not be presented as a passing comparison.
 
 The [functional evidence snapshot](native-functional-20261010.json) binds those
 results to runtime source `80b399cd023d3a88ad69501c8261143ea622328b` and its exact
