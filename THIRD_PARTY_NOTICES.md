@@ -85,8 +85,9 @@ Copyright (c) 2023 DeepSeek, without including that source. It runs on TensorFol
 launches the Python family's Triton kernels (Triton, MIT) from their captured binaries, and reads EXL3 weights through
 the shared EXL3 module described above (ExLlamaV3's format, MIT, Copyright © 2025 Turboderp). The token list of its
 cached Markov rows (`markov_tokens.zig`) is a frequency ranking generated from ExLlamaV3's calibration text (MIT). Its
-target sampler follows the keyed draws of TensorFold's `tensorfold.engine.exact_sampling`. The Zig 0.17.0 toolchain
-(MIT) is used at build time only.
+target sampler follows the keyed draws of TensorFold's `tensorfold.engine.exact_sampling`. The Zig 0.17.0 compiler
+is used at build time; portions of Zig's standard library and runtime are compiled into the executables.
+Their MIT license, Copyright (c) Zig contributors, is retained in `LICENSES/Zig-MIT.txt`.
 
 Its image path (`picture.zig`, `vit.zig`, `vision.zig`, `cublaslt.zig`, `fmha.zig`) follows the same reference's image
 processor, vision tower and aligner (MIT, as above). Pictures decode and resample as Pillow's `convert("RGB")` and 8-bit
