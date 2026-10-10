@@ -3,7 +3,7 @@ import argparse,concurrent.futures,hashlib,json,pathlib,sys,urllib.error,urllib.
 SOURCE=pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(SOURCE/'tools/qualification'))
 import common,cluster
-from benchmark import normalize_health
+from benchmark import normalize_health,wait_idle
 raw_get=cluster.get
 cluster.get=lambda path,**kw: normalize_health(raw_get(path,**kw)) if path=='/health' else raw_get(path,**kw)
 import qualify as q
@@ -77,8 +77,8 @@ common.atomic(path,record)
 try:
  if args.stage in ['baseline','structured']:record['result']=getattr(q,args.stage)()
  else:record['result']=globals()[args.stage]()
- after=raw_get('/health');assert ready(after,profile()) and after['scheduler']['running']==0
- record.update(status='passed',health_after=after)
+ after,drain=wait_idle(common.API_BASE);assert ready(after,profile()) and after['scheduler']['running']==0
+ record.update(status='passed',health_after=after,post_response_drain=drain)
 except BaseException as exc:
  record.update(status='failed',error=type(exc).__name__+': '+str(exc),response_body=getattr(exc,'response_body',None));raise
 finally:

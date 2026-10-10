@@ -13,6 +13,7 @@ import zlib
 
 from common import ROOT, atomic, now
 from cluster import get, memory
+from benchmark import wait_idle
 
 from common import API_BASE as BASE
 MODEL = 'DeepSeek-V4.1-Flash-Keys'
@@ -150,7 +151,7 @@ def structured():
     else:raise AssertionError('malformed schema was not refused')
     out['after_invalid']=chat('Reply with HEALTHY.')
     assert 'HEALTHY' in text(out['after_invalid'])
-    out['health_after']=get('/health')
+    out['health_after'],out['post_response_drain']=wait_idle(BASE)
     assert out['health_after']['ok'] and not out['health_after']['requests_running']
     out.update(finished=now(),status='passed')
     return out
@@ -182,7 +183,7 @@ def baseline():
         out['four_streams']=list(pool.map(lambda n:chat(f'Write ten concise facts about the number {n}.'),
                                           (11,13,17,19)))
         out['four_stream_wall_seconds']=round(time.monotonic()-start,3)
-    out['health_after']=get('/health')
+    out['health_after'],out['post_response_drain']=wait_idle(BASE)
     assert out['health_after']['ok'] and not out['health_after']['requests_running']
     out['memory_available_gib']={h:memory(h)['MemAvailable']/2**30 for h in ('head','worker')}
     out.update(finished=now(),status='passed')

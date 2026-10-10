@@ -13,6 +13,7 @@ from cluster import get
 from configuration import profile, read, STATE
 from engine_health import ready, busy
 from qualify import post, text
+from benchmark import wait_idle
 
 
 def main():
@@ -83,10 +84,10 @@ def main():
             if wave['peak_decoding'] != 32:
                 raise AssertionError('Did not observe all 32 constrained requests decoding together')
             print(mode, 'passed at C32', flush=True)
-        h = get('/health')
+        h, drain = wait_idle(common.API_BASE)
         if not ready(h, config) or busy(h):
             raise RuntimeError('Candidate did not return to healthy idle')
-        record.update(status='passed', health_after=h)
+        record.update(status='passed', health_after=h, post_response_drain=drain)
     except BaseException as exc:
         record.update(status='failed', error=type(exc).__name__ + ': ' + str(exc))
         raise

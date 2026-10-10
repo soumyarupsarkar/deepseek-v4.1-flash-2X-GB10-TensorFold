@@ -3,7 +3,7 @@ import argparse,concurrent.futures,hashlib,json,pathlib,sys,time
 SOURCE=pathlib.Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(SOURCE/'tools/qualification'))
 import common,cluster
-from benchmark import normalize_health,evict,prompt,tokens,digest
+from benchmark import normalize_health,evict,prompt,tokens,digest,wait_idle
 original_get=cluster.get
 cluster.get=lambda path,**kw: normalize_health(original_get(path,**kw)) if path=='/health' else original_get(path,**kw)
 from qualify import post,BASE
@@ -21,10 +21,10 @@ def ask(ids):
  v=r['response'];u=v['usage'];assert u['prompt_tokens']==len(ids) and u['completion_tokens']==16
  return dict(seconds=r['seconds'],prompt_sha256=digest(ids),usage=u,cached=u['prompt_tokens_details']['cached_tokens'],token_sha=v['tensorfold']['token_sha'])
 def stage(name,rows):
- h=original_get('/health');assert ready(h,profile()) and h['scheduler']['running']==0
+ h,drain=wait_idle(BASE);assert ready(h,profile()) and h['scheduler']['running']==0
  assert h['native']['retained_states']<=64
  assert h['native']['snapshot_bytes']<=512*2**20
- record['stages'].append(dict(name=name,rows=rows,health=h));common.atomic(path,record)
+ record['stages'].append(dict(name=name,rows=rows,health=h,post_response_drain=drain));common.atomic(path,record)
  print(name,'passed; retained states',h['native']['retained_states'],flush=True)
 try:
  record['health_before']=original_get('/health');assert ready(record['health_before'],profile())

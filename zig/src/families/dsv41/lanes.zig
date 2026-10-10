@@ -455,10 +455,12 @@ pub const Lanes = struct {
         // the rows this stream writes are no other kept state's
         self.staleOver(if (kept != null and !moved) base + kept.?.at else base, base + size, kept);
         try self.streams.put(gpa, s, .{ .slot = slot, .base = base, .end = base + size });
+        _ = self.prefilling_streams.fetchAdd(1, .monotonic);
         self.active_streams.store(self.streams.count(), .monotonic);
         self.used[slot] = true;
         errdefer {
             _ = self.streams.remove(s);
+            _ = self.prefilling_streams.fetchSub(1, .monotonic);
             self.active_streams.store(self.streams.count(), .monotonic);
             self.used[slot] = false;
         }
@@ -544,7 +546,6 @@ pub const Lanes = struct {
             .rows = rows,
         };
         s.cache_len = start;
-        _ = self.prefilling_streams.fetchAdd(1, .monotonic);
     }
 
     fn prefillStepFn(ptr: *anyopaque, s: *lanes.Stream) anyerror!bool {

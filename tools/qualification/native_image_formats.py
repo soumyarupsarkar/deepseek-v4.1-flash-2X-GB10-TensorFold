@@ -14,6 +14,7 @@ from cluster import get
 from configuration import profile, read, STATE
 from engine_health import ready, busy
 from qualify import post, text
+from benchmark import wait_idle
 
 
 def main():
@@ -73,10 +74,10 @@ def main():
             record['invalid_image_status'] = exc.code
         else:
             raise AssertionError('Malformed image was accepted')
-        health = get('/health')
+        health, drain = wait_idle(common.API_BASE)
         if not ready(health, profile()) or busy(health):
             raise RuntimeError('Image checks did not leave a healthy idle pair')
-        record.update(status='passed', health_after=health)
+        record.update(status='passed', health_after=health, post_response_drain=drain)
     except BaseException as exc:
         record.update(status='failed', error=type(exc).__name__ + ': ' + str(exc))
         raise
