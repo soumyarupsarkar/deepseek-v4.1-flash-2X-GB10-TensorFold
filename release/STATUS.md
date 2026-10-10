@@ -17,8 +17,9 @@ the context and memory budgets. Its [fresh preparation](native-alignment-followu
 passed 293 CPU/server tests, grammar and both hosts' GPU/cache checks. The exact
 cold 614k request now completes with all 1,024 output tokens; its output differs
 from the Python reference. Three adjacent/odd context checks also passed,
-including a 986,895-token cold prompt. Renewed matched performance qualification
-is running. The failed deep suite completed six of ten waves and must not be
+including a 986,895-token cold prompt. The corrected image has completed all
+three matched measurement suites; performance acceptance remains pending.
+The earlier failed deep suite completed six of ten waves and must not be
 presented as a passing comparison.
 
 The earlier [functional evidence snapshot](native-functional-20261010.json)
@@ -46,8 +47,18 @@ throughput is 15.1% higher. C32 steady decode is 4.1% higher, below the declared
 5% benefit threshold; its apparent 11.2% end-to-end gain is affected by a noisy
 Python reference. Full-text digests and reported token hashes match for 98 of
 100 requests; the two prose replies differ. All repetitions remain included,
-including the 12.9% native C1-code end-to-end range. The deep-context suite is
-running, and no measured-benefit gate has been accepted.
+including the 12.9% native C1-code end-to-end range. A longer-reply C4/C32
+ordinary/default diagnostic is running. No measured-benefit gate has been accepted.
+
+The [complete ten-wave deep-context comparison](native-deep-comparison-20261010.json)
+now covers 32k, 128k, 256k, 614k and one million total tokens, with two cold C1-code
+runs and 1,024 output tokens at every point. At one million tokens, median
+first-token latency falls from 875.16 to 670.41 seconds (23.4% lower), while steady
+decode is 89.45 versus 88.84 tok/s. End-to-end output rates improve 13.3–30.1%
+from 128k through one million, chiefly through faster prefill. All ten replies
+differ between engines, although each engine repeats its own digests. See
+[the full interpretation and memory limits](../MIGRATION.md#deep-context-matched-measurements-on-the-corrected-image).
+The comparison does not establish a physical-memory saving or production stability.
 
 The earlier image's [primary comparison](native-primary-comparison-20261010.json)
 and [temperature-1 comparison](native-sampled-comparison-20261010.json) remain

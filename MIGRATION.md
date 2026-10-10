@@ -18,8 +18,9 @@ The completed functional checks below belong to corrected runtime source
 `4d48d4ec5f3db83a361c2228088d72e27f487d62` and image
 `sha256:83752d9d3bc7da632fd195332963501e9ca5208a8e2fcf409e781e985049aafd`.
 Later documentation commits do not change which runtime produced those results.
-The corrected image's primary and temperature-1 matched comparisons are complete.
-Its deep-context suite is running. Earlier-image measurements remain explicitly
+All three corrected-image matched measurement suites are complete: 20 primary,
+eight temperature-1 and ten deep-context waves. Performance and memory acceptance
+remain pending the follow-up below. Earlier-image measurements remain explicitly
 labeled as historical results.
 
 The rollback source is this fork's `32c4ebea7d0a81808aaa503d88ebe1a84612d0cf`,
@@ -104,9 +105,10 @@ binds the new preparation to source
 Its fresh build passed 293 CPU/server tests and the native grammar test. Both
 hosts passed seven GPU checks and full comparison of 143,770 cache entries
 (106,107,109,192 bytes per rank), with zero mismatches. The renewed live suite
-has completed the exact 614k failure case, the adjacent/odd context checks and all
-20 functional/capacity clients. Matched performance checks are running. Preparation
-and functional qualification do not establish production acceptance.
+has completed the exact 614k failure case, the adjacent/odd context checks, all
+20 functional/capacity clients and all three matched measurement suites.
+Preparation, functional checks and completed measurements do not establish
+production acceptance.
 
 ## Primary matched measurements on the corrected image
 
@@ -140,14 +142,14 @@ C4's eligible steady-decode median fell 10.5%, with only three to four seconds
 of eligible interval per repetition. C32 steady decode fell 7.5%, and its
 end-to-end regression is close to the declared 10% guard. No native graph captures
 occurred in these waves. A longer-reply ordinary/default diagnostic at C4 and C32
-is prepared to investigate drafting costs; it has not run. A missing native steady
+is running to investigate drafting costs. A missing native steady
 interval at 32k stays null. The separate deep-context suite uses longer replies
 to make those measurements more useful. The first 32k primary wave captured three
 graphs, with that cost included in timing.
 
 The [benefit policy](release/native-benefit-policy-20261010.json) was declared
-before native matched measurements. Deeper-context results, memory interpretation,
-and recovery/endurance gates are still required.
+before native matched measurements. The completed deep-context and memory review
+appears below; the C4/C32 follow-up and recovery/endurance gates remain open.
 Engine-specific cache eviction occurs outside scored timing:
 the Python client inserted 32 prefixes, and the native client inserted 64
 fixtures to displace its retained states. Every scored request reports zero
@@ -186,8 +188,66 @@ temperatures, but that does not substitute a different workload for the declared
 C1/C32 benefit criterion.
 
 The memory observations include different resident and swapped states. They
-do not establish a reduction in physical memory requirements. The deep-context
-comparison and investigation of the short C4 and C1 measurements remain open.
+do not establish a reduction in physical memory requirements. The short C1
+variance reviews preserve the association with head-host paging and the limits
+of coarse sampling. The longer C4/C32 diagnostic is running.
+
+## Deep-context matched measurements on the corrected image
+
+The [complete deep-context comparison](release/native-deep-comparison-20261010.json)
+contains two independent cold C1-code requests at each context length, at
+temperature 0 with seed 42000 and 1,024 output tokens per request. Prompt hashes,
+budgets and zero cached tokens match the Python reference. The table reports
+medians; the JSON preserves both repetitions and all measured intervals.
+
+| Total prompt + output tokens | Python first token (s) | Native first token (s) | Python steady decode (tok/s) | Native steady decode (tok/s) |
+| ---: | ---: | ---: | ---: | ---: |
+| 32,768 | 16.22 | 15.05 | 96.34 | 94.39 |
+| 131,072 | 73.85 | 63.74 | 95.33 | 93.82 |
+| 262,144 | 159.56 | 132.82 | 93.52 | 97.85 |
+| 614,400 | 436.25 | 345.61 | 88.98 | 90.09 |
+| 1,048,576 | 875.16 | 670.41 | 89.45 | 88.84 |
+
+First-token latency falls 13.7–23.4% from 128k through one million tokens.
+Corresponding end-to-end output rates improve 13.3–30.1%, chiefly through faster
+prefill. Deep steady-decode median changes range from −2.0% to +4.6%. The original
+benefit policy includes these long-context C1-code cases; acceptance still needs
+the C32 follow-up and the remaining stability gates. The short-context results
+above remain part of that decision.
+
+**All ten generated replies differ between the Python and native engines.**
+Within each engine, both repetitions have matching full-text and reported token
+digests at every context length. These measurements compare identical prompts
+and fixed output budgets; they do not isolate decode speed on identical generated
+text or establish cross-engine output parity. Ordinary/drafted parity within the
+native engine is covered by the separate functional checks. This is a series of
+independent requests at fixed lengths, not one growing conversation.
+
+Python's two 614k steady-decode rates differ by 11.3%. Its preserved timing review
+records associated paging, without establishing a sole cause. Both runs remain
+included. Native deep-context decode ranges are below 5.2%, and its first-token
+latency ranges are below 3.3%. No context point or repetition is omitted.
+
+## Memory observations across the matched suites
+
+Every native scored wave has at least one watchdog sample. Native benchmark
+probes and host samples report no errors; the largest observed watchdog gap is
+5.95 seconds. The Python primary reference has three short waves without a
+watchdog sample, and its temperature-1 reference has one probe error and a
+15.23-second watchdog gap. Missing observations remain missing. Recorded system
+OOM-counter deltas are zero where at least two samples permit a delta.
+
+Native host availability reached sampled minima of approximately 2.96 GiB on the
+head and 2.95 GiB on the worker across these suites. Native retained state stayed
+at 64 entries and 408 MiB, with 225 of 512 round graphs after the primary suite
+and no eager graph fallbacks. The Python reference reports 32 kept prompts with
+different snapshot and pool accounting; those counters do not describe identical
+cache state.
+
+Process RSS, swap, cgroups and device allocations are reported separately in the
+private review. They cannot be added into a physical-memory total, and these
+observations do not establish a reduction in physical memory requirements.
+Long-run memory stability remains part of the pending endurance qualification.
 
 ## Historical measurements on the earlier image
 
@@ -233,8 +293,8 @@ a known format/loader revision, not proof of which commit wrote an imported file
 
 ## Remaining cutover gates
 
-1. Finish matched synthetic throughput, latency and memory comparisons against
-   the Python reference, including temperature-1 sampling and deep context.
+1. Finish the C4/C32 drafting-cost follow-up and review the completed primary,
+   temperature-1, deep-context and memory comparisons against the Python reference.
    Require a measured benefit without unexplained material regressions; investigate
    noisy or marginal results before selecting a production profile.
 2. Recheck paired failure, interrupted startup, host restoration and controlled
