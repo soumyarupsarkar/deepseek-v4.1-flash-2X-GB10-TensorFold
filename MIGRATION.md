@@ -87,13 +87,44 @@ it has not run. A missing native steady interval at 32k stays null. The separate
 deep-context suite uses longer replies to make those measurements more useful.
 
 The [benefit policy](release/native-benefit-policy-20261010.json) was declared
-before native matched measurements. Temperature-1 and deeper-context results,
+before native matched measurements. Deeper-context results,
 memory interpretation, and the remaining functional/recovery/endurance gates
 are still required. Engine-specific cache eviction occurs outside scored timing:
 the Python client inserted 32 prefixes, and the native client inserted 64
 fixtures to displace its retained states. Every scored request reports zero
 cached tokens. Client changes adapt native counters and record post-response
 drain outside stream timings; native graph-capture cost remains included.
+
+## Temperature-1 matched measurements
+
+The [sampled comparison](release/native-sampled-comparison-20261010.json)
+contains eight scored waves and 100 requests, with two repetitions per workload
+at temperature 1 and the same explicit seed. Every request was cold. These are
+end-to-end rates, including prefill and admission:
+
+| Workload | Prompt / reply tokens per request | Python tok/s | Native tok/s | Change |
+| --- | --- | ---: | ---: | ---: |
+| C1 code | 43 / 384 | 88.86 | 89.42 | +0.6% |
+| C1 prose | 23 / 384 | 56.62 | 60.74 | +7.3% |
+| C16 mixed | 1,024 / 256 | 105.72 | 125.48 | +18.7% |
+| C32 mixed | 1,024 / 256 | 118.87 | 132.60 | +11.6% |
+
+Full text digests and reported token hashes matched for 98 of 100 requests.
+Both prose replies differed, so their rate change does not isolate runtime
+speed on identical output. Native C1-code repetitions ranged from 81.94 to
+96.91 tok/s; the 0.6% median difference does not establish a sampled C1 gain.
+There were no native graph captures in these eight waves.
+
+Python C32 repetitions were 134.04 and 103.69 tok/s. The slower run had an early
+admission stall associated with system paging. Native repetitions were 132.66
+and 132.53 tok/s. The noisy Python median makes the apparent 11.6% end-to-end
+gain unsuitable as sole benefit evidence. Eligible steady-decode medians were
+219.86 and 233.45 tok/s (+6.2% native), whereas temperature-0 C32 steady decode
+was 6.5% slower. The result depends on workload and sampling configuration.
+
+The memory observations include different resident and swapped states. They
+do not establish a reduction in physical memory requirements. The deep-context
+comparison and investigation of the short C4 and C1 measurements remain open.
 
 ## Native integration changes
 

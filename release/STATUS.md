@@ -17,8 +17,11 @@ The six-minute mixed soak is not endurance qualification.
 
 The [20-wave primary comparison](native-primary-comparison-20261010.json) is
 complete. Its observed end-to-end medians include a 6.2% C1-code gain and a 7.7%
-C32 regression. C4's steady-decode regression needs follow-up, and temperature-1
-and deeper-context measurements remain pending. See the caveats in
+C32 regression. The [eight-wave temperature-1 comparison](native-sampled-comparison-20261010.json)
+is also complete: C1 code is roughly even, C16 is faster, and C32's apparent
+end-to-end gain is affected by a noisy Python reference. C4's steady-decode
+regression and native C1 variability need follow-up; deeper-context measurements
+remain pending. See the caveats in
 [MIGRATION.md](../MIGRATION.md) and the predeclared
 [benefit policy](native-benefit-policy-20261010.json). These results do not
 establish an overall throughput advantage or production qualification.
