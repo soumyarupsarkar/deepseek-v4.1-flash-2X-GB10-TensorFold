@@ -41,6 +41,14 @@ const key_elems: usize = 1 << 24;
 /// 2^26 / (4 n_comp) < 512).
 const pruned_rows: usize = 512;
 
+/// Row blocks keep index scores within the existing scratch allocation. VIS is
+/// an i64 view: every multi-block stride must keep its base 16-byte aligned for
+/// the captured FP32 _index_score_rows variants. A single odd block is safe.
+fn indexRowBlock(rows: usize, keys: usize) usize {
+    const limit = @max(16, @min(rows, key_elems / @max(keys, 1)));
+    return if (limit < rows) limit & ~@as(usize, 1) else limit;
+}
+
 /// model.py's RING_EXTRA: window ring slots beyond the window (a verify window never clobbers a key it reads).
 pub const ring_extra = 16;
 /// model.py's RAW: per-position compressor inputs kept (a ratio-2 group's earlier row for the next chunk).
@@ -946,7 +954,7 @@ fn indexer(e: *const Engine, ch: *Chunk, cs: *const Caches, sh: *Shared, li: usi
     try e.exact.bf16Scale(e.s, ch.wl, ch.iw, n * ih, exact.indexScale(id, ih));
     const kk = @min(c.index_topk, n_comp_end);
     // rows in blocks so the [rows, n_comp] keys stay bounded at long contexts
-    const rb = @max(16, @min(n, (@as(usize, 1) << 26) / (4 * @max(n_comp_end, 1))));
+    const rb = indexRowBlock(n, n_comp_end);
     if (rb * n_comp_end > key_elems) return error.ChunkTooLong;
     const keyed = li != c.candidate_source and !(c.candidate_source < li) and kk & (kk - 1) == 0;
     const k: tri_index.IndexK = .{ .fp4 = .{ .codes = cs.idx_codes[src], .scales = cs.idx_scales[src] } };
@@ -1355,6 +1363,35 @@ pub fn endLayer(ch: *Chunk) void {
 
 test "hd ** -0.5 as the served build passes it" {
     try std.testing.expectEqual(@as(u32, 0x3d3504f3), @as(u32, @bitCast(scale(512))));
+}
+
+test "614k replay keeps the second visibility view aligned" {
+    // The failed request had 613,376 prompt tokens and a 128-row replay.
+    // An odd block stride puts VIS at base + 8 (mod 16), outside every
+    // captured FP32 _index_score_rows variant's alignment contract.
+    const rb = indexRowBlock(128, 613376);
+    try std.testing.expect(rb < 128);
+    try std.testing.expectEqual(@as(usize, 0), (rb * @sizeOf(i64)) % 16);
+    try std.testing.expect(rb * 613376 <= key_elems);
+}
+
+test "index row blocks cover every row within scratch and alignment bounds" {
+    const row_counts = [_]usize{ 1, 15, 16, 17, 26, 27, 31, 32, 63, 64, 65, 127, 128, 129, 512, 2048 };
+    const key_counts = [_]usize{ 1, 16, 17, 63, 64, 65, 32768, 32769, 130048, 261120, 613375, 613376, 613377, 615424, 986895, 1047552, 1048576 };
+    for (row_counts) |rows| for (key_counts) |keys| {
+        const rb = indexRowBlock(rows, keys);
+        try std.testing.expect(rb >= 16);
+        try std.testing.expect(rb <= @max(16, @min(rows, key_elems / keys)));
+        var covered: usize = 0;
+        var r0: usize = 0;
+        while (r0 < rows) : (r0 += rb) {
+            const n = @min(rows - r0, rb);
+            try std.testing.expectEqual(@as(usize, 0), (r0 * @sizeOf(i64)) % 16);
+            try std.testing.expect(n > 0 and n * keys <= key_elems);
+            covered += n;
+        }
+        try std.testing.expectEqual(rows, covered);
+    };
 }
 
 /// error.NotPortedYet with its site on stderr (a request that reaches a path the port lacks names it in the log).
