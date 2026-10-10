@@ -3,8 +3,9 @@
 The native candidate is **not qualified for production**. The image that passed
 the feature and capacity checks below later failed the 614k deep-context test.
 Both ranks stopped and both hosts passed restoration checks. The corrected
-image has passed preparation and is repeating live qualification. Matched
-performance, an independent cold compaction reference,
+image has passed preparation and the exact cold 614k regression request, and is
+repeating the rest of live qualification. Matched performance, an independent
+cold compaction reference,
 recovery and a new 24-hour endurance run remain open. The published Python
 deployment remains the qualified fallback and is stopped during this work.
 
@@ -76,9 +77,12 @@ Multi-block strides now round down to an even number of rows (26 in this case).
 Single odd blocks remain unchanged. Two CPU regressions fail with the original
 calculation and pass with the correction, including adjacent and odd context
 sizes. This preserves the configured request limit, shared KV pool and scratch
-budget. The actual failing GPU request and full qualification must still pass
-on the corrected image. Six completed waves out of ten do not constitute a
-passing deep-context suite or a complete comparison graph.
+budget. The actual failing GPU request now passes on the corrected image with
+613,376 uncached prompt tokens and all 1,024 output tokens. Its generated output
+differs from the Python reference; this is a successful crash regression, not an
+output-parity claim. Adjacent/odd context sizes and full qualification remain
+in progress. Six completed waves out of ten on the earlier image do not
+constitute a passing deep-context suite or a complete comparison graph.
 
 The [alignment follow-up evidence](release/native-alignment-followup-20261010.json)
 binds the new preparation to source
@@ -87,8 +91,8 @@ binds the new preparation to source
 Its fresh build passed 293 CPU/server tests and the native grammar test. Both
 hosts passed seven GPU checks and full comparison of 143,770 cache entries
 (106,107,109,192 bytes per rank), with zero mismatches. The renewed live suite
-starts with the exact 614k failure case and adjacent/odd context sizes, then
-repeats feature, capacity, cold compaction and matched performance checks.
+has completed the exact 614k failure case and is testing adjacent/odd context
+sizes. Feature, capacity, cold compaction and matched performance checks follow.
 Preparation is not serving or production qualification.
 
 ## Primary matched measurements (partial qualification)
@@ -192,8 +196,8 @@ a known format/loader revision, not proof of which commit wrote an imported file
 
 ## Remaining cutover gates
 
-1. Reproduce the formerly failing 614k request successfully on the prepared
-   correction, and repeat selected-image feature/capacity checks, including
+1. Complete adjacent/odd context checks and repeat selected-image
+   feature/capacity checks, including
    the independent cold partial-prefill compaction comparison.
 2. Finish matched synthetic throughput, latency and memory comparisons against
    the Python reference, including temperature-1 sampling and deep context.

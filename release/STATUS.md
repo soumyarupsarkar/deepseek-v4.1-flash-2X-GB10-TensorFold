@@ -12,8 +12,10 @@ That image subsequently failed the 614k deep-context prefill with
 `MissingTritonVariant`: an odd indexer block stride misaligned its visibility
 view. Both ranks stopped and host restoration passed. The correction preserves
 the context and memory budgets. Its [fresh preparation](native-alignment-followup-20261010.json)
-passed 293 CPU/server tests, grammar and both hosts' GPU/cache checks; renewed
-live qualification is running. The failed deep suite completed
+passed 293 CPU/server tests, grammar and both hosts' GPU/cache checks. The exact
+cold 614k request now completes with all 1,024 output tokens; its output differs
+from the Python reference. Adjacent/odd context checks and the rest of renewed
+live qualification are running. The failed deep suite completed
 six of ten waves and must not be presented as a passing comparison.
 
 The [functional evidence snapshot](native-functional-20261010.json) binds those
