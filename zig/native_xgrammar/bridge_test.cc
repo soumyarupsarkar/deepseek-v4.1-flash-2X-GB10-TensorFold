@@ -89,6 +89,10 @@ int main() {
     const std::string schema = R"({"type":"object","properties":{"ok":{"const":true},"count":{"type":"integer","enum":[7]}},"required":["ok","count"],"additionalProperties":false})";
     {
       auto m = match(compiler.get(), 1, schema);
+      // A thinking-budget close must not force a newline into this grammar:
+      // whitespace between JSON terms does not permit a prefix before root.
+      require(!std::isfinite(mask(m.get())['\n']), "schema unexpectedly permits a forced leading newline");
+      require(tf_xg_accept(m.get(), '\n') == -1, "invalid leading newline was accepted");
       feed(m.get(), "{\"ok\":true,\"count\":");
       require(!std::isfinite(mask(m.get())['8']), "schema enum did not constrain the argument");
       feed(m.get(), "7}"); finish(m.get());

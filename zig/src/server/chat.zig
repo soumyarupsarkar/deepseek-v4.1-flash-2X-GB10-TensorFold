@@ -201,6 +201,13 @@ pub fn prepare(srv: *Server, cx: *Cx, input: Input, gone: anytype) Failure!Prepa
             if (budget > 0) request.think_budget = @intCast(@min(budget, std.math.maxInt(u32)));
             request.think_close = srv.think_close;
             request.think_end = srv.think_close_end;
+            if (request.structure != null) if (srv.think_close_end) |end| {
+                // The grammar starts immediately after </think>. Its first
+                // token must come from the mask: a forced blank line may be
+                // illegal for a schema, choice, regex or structural tag.
+                const at = std.mem.indexOfScalar(u32, srv.think_close, end) orelse return error.Failed;
+                request.think_close = srv.think_close[0 .. at + 1];
+            };
         }
     }
     return .{ .input = input, .request = request, .prompt_len = rendered.ids.len, .received = received, .thinking = thinking, .effort = effort, .sampled = sampling != null, .drafts = request.drafts, .stops = stops_opt, .preparing = preparing };

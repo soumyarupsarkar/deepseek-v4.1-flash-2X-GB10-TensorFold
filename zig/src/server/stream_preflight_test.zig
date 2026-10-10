@@ -252,6 +252,7 @@ test "per-request reasoning guards preserve defaults and exclude budgets, gramma
         .{ .body = "{\"loop_guard\":true,\"thinking_budget\":1}", .default = false, .expected = false, .budget = 1 },
         .{ .body = "{\"loop_guard\":false,\"thinking_budget\":1}", .default = true, .expected = false, .budget = 1 },
         .{ .body = "{\"loop_guard\":true,\"response_format\":{\"type\":\"json_object\"}}", .default = false, .expected = false },
+        .{ .body = "{\"loop_guard\":true,\"thinking_budget\":1,\"response_format\":{\"type\":\"json_object\"}}", .default = true, .expected = false, .budget = 1 },
         .{ .body = "{\"loop_guard\":true,\"enable_thinking\":false}", .default = false, .expected = false },
     };
     for (cases) |case| {
@@ -266,5 +267,9 @@ test "per-request reasoning guards preserve defaults and exclude budgets, gramma
         try std.testing.expectEqual(case.expected, prepared.request.loop_guard);
         try std.testing.expectEqual(case.budget, prepared.request.think_budget);
         try std.testing.expectEqual(case.expected or case.budget > 0, prepared.request.think_end != null);
+        if (case.budget > 0 or case.expected) {
+            const expected: []const u32 = if (prepared.request.structure != null) &.{ '\n', 300 } else &.{ '\n', 300, '\n', '\n' };
+            try std.testing.expectEqualSlices(u32, expected, prepared.request.think_close);
+        }
     }
 }

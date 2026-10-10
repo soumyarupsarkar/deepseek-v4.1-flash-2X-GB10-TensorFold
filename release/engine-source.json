@@ -1226,7 +1226,7 @@
     },
     {
       "path": "zig/native_xgrammar/bridge_test.cc",
-      "sha256": "41bc629409e629c9058af71d992953f451594d04c16226b90a18c6f0c581f00f"
+      "sha256": "63431766c0f1ceeba7e8f671c09a41610303aba59cbcbbd778d1d63b8e6bef30"
     },
     {
       "path": "zig/native_xgrammar/native_config.cmake",
@@ -2718,7 +2718,7 @@
     },
     {
       "path": "zig/src/server/chat.zig",
-      "sha256": "b2b28ffc28330ec09f348e1c9e8fa14a01916e2c32d789fa8465ff6465168ad6"
+      "sha256": "25fd0908636a2d01e5c45eb8c89b538e294d6bda8426ce7668ae9c3c3894fa51"
     },
     {
       "path": "zig/src/server/chunk_plan.zig",
@@ -2910,7 +2910,7 @@
     },
     {
       "path": "zig/src/server/stream_preflight_test.zig",
-      "sha256": "ecf514ec5b7ca4ddd6a17a3c96167acf3c0a079f2cbf32a64cdd62e0fb73452f"
+      "sha256": "49a6e72348f757cc5797860244db23d8be34b0a8a448e6fe63949ff47de101bf"
     },
     {
       "path": "zig/src/server/tokens.zig",

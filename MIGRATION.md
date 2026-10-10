@@ -30,6 +30,16 @@ The paired monitor stopped both ranks and host restoration passed. A second
 live qualification is required; the primitive regression alone does not pass
 C32, structured-output, performance or endurance gates.
 
+The second live attempt passed the complete baseline, including C4, and passed
+ordinary JSON object/schema and streamed-schema checks. A thinking-budget
+schema failed because the forced reasoning close appended a blank-line token
+which the schema rejects before its root. A CPU-only probe with the actual
+tokenizer and grammar reproduced that rejection. The corrected close ends at
+`</think>` for constrained output and lets its mask select the first answer
+token; ordinary text retains its existing close. Server and C++ regressions
+pass. Both hosts again passed restoration. Remaining feature/capacity gates
+still require a new live run.
+
 The serving engine, scheduler and sampler are native. The xgrammar compiler is
 a pinned C++ library. Offline compressed-token-map preparation uses the pinned
 `tokenizers` package; upstream's bounded Pillow helper handles image codecs
