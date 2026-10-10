@@ -1,13 +1,12 @@
 # Native engine migration (qualification in progress)
 
-The native candidate is **not qualified for production**. The image that passed
-the feature and capacity checks below later failed the 614k deep-context test.
-Both ranks stopped and both hosts passed restoration checks. The corrected
-image has passed preparation, the exact cold 614k regression request, three
-adjacent/odd context checks and both live compaction checks, including independent
-cold references. Renewed capacity, matched performance, recovery and a new
-24-hour endurance run remain open. The published Python
-deployment remains the qualified fallback and is stopped during this work.
+The native candidate is **not qualified for production**. The corrected image
+has passed all 20 functional and capacity checks, including full-window C32,
+cold million-token retrieval, independent cold compaction references and a short
+mixed-load soak. The original 614k failure and three adjacent/odd context cases
+also pass. Matched performance and memory acceptance, recovery, rollback rehearsal
+and a new 24-hour endurance run remain open. The published Python deployment
+remains the qualified fallback and is stopped during this work.
 
 ## Exact inputs and evidence
 
@@ -15,12 +14,12 @@ The native engine starts at Bertholomus's
 [`4e80f05`](https://github.com/bertholomus/TensorFold/commit/4e80f05ecba89a4e90d16375ade2eddbdc0a10c4),
 with the v0.6.1 recipe and kernel builders at
 [`5e90ec9`](https://github.com/bertholomus/deepseek-v4.1-tensorfold-tp2-2xgb10/tree/5e90ec9302149049e8f019ea035827cb24c206f8).
-The historical feature and performance tables below belong to the failed
-candidate's runtime source
-`80b399cd023d3a88ad69501c8261143ea622328b` and image
-`sha256:5835a26f281d1dd2ddd868648a5ac6048d6924e02ca0d1a5a1cd1324949cbb6d`.
-Later documentation and qualification-client commits do not change which
-runtime produced those results.
+The completed functional checks below belong to corrected runtime source
+`4d48d4ec5f3db83a361c2228088d72e27f487d62` and image
+`sha256:83752d9d3bc7da632fd195332963501e9ca5208a8e2fcf409e781e985049aafd`.
+Later documentation commits do not change which runtime produced those results.
+The performance tables remain explicitly labeled results from the earlier image;
+the corrected image's matched measurements are running.
 
 The rollback source is this fork's `32c4ebea7d0a81808aaa503d88ebe1a84612d0cf`,
 documented and published in `29c1a04ecd75ea56ba85502279aa39b0bf6705f8`.
@@ -28,25 +27,27 @@ Its [20-case Python baseline](deployment/release/native-python-baseline-20261010
 is separate from native measurements. Historical Python results do not qualify
 the native implementation.
 
-The [October 10 functional evidence](release/native-functional-20261010.json)
+The [corrected-image functional evidence](release/native-functional-20261010-r2.json)
 records 20 completed synthetic client runs, their source and receipt hashes,
 selected counters, and the remaining acceptance gates. Raw installation records
 remain private. The export does not include real inference traffic or establish
-a throughput advantage.
+a throughput advantage. The [earlier-image snapshot](release/native-functional-20261010.json)
+remains available as historical evidence.
 
-## Completed checks on the previous candidate image
+## Completed checks on the corrected image
 
 | Area | Observed result | Scope |
 | --- | --- | --- |
-| Build and preparation | 90 build steps and 291 CPU/server tests passed; native grammar and GPU primitive checks passed on both ranks | Full native cache comparison checked 143,770 entries and 106,107,109,192 bytes per rank against the intended Keys checkpoint |
+| Build and preparation | 90 build steps and 293 CPU/server tests passed; native grammar and GPU primitive checks passed on both ranks | Full native cache comparison checked 143,770 entries and 106,107,109,192 bytes per rank against the intended Keys checkpoint |
 | Serving features | Text, vision, JSON object/schema, required tools, thinking budgets, seeds, aliases, Chat, Responses and Messages passed | Includes JPEG/WebP through all three APIs; synthetic fixtures |
-| Drafting parity | Ordinary/drafted token hashes matched at C4/8/16/24/32, at temperatures 0 and 1 | Zero cached tokens, observed requested concurrency, drafts for every request; these fixtures compare the reported 12-hex token hashes |
+| Drafting parity | Ordinary/drafted token hashes and full-text digests matched at C4/8/16/24/32, at temperatures 0 and 1 | Zero cached tokens, observed requested concurrency, drafts for every request; reported 12-hex token hashes and independently computed full-text SHA256 digests |
 | Constrained C32 | 32 schemas and 32 required tool calls passed at each temperature | All validators passed and all four waves observed C32 decoding |
 | Retention | 32 distinct 16k histories passed cold admission, replay, extension and extended replay | 64 retained states; 408 MiB snapshot storage |
+| Partial-prefill compaction | A populated 262k prefill relocated before its first reply; all nine surviving reply prefixes matched independent cold references | Each reference reported zero cached tokens after retained-checkpoint eviction |
 | Decoder compaction | Eight live survivors relocated; a selected survivor's continued output matched fresh solo execution | The witness includes at least 64 tokens generated after the relocation checkpoint |
-| Full-window C32 | Two waves of 32 sessions each completed 261,120 prompt tokens plus 1,024 reply tokens | Exact returned token IDs matched across waves; one identical primed document with independent active session extents |
-| Million-token request | A cold 1,048,320-token prompt plus 256-token reply completed and retrieved all three synthetic passphrases | Small arithmetic and JSON requests finished during prefill in 0.96 s and 2.53 s, within the declared 30 s limit |
-| Incremental prefill | Five small requests completed in 8.18 s during a separate 262k prefill | Short/image output parity and cancellation checks passed; the long-text solo comparison used a retained prefix |
+| Full-window C32 | Two waves of 32 sessions each completed 261,120 prompt tokens plus 1,024 reply tokens | SHA256 digests of full returned token-ID arrays matched for all 32 sessions across waves; one identical primed document with independent active session extents |
+| Million-token request | A cold 1,048,320-token prompt plus 256-token reply completed and retrieved all three synthetic passphrases | Small arithmetic and JSON requests finished during prefill in 0.94 s and 2.36 s, within the declared 30 s limit |
+| Incremental prefill | Five small requests completed in 8.62 s during a separate 262k prefill | Full token-ID comparisons, image output parity and cancellation checks passed; the long-text solo comparison used a retained prefix |
 | Admission and API recovery | Full-pool queuing, release, cancellation, malformed requests and return to idle passed | This does not replace paired-process or reboot recovery |
 | Short soak | Eight C32 cycles completed 256 text/schema/vision requests over a six-minute requested run | No eager graph fallbacks; this does not replace 24-hour endurance |
 
@@ -70,7 +71,7 @@ For the selected survivor, the client collected 549 nonempty output chunks in
 total, exceeding the 421 generated tokens recorded at the relocation checkpoint.
 The witness includes at least 64 tokens generated after the checkpoint, and the
 observed reply prefix matched solo execution. These are correctness checks;
-capacity, performance, recovery and endurance remain separate qualification gates.
+performance, recovery and endurance remain separate qualification gates.
 
 ## 614k failure and correction
 
@@ -102,12 +103,17 @@ binds the new preparation to source
 Its fresh build passed 293 CPU/server tests and the native grammar test. Both
 hosts passed seven GPU checks and full comparison of 143,770 cache entries
 (106,107,109,192 bytes per rank), with zero mismatches. The renewed live suite
-has completed the exact 614k failure case and the adjacent/odd context checks.
-Both renewed compaction checks have also passed. Remaining capacity and matched
-performance checks are running.
-Preparation is not serving or production qualification.
+has completed the exact 614k failure case, the adjacent/odd context checks and all
+20 functional/capacity clients. Matched performance checks are running. Preparation
+and functional qualification do not establish production acceptance.
 
-## Primary matched measurements (partial qualification)
+## Primary matched measurements on the earlier image
+
+The primary and temperature-1 comparisons in this section were produced by
+runtime `80b399cd023d3a88ad69501c8261143ea622328b` and image
+`sha256:5835a26f281d1dd2ddd868648a5ac6048d6924e02ca0d1a5a1cd1324949cbb6d`,
+which subsequently failed the 614k prefill. They do not qualify the corrected
+image; its complete matched suites are running against the same Python receipts.
 
 The [complete primary comparison](release/native-primary-comparison-20261010.json)
 contains 20 scored waves and 178 requests, with two repetitions per workload.
@@ -208,20 +214,18 @@ a known format/loader revision, not proof of which commit wrote an imported file
 
 ## Remaining cutover gates
 
-1. Complete the remaining admission, full-window C32, million-token and mixed-load
-   checks on the corrected image.
-2. Finish matched synthetic throughput, latency and memory comparisons against
+1. Finish matched synthetic throughput, latency and memory comparisons against
    the Python reference, including temperature-1 sampling and deep context.
    Require a measured benefit without unexplained material regressions; investigate
    noisy or marginal results before selecting a production profile.
-3. Recheck paired failure, interrupted startup, host restoration and controlled
+2. Recheck paired failure, interrupted startup, host restoration and controlled
    reboot recovery on the selected runtime/image. Earlier-image lifecycle checks
    are insufficient. Rehearse returning to the qualified Python deployment and
    then the same native image, verifying host restoration at both stops.
-4. Complete a **new bounded 24-hour** synthetic qualification with quiet memory
+3. Complete a **new bounded 24-hour** synthetic qualification with quiet memory
    windows, mixed serving and deep-context checks. Preserve failed or interrupted
    receipts. The previously user-stopped endurance process stays stopped.
-5. Finish source, attribution, setup/rollback and sanitized-evidence review, then
+4. Finish source, attribution, setup/rollback and sanitized-evidence review, then
    cut over only if every gate passes. Otherwise restore the qualified Python
    deployment and document the concrete blockers.
 
