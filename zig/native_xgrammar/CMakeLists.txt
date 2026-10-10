@@ -9,6 +9,11 @@ endif()
 set(XGRAMMAR_BUILD_PYTHON_BINDINGS OFF CACHE BOOL "" FORCE)
 set(XGRAMMAR_BUILD_CXX_TESTS OFF CACHE BOOL "" FORCE)
 set(XGRAMMAR_ENABLE_CPPTRACE OFF CACHE BOOL "" FORCE)
+# The pinned dependency includes cmake/config.cmake, whose normal variable
+# enables Python bindings even over a forced cache value. Its build-directory
+# config has precedence. Keep this dedicated native bridge independent of
+# Python development headers and TVM's Python binding configuration.
+configure_file(native_config.cmake ${CMAKE_BINARY_DIR}/config.cmake COPYONLY)
 add_subdirectory(${XGRAMMAR_SOURCE_DIR} xgrammar-build EXCLUDE_FROM_ALL)
 add_library(tf_xgrammar SHARED bridge.cc)
 target_link_libraries(tf_xgrammar PRIVATE xgrammar)
