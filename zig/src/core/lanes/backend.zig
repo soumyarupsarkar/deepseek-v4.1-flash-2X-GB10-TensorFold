@@ -43,6 +43,7 @@ pub const Diagnostics = struct {
     snapshot_bytes: u64 = 0,
     compactions: u64 = 0,
     relocated_tokens: u64 = 0,
+    relocated_prefills: u64 = 0, // moves of streams that already consumed prompt chunks
     round_graphs: u64 = 0,
     graph_limit: u64 = 0,
     graph_eager_fallbacks: u64 = 0,
@@ -72,6 +73,13 @@ pub const Backend = struct {
     pub const VTable = struct {
         /// Prefill the stream's prompt into its caches (and its draft head's).
         prefill: *const fn (ptr: *anyopaque, s: *Stream) anyerror!void,
+        /// Optional incremental admission. Begin reserves/restores this stream;
+        /// each step computes at most one chunk and returns true at the head.
+        /// Both callbacks must be supplied together. Other backends keep the
+        /// synchronous prefill contract above.
+        prefill_begin: ?*const fn (ptr: *anyopaque, s: *Stream) anyerror!void = null,
+        prefill_step: ?*const fn (ptr: *anyopaque, s: *Stream) anyerror!bool = null,
+        prefill_chunk_tokens: usize = 0,
         /// Draw the first token from the prompt's last row at `position`; a handle to it.
         first: *const fn (ptr: *anyopaque, s: *Stream, position: u64) anyerror!u64,
         /// Feed one token and queue the draw of the next at `position` (a one-token round); a handle to it.

@@ -1522,7 +1522,11 @@
     },
     {
       "path": "zig/src/core/lane_host.zig",
-      "sha256": "37c174846f622431dedccd2f4f10b7437fc95d140fbd439b14009eb70dfba921"
+      "sha256": "fa30afe8a41ca6677333d079d6549a2b42345f29ce91ebd9769e89238388d651"
+    },
+    {
+      "path": "zig/src/core/lane_host_incremental_test.zig",
+      "sha256": "890ed18fc65ea0f485f78c2df276fc5000a29caffbecefab4d3599b1f0a0af67"
     },
     {
       "path": "zig/src/core/lane_host_reuse_test.zig",
@@ -1542,7 +1546,7 @@
     },
     {
       "path": "zig/src/core/lanes/backend.zig",
-      "sha256": "d68ec4067842bbb19368c1127f6594001aafe340e3cd02b64f8802710bf38f48"
+      "sha256": "1539d20514a4de49e22ada43c9181a361fbf2c7173011f1c3527e07927370ebb"
     },
     {
       "path": "zig/src/core/lanes/config.zig",
@@ -1554,7 +1558,7 @@
     },
     {
       "path": "zig/src/core/lanes/engine.zig",
-      "sha256": "6bd6a8ea732610b9f4dc6be0b541c158ed1f644dc8e2b449222cfb2fe06d8db4"
+      "sha256": "dac1481d12519bca7288121adca737c1ac51fc222e93194b47f14e973a910855"
     },
     {
       "path": "zig/src/core/lanes/engine_test.zig",
@@ -1566,7 +1570,7 @@
     },
     {
       "path": "zig/src/core/lanes/fake.zig",
-      "sha256": "b4e88c57fcc8f31bbd462320818ce44734be0b93da616ae6105597344a42a302"
+      "sha256": "216179533a13fe7dc6b998aeaed08c9edb6d8f8c9107070714d32c01cf266940"
     },
     {
       "path": "zig/src/core/lanes/fill.zig",
@@ -2030,7 +2034,7 @@
     },
     {
       "path": "zig/src/families/dsv41/lanes.zig",
-      "sha256": "d27c792595d09f6cc6ba27bd40187705af12d20e0e03003c105a39a834ce388f"
+      "sha256": "87afd86cd90a118c878bb493b967ee9f87ec20d0ddc647ef7884b6f0a938d46e"
     },
     {
       "path": "zig/src/families/dsv41/lanes_main.zig",
@@ -2054,7 +2058,7 @@
     },
     {
       "path": "zig/src/families/dsv41/model.zig",
-      "sha256": "df687912ec2c7fd526ab48c737dbdc76001d510a120f85964cf2e960bd773a68"
+      "sha256": "81d37270226fd5a55f73086d16a110826f7d448cbd27fc200f42a3f81a0e8fdb"
     },
     {
       "path": "zig/src/families/dsv41/native.zig",

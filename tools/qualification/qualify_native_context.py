@@ -66,11 +66,18 @@ def main():
     parser.add_argument('--tokens', type=int, default=1048576, help='prompt plus forced reply')
     parser.add_argument('--reply-tokens', type=int, default=256)
     parser.add_argument('--mixed', action='store_true')
+    parser.add_argument('--require-interleaving', action='store_true',
+                        help='Require both small requests to finish during native long prefill')
+    parser.add_argument('--small-latency-limit', type=float, default=30)
     parser.add_argument('--record', required=True)
     args = parser.parse_args()
     assert re.fullmatch('[a-z0-9-]+', args.record)
+    assert not args.require_interleaving or args.mixed
+    assert 0 < args.small_latency_limit <= 30
     record = dict(started=now(), health_before=get('/health'), target_tokens=args.tokens,
-                  health_samples=[], memory_samples=[], mixed=args.mixed)
+                  health_samples=[], memory_samples=[], mixed=args.mixed,
+                  require_interleaving=args.require_interleaving,
+                  small_latency_limit_s=args.small_latency_limit)
     begun = time.monotonic()
     try:
         ids, record['input'] = make_prompt(args.tokens-args.reply_tokens)
@@ -95,6 +102,11 @@ def main():
                         max_tokens=64, temperature=0, chat_template_kwargs={'enable_thinking':False},
                         response_format={'type':'json_object'})))
                     record['small_requests_submitted_seconds'] = round(time.monotonic()-begun, 2)
+                if small and all(f.done() for f in small) and 'small_requests_finished_seconds' not in record:
+                    record['small_requests_finished_seconds'] = round(time.monotonic()-begun, 2)
+                    record['small_finished_during_native_prefill'] = (
+                        not long.done() and h.get('native', {}).get('prefilling_streams') == 1)
+                    record['health_at_small_finish'] = h
                 if sample % 12 == 0:
                     print('Progress:', round(time.monotonic()-begun), 'seconds', h.get('progress'),
                           'streams', h.get('streams'), flush=True)
@@ -118,6 +130,11 @@ def main():
             assert len(record['small']) == 2
             assert '42' in text(record['small'][0])
             assert json.loads(text(record['small'][1])).get('status') == 'ok'
+        if args.require_interleaving:
+            assert record.get('small_finished_during_native_prefill'), \
+                'Small requests did not finish during long prefill'
+            assert all(row['seconds'] <= args.small_latency_limit for row in record['small']), \
+                'Small requests exceeded the declared latency bound'
         record['canary'] = chat('Reply with HEALTHY.')
         assert 'HEALTHY' in text(record['canary'])
         record['health_after'], record['post_response_drain'] = wait_idle(API_BASE)

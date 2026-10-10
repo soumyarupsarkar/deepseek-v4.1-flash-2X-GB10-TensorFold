@@ -39,6 +39,8 @@ pub const Fake = struct {
     prefill_hook: ?*const fn (ctx: *anyopaque, s: *Stream, chunk: usize) void = null,
     prefill_hook_ctx: ?*anyopaque = null,
     refuse_sampled: bool = false, // prefill refuses a sampled stream with error.SamplingRefused
+    incremental_capacity: ?usize = null,
+    incremental_refusals: usize = 0,
 
     pub fn deinit(x: *Fake) void {
         var it = x.lanes.valueIterator();
@@ -55,6 +57,48 @@ pub const Fake = struct {
 
     pub fn backend(x: *Fake) be.Backend {
         return .{ .ptr = x, .vtable = &.{ .prefill = prefill, .first = first, .queue = queue, .read = read, .verify = verify, .keep = keep, .draft = draft, .release = release } };
+    }
+
+    /// A two-token prompt step for serving-scheduler tests. The target's tokens
+    /// still depend on the complete history, including restored prefixes.
+    pub fn incrementalBackend(x: *Fake) be.Backend {
+        return .{ .ptr = x, .vtable = &.{ .prefill = prefill, .prefill_begin = beginPrefill, .prefill_step = stepPrefill, .prefill_chunk_tokens = 2, .first = first, .queue = queue, .read = read, .verify = verify, .keep = keep, .draft = draft, .release = release } };
+    }
+
+    fn beginPrefill(ptr: *anyopaque, s: *Stream) anyerror!void {
+        const x = self(ptr);
+        if (x.incremental_capacity) |cap| if (!x.lanes.contains(s) and x.lanes.count() >= cap) {
+            x.incremental_refusals += 1;
+            return error.ContextFull;
+        };
+        if (x.refuse_sampled and s.sampling != null) return error.SamplingRefused;
+        const got = try x.lanes.getOrPut(x.gpa, s);
+        if (got.found_existing) freeLane(x.gpa, got.value_ptr);
+        got.value_ptr.* = .{};
+        s.cached = 0;
+        if (s.reuse.saved) |saved| {
+            const kept: *std.ArrayList(u32) = @ptrCast(@alignCast(saved));
+            try got.value_ptr.history.appendSlice(x.gpa, kept.items);
+            s.cached = s.reuse.at;
+        }
+        s.cache_len = got.value_ptr.history.items.len;
+    }
+
+    fn stepPrefill(ptr: *anyopaque, s: *Stream) anyerror!bool {
+        const x = self(ptr);
+        const history = &x.lane(s).history;
+        const start = history.items.len;
+        x.prefill_count += 1;
+        if (x.prefill_hook) |hook| hook(x.prefill_hook_ctx.?, s, start / 2);
+        if (s.isCancelled()) return error.Cancelled;
+        const end = @min(start + 2, s.prompt_len);
+        for (s.prompt()[start..end], start + 1..) |t, at| {
+            try history.append(x.gpa, t);
+            if (std.mem.indexOfScalar(u32, s.reuse.marks, @intCast(at)) != null)
+                if (s.reuse.hook) |k| k.at(k.ptr, s, @intCast(at));
+        }
+        s.cache_len = end;
+        return end == s.prompt_len;
     }
 
     fn self(ptr: *anyopaque) *Fake {

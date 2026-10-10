@@ -77,12 +77,46 @@ pub const Engine = struct {
 
     /// Prefill a stream, draw its first token and ask for its first drafts; it takes part from the next round.
     pub fn addStream(e: *Engine, s: *Stream) !void {
+        if (try e.beginStream(s)) return;
+        while (!try e.advancePrefill(s)) {}
+    }
+
+    /// Begin admission without monopolizing the serving thread when the backend
+    /// can return between chunks. True means the first token is already ready.
+    pub fn beginStream(e: *Engine, s: *Stream) !bool {
         _ = e.arena.reset(.retain_capacity);
         try trail.event(e, &.{ f("ev", str("add")), f("stream", str(s.id)) });
+        if (e.backend.vtable.prefill_begin) |begin| {
+            if (e.backend.vtable.prefill_step == null) return error.IncompletePrefillBackend;
+            begin(e.backend.ptr, s) catch |err| {
+                if (err == error.Cancelled) e.backend.release(s);
+                return err;
+            };
+            return false;
+        }
         e.backend.prefill(s) catch |err| {
             if (err == error.Cancelled) e.backend.release(s); // the host finishes a cancelled stream without the core
             return err;
         };
+        try e.finishPrefill(s);
+        return true;
+    }
+
+    /// Compute one prompt chunk, then immediately consume its head/taps when it
+    /// finishes. No other stream may overwrite those shared outputs in between.
+    pub fn advancePrefill(e: *Engine, s: *Stream) !bool {
+        const step_ = e.backend.vtable.prefill_step orelse return error.IncompletePrefillBackend;
+        const done = step_(e.backend.ptr, s) catch |err| {
+            if (err == error.Cancelled) e.backend.release(s);
+            return err;
+        };
+        if (!done) return false;
+        _ = e.arena.reset(.retain_capacity);
+        try e.finishPrefill(s);
+        return true;
+    }
+
+    fn finishPrefill(e: *Engine, s: *Stream) !void {
         if (s.isCancelled()) { // cancelled in its last chunk: no first token
             e.backend.release(s);
             return error.Cancelled;

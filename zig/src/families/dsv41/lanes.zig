@@ -38,7 +38,7 @@ pub const image_piece = 32 << 10;
 pub var logits_sha = false;
 
 /// The primitives rank 0 sends rank 1 (each frame: kind u8, step u64, its fields little-endian).
-pub const Kind = enum(u8) { fill_begin = 1, fill_chunk = 2, verify = 3, pass = 4, snap_save = 5, snap_restore = 6, snap_drop = 7, fill_images = 8, done = 9, relocate = 10 };
+pub const Kind = enum(u8) { fill_begin = 1, fill_chunk = 2, verify = 3, pass = 4, snap_save = 5, snap_restore = 6, snap_drop = 7, fill_images = 8, done = 9, relocate = 10, release = 11 };
 
 /// A frame being written.
 pub const Wire = struct {
@@ -202,6 +202,21 @@ pub fn parseMs(a: std.mem.Allocator, text: []const u8) ![]const f64 {
     return out.items;
 }
 
+/// Per-stream prompt state survives a return to the serving scheduler. Image
+/// embeddings stay on the host; one shared device buffer serves each chunk.
+const Prefill = struct {
+    start: usize,
+    replay: usize,
+    last_end: usize,
+    spans: std.ArrayList(@import("prompt.zig").Span) = .empty,
+    rows: std.ArrayList(u8) = .empty,
+
+    fn deinit(p: *Prefill, gpa: std.mem.Allocator) void {
+        p.spans.deinit(gpa);
+        p.rows.deinit(gpa);
+    }
+};
+
 /// A stream's place in the pool and the drafts it holds.
 const Lane = struct {
     slot: usize,
@@ -211,6 +226,7 @@ const Lane = struct {
     held: [draft.max_block]u32 = undefined,
     confs: [draft.max_block]f32 = undefined,
     nheld: usize = 0,
+    prefill: ?Prefill = null,
 };
 
 extern "c" fn exp(x: f64) f64;
@@ -245,6 +261,7 @@ pub const Lanes = struct {
     next_snap: u64 = 1,
     compactions: std.atomic.Value(u64) = .init(0),
     relocated_tokens: std.atomic.Value(u64) = .init(0),
+    relocated_prefills: std.atomic.Value(u64) = .init(0),
     active_streams: std.atomic.Value(u64) = .init(0),
     prefilling_streams: std.atomic.Value(u64) = .init(0),
     prefill_tokens: std.atomic.Value(u64) = .init(0),
@@ -263,12 +280,16 @@ pub const Lanes = struct {
 
     /// Tells rank 1 to stop, then frees the host state (the model is the caller's).
     pub fn deinit(self: *Lanes) void {
+        self.m.joinAhead();
+        self.m.fill_seq = &.{};
         for (self.snaps.items) |sn| {
             sn.buf.free();
             self.gpa.destroy(sn);
         }
         self.snaps.deinit(self.gpa);
         if (self.peer != null) self.send(.done) catch {};
+        var it = self.streams.valueIterator();
+        while (it.next()) |lane| if (lane.prefill) |*p| p.deinit(self.gpa);
         self.streams.deinit(self.gpa);
         for (&self.seqs) |*q| q.deinit(self.gpa);
         self.wire.deinit(self.gpa);
@@ -277,6 +298,9 @@ pub const Lanes = struct {
     pub fn backend(self: *Lanes) be.Backend {
         return .{ .ptr = self, .vtable = &.{
             .prefill = prefillFn,
+            .prefill_begin = prefillBeginFn,
+            .prefill_step = prefillStepFn,
+            .prefill_chunk_tokens = model.chunk_rows,
             .first = firstFn,
             .queue = queueFn,
             .read = readFn,
@@ -305,6 +329,7 @@ pub const Lanes = struct {
             .snapshot_bytes = self.retained_states.load(.monotonic) * self.m.snapBytes(),
             .compactions = self.compactions.load(.monotonic),
             .relocated_tokens = self.relocated_tokens.load(.monotonic),
+            .relocated_prefills = self.relocated_prefills.load(.monotonic),
             .round_graphs = if (self.m.graphs) |*g| g.count() else 0,
             .graph_limit = if (self.m.graphs) |*g| g.policy.limit else 0,
             .graph_eager_fallbacks = if (self.m.graphs) |*g| g.eager_fallbacks.load(.monotonic) else 0,
@@ -362,6 +387,10 @@ pub const Lanes = struct {
     }
 
     fn begin(self: *Lanes, kind: Kind) !bool {
+        if (kind != .fill_chunk and kind != .snap_save and kind != .snap_restore and kind != .fill_images) {
+            self.m.joinAhead();
+            self.m.fill_seq = &.{};
+        }
         if (self.peer == null) return false;
         try self.wire.begin(self.gpa, kind, self.step);
         self.step += 1;
@@ -377,9 +406,12 @@ pub const Lanes = struct {
     /// The lowest free slot, the first extent that fits, the prompt in chunks of the served size (at multiples of it:
     /// the chunks the gates checked; the host's chunk plan is not followed), the head's draw of the first token.
     fn prefillFn(ptr: *anyopaque, s: *lanes.Stream) anyerror!void {
+        try prefillBeginFn(ptr, s);
+        while (!try prefillStepFn(ptr, s)) {}
+    }
+
+    fn prefillBeginFn(ptr: *anyopaque, s: *lanes.Stream) anyerror!void {
         const self = of(ptr);
-        _ = self.prefilling_streams.fetchAdd(1, .monotonic);
-        defer _ = self.prefilling_streams.fetchSub(1, .monotonic);
         const m = self.m;
         const gpa = self.gpa;
         const t0 = m.now();
@@ -393,7 +425,7 @@ pub const Lanes = struct {
         if (len > m.context_cap or s.max_new > m.context_cap - len) return error.PromptTooLong;
         const size = std.mem.alignForward(usize, len + s.max_new + m.eng.round_rows + 2, model.chunk_rows);
         if (size > m.pool_cap) return error.PromptTooLong;
-        if (self.streams.fetchRemove(s)) |old| self.used[old.value.slot] = false;
+        releaseFn(ptr, s);
         const slot = std.mem.indexOfScalar(bool, self.used[0..self.m.streams], false) orelse return error.NoFreeSlot;
         var taken: [max_streams][2]usize = undefined;
         var nt: usize = 0;
@@ -436,9 +468,9 @@ pub const Lanes = struct {
         // images: each span's positions dead in the sequence (negative: no Engram n-gram reaches into or across one),
         // its rows ready (a gate's) or the tower's (rank 0), all of them sent to rank 1 after the fill's start
         var spans: std.ArrayList(@import("prompt.zig").Span) = .empty;
-        defer spans.deinit(gpa);
+        errdefer spans.deinit(gpa);
         var rows: std.ArrayList(u8) = .empty;
-        defer rows.deinit(gpa);
+        errdefer rows.deinit(gpa);
         if (s.images.len > 0) {
             const image_id = m.cfg.image_token orelse return error.NoVision;
             const row_bytes = m.cfg.hidden * 2;
@@ -475,6 +507,7 @@ pub const Lanes = struct {
             while (off < rows.items.len) {
                 const n = @min(image_piece, rows.items.len - off);
                 if (try self.begin(.fill_images)) {
+                    try self.wire.int(gpa, u32, @intCast(slot));
                     try self.wire.int(gpa, u32, @intCast(spans.items.len));
                     for (spans.items) |sp| {
                         try self.wire.int(gpa, u64, sp.at);
@@ -486,7 +519,6 @@ pub const Lanes = struct {
                 }
                 off += n;
             }
-            try m.setImages(spans.items, rows.items);
         }
         const replay = len -| m.cfg.window;
         var start: usize = 0;
@@ -504,29 +536,49 @@ pub const Lanes = struct {
             start = sn.at;
             s.cached = @intCast(sn.at);
         }
-        // where this pass keeps states: the cache's marks and its last chunk end before the replay (the served lane's
-        // kept prompt), each at the chunk end at or before it
-        const last_end = @min(replay, len - 1) / model.chunk_rows * model.chunk_rows;
-        var head = false;
-        m.fill_seq = seq.items;
-        defer {
-            m.joinAhead();
-            m.fill_seq = &.{};
+        self.streams.getPtr(s).?.prefill = .{
+            .start = start,
+            .replay = replay,
+            .last_end = @min(replay, len - 1) / model.chunk_rows * model.chunk_rows,
+            .spans = spans,
+            .rows = rows,
+        };
+        s.cache_len = start;
+        _ = self.prefilling_streams.fetchAdd(1, .monotonic);
+    }
+
+    fn prefillStepFn(ptr: *anyopaque, s: *lanes.Stream) anyerror!bool {
+        const self = of(ptr);
+        const m = self.m;
+        const gpa = self.gpa;
+        const lane = self.streams.getPtr(s) orelse return error.UnknownStream;
+        const p = if (lane.prefill) |*value_| value_ else return error.NoPendingPrefill;
+        if (s.isCancelled()) return error.Cancelled;
+        const t0 = m.now();
+        defer if (self.prof) |*prof| {
+            prof.prefill += m.now() - t0;
+        };
+        const slot = lane.slot;
+        const seq = &self.seqs[slot];
+        const start = p.start;
+        const n = @min(model.chunk_rows, seq.items.len - start);
+        try m.selectFill(slot, lane.base, seq.items, p.spans.items, p.rows.items);
+        if (try self.begin(.fill_chunk)) {
+            try self.wire.int(gpa, u32, @intCast(slot));
+            try self.wire.int(gpa, u64, lane.base);
+            try self.wire.int(gpa, u64, start);
+            try self.wire.int(gpa, u32, @intCast(n));
+            try self.wire.int(gpa, u64, p.replay);
+            try self.flush();
         }
-        while (start < len) {
-            if (start > 0 and s.isCancelled()) return error.Cancelled;
-            const n = @min(model.chunk_rows, len - start);
-            if (try self.begin(.fill_chunk)) {
-                try self.wire.int(gpa, u64, start);
-                try self.wire.int(gpa, u32, @intCast(n));
-                try self.wire.int(gpa, u64, replay);
-                try self.flush();
-            }
-            head = try m.fillChunk(seq.items[0 .. start + n], start, n, replay);
-            _ = self.prefill_tokens.fetchAdd(n, .monotonic);
-            start += n;
-            if (s.images.len == 0) if (s.reuse.hook) |k| if (start < len and start <= replay and (start == last_end or markEnds(s.reuse.marks, start))) k.at(k.ptr, s, @intCast(start));
-        }
+        const head = try m.fillChunk(seq.items[0 .. start + n], start, n, p.replay);
+        _ = self.prefill_tokens.fetchAdd(n, .monotonic);
+        p.start += n;
+        s.cache_len = p.start;
+        if (s.images.len == 0) if (s.reuse.hook) |k| if (p.start < seq.items.len and p.start <= p.replay and (p.start == p.last_end or markEnds(s.reuse.marks, p.start))) k.at(k.ptr, s, @intCast(p.start));
+        if (p.start < seq.items.len) return false;
+        m.joinAhead();
+        m.fill_seq = &.{};
         if (!head) return error.NoPromptLogits;
         const logits = try m.promptLogitsHost();
         if (logits_sha) {
@@ -535,8 +587,12 @@ pub const Lanes = struct {
             std.debug.print("{{\"prompt_logits\": \"{s}\", \"sha256\": \"{s}\"}}\n", .{ s.id, std.fmt.bytesToHex(dg, .lower) });
         }
         if (s.logit_gate) |gate| try gate.mask(gate.ctx, @constCast(logits), s.emitted());
-        const token = try draw(logits, len, s.sampling);
+        const token = try draw(logits, seq.items.len, s.sampling);
         self.streams.getPtr(s).?.first = self.take(token);
+        p.deinit(gpa);
+        lane.prefill = null;
+        _ = self.prefilling_streams.fetchSub(1, .monotonic);
+        return true;
     }
 
     fn firstFn(ptr: *anyopaque, s: *lanes.Stream, position: u64) anyerror!u64 {
@@ -772,6 +828,9 @@ pub const Lanes = struct {
             try self.m.copyExtent(move.from, move.to, move.len);
             var lanes_it = self.streams.valueIterator();
             while (lanes_it.next()) |lane| if (lane.slot == move.slot) {
+                if (lane.prefill) |p| if (p.start > 0) {
+                    _ = self.relocated_prefills.fetchAdd(1, .monotonic);
+                };
                 lane.base = move.to;
                 lane.end = move.to + move.len;
                 break;
@@ -841,9 +900,23 @@ pub const Lanes = struct {
 
     fn releaseFn(ptr: *anyopaque, s: *lanes.Stream) void {
         const self = of(ptr);
-        const kv = self.streams.fetchRemove(s) orelse return;
+        var kv = self.streams.fetchRemove(s) orelse return;
+        // Release also ends a cancelled, partially filled image prompt on the
+        // peer. Transport failure here requires a paired restart.
+        self.releasePeer(kv.value.slot) catch |err| std.debug.panic("dsv41: peer slot release failed: {s}", .{@errorName(err)});
+        if (kv.value.prefill) |*p| {
+            p.deinit(self.gpa);
+            _ = self.prefilling_streams.fetchSub(1, .monotonic);
+        }
         self.active_streams.store(self.streams.count(), .monotonic);
         self.used[kv.value.slot] = false;
+    }
+
+    fn releasePeer(self: *Lanes, slot: usize) !void {
+        if (try self.begin(.release)) {
+            try self.wire.int(self.gpa, u32, @intCast(slot));
+            try self.flush();
+        }
     }
 };
 
@@ -877,8 +950,10 @@ pub fn follow(gpa: std.mem.Allocator, m: *Model) !void {
     var built: Built = .{};
     var step: u64 = 0;
     var slot: usize = 0;
-    var img_rows: std.ArrayList(u8) = .empty; // a prompt's image rows as their pieces come
-    defer img_rows.deinit(gpa);
+    var img_rows: [max_streams]std.ArrayList(u8) = @splat(.empty);
+    var img_spans: [max_streams]std.ArrayList(@import("prompt.zig").Span) = @splat(.empty);
+    defer for (&img_rows) |*rows| rows.deinit(gpa);
+    defer for (&img_spans) |*spans| spans.deinit(gpa);
     var kept: std.AutoHashMapUnmanaged(u64, cuda.DeviceBuffer) = .empty; // rank 0's kept states, this rank's part
     defer {
         var ki = kept.valueIterator();
@@ -900,6 +975,7 @@ pub fn follow(gpa: std.mem.Allocator, m: *Model) !void {
             8 => .fill_images,
             9 => .done,
             10 => .relocate,
+            11 => .release,
             else => return error.BadFrame,
         };
         if (try r.int(u64) != step) return error.OutOfStep;
@@ -910,6 +986,14 @@ pub fn follow(gpa: std.mem.Allocator, m: *Model) !void {
             m.fill_seq = &.{};
         }
         switch (kind) {
+            .release => {
+                const released = try r.int(u32);
+                if (released >= max_streams) return error.BadSlot;
+                img_rows[released].deinit(gpa);
+                img_rows[released] = .empty;
+                img_spans[released].deinit(gpa);
+                img_spans[released] = .empty;
+            },
             .relocate => {
                 const from = try r.int(u64);
                 const to = try r.int(u64);
@@ -921,17 +1005,27 @@ pub fn follow(gpa: std.mem.Allocator, m: *Model) !void {
                 slot = try r.int(u32);
                 const base = try r.int(u64);
                 if (slot >= max_streams) return error.BadSlot;
-                img_rows.clearRetainingCapacity();
+                img_rows[slot].clearRetainingCapacity();
+                img_spans[slot].clearRetainingCapacity();
                 try r.ids(gpa, &seqs[slot]);
                 m.fillBegin(slot, @intCast(base)) catch |err| refused(err);
-                m.fill_seq = seqs[slot].items;
             },
             .fill_chunk => {
+                slot = try r.int(u32);
+                const base: usize = @intCast(try r.int(u64));
+                if (slot >= max_streams) return error.BadSlot;
                 const start: usize = @intCast(try r.int(u64));
                 const n: usize = try r.int(u32);
                 const replay: usize = @intCast(try r.int(u64));
                 if (start + n > seqs[slot].items.len) return error.BadChunk;
+                m.selectFill(slot, base, seqs[slot].items, img_spans[slot].items, img_rows[slot].items) catch |err| refused(err);
                 _ = m.fillChunk(seqs[slot].items[0 .. start + n], start, n, replay) catch |err| refused(err);
+                if (start + n == seqs[slot].items.len) {
+                    img_rows[slot].deinit(gpa);
+                    img_rows[slot] = .empty;
+                    img_spans[slot].deinit(gpa);
+                    img_spans[slot] = .empty;
+                }
             },
             .verify => {
                 const nw = try r.int(u32);
@@ -969,6 +1063,8 @@ pub fn follow(gpa: std.mem.Allocator, m: *Model) !void {
                 m.pass(tokens[0..n], q0[0..n], slots[0..n], steps) catch |err| refused(err);
             },
             .fill_images => {
+                const image_slot = try r.int(u32);
+                if (image_slot >= max_streams) return error.BadSlot;
                 const count = try r.int(u32);
                 var spans: std.ArrayList(@import("prompt.zig").Span) = .empty;
                 defer spans.deinit(gpa);
@@ -982,12 +1078,17 @@ pub fn follow(gpa: std.mem.Allocator, m: *Model) !void {
                 const off: usize = @intCast(try r.int(u64));
                 const piece = r.rest();
                 const total = row * m.cfg.hidden * 2;
-                if (off != img_rows.items.len or off + piece.len > total or piece.len == 0) return error.BadFrame;
-                try img_rows.appendSlice(gpa, piece);
-                if (img_rows.items.len == total) {
-                    m.setImages(spans.items, img_rows.items) catch |err| refused(err);
-                    img_rows.clearRetainingCapacity();
+                const rows = &img_rows[image_slot];
+                const saved = &img_spans[image_slot];
+                if (off != rows.items.len or off + piece.len > total or piece.len == 0) return error.BadFrame;
+                if (off == 0) {
+                    saved.clearRetainingCapacity();
+                    try saved.appendSlice(gpa, spans.items);
+                } else {
+                    if (saved.items.len != spans.items.len) return error.BadFrame;
+                    for (saved.items, spans.items) |a, b| if (!std.meta.eql(a, b)) return error.BadFrame;
                 }
+                try rows.appendSlice(gpa, piece);
             },
             .snap_save => {
                 const id = try r.int(u64);

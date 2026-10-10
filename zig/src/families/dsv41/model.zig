@@ -120,6 +120,7 @@ pub const Model = struct {
     amax_host: [round.max_rows]u32 = undefined,
     // the stream a fill is running: its slot and its view of the caches (its extent from base)
     fill_slot: usize = 0,
+    fill_base: usize = 0,
     // the prompt a fill's chunks come from (the caller's, set for the fill) and the thread reading the next chunk's
     // Engram rows during this one (fillChunk), joined before the prompt can change (joinAhead)
     fill_seq: []const i32 = &.{},
@@ -170,6 +171,7 @@ pub const Model = struct {
         m.context_cap = o.context orelse o.pool;
         if (m.pool_cap == 0 or m.context_cap == 0 or m.context_cap > m.pool_cap) return error.BadPool;
         m.fill_slot = 0;
+        m.fill_base = 0;
         m.prof = false;
         m.timer = null;
         m.ptimer = null;
@@ -565,6 +567,17 @@ pub const Model = struct {
         m.view = try m.caches.view(&m.eng, slot, base);
         for (m.rings, m.ring_view) |r, *v| v.* = r + slot * m.eng.ringBytes();
         m.fill_slot = slot;
+        m.fill_base = base;
+    }
+
+    /// Restore the per-prompt view after another prompt or a decode round used
+    /// the shared scratch. Consecutive chunks keep their Engram read-ahead.
+    pub fn selectFill(m: *Model, slot: usize, base: usize, seq: []const i32, spans: []const prompt.Span, rows: []const u8) !void {
+        if (m.fill_slot == slot and m.fill_base == base and m.fill_seq.ptr == seq.ptr and m.fill_seq.len == seq.len) return;
+        m.joinAhead();
+        try m.fillBegin(slot, base);
+        try m.setImages(spans, rows);
+        m.fill_seq = seq;
     }
 
     /// The prompt's chunk of n rows from position `start` (seq: the stream's ids through the chunk's end) through every

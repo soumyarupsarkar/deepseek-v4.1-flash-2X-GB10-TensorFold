@@ -14,7 +14,7 @@ documented and published in `29c1a04ecd75ea56ba85502279aa39b0bf6705f8`.
 Original checkpoints and prepared rank caches are immutable inputs; generated
 native kernels and mutable caches use separate directories.
 
-As of October 10, the integration compiles for GB10. The follow-up source passes
+As of October 10, the third live integration compiles for GB10. Its checks passed
 286 Zig CPU/server tests, the native xgrammar contract test, 64 portable recipe
 and benchmark contracts, and six native controller contracts. Both ranks' fresh
 native cache writers have independent full-byte readback checks. These checks
@@ -72,6 +72,23 @@ two waves. The fixture uses an identical primed prefix, with separate resident
 stream extents; it establishes capacity and replay, not cold-prefill throughput
 for 32 distinct documents. The longest recorded cleanup drain was about 213 ms.
 
+That image also completed a cold 1,048,320-token prompt plus a 256-token reply,
+correctly retrieving synthetic passphrases from 10%, 50% and 90% depth. Its
+prefill took 662.3 seconds and its short reply decoded at about 46.4 tok/s.
+However, the two small requests submitted during prefill waited 632–633 seconds.
+The native admission path filled the entire prompt before returning to its
+scheduler. This is a responsiveness regression against the Python deployment,
+even though the original retrieval test accepted the eventual correct answers.
+
+The follow-up implementation returns between 2,048-token chunks, retains each
+prompt's own slot, restore position and image embeddings, and alternates long
+prefill with decoding. Short remainders receive priority. This follows the
+Python dual-GB10 engine's 50% decode-share approach. CPU regressions and fresh
+hardware qualification are required for this new source. The strengthened
+million-token gate and a separate mixed-image/cancellation gate require small
+requests to finish during long prefill, within a declared 30-second limit.
+Earlier live passes belong to the third image; they do not qualify this change.
+
 One parity attempt failed a client assumption: the final SSE response had ended
 before the scheduler removed its request. The runtime remained healthy, had no
 active GPU stream, and subsequently became idle; all four output hashes already
@@ -110,7 +127,9 @@ comparison.
    random unseeded sampling, explicit seeds and configurable prompt-derived
    seeds; the existing context aliases and request limits.
 3. C32 with an 8,650,752-token shared KV pool, independently sized million-token
-   requests, bounded retained prefixes, admission queueing and live compaction.
+   requests, bounded retained prefixes, admission queueing and live compaction,
+   including partially filled prompts. Small requests must complete during long
+   prefill; cancellation and image switching must preserve solo output parity.
 4. Reversible DRM allocation and host settings, honest memory/health counters,
    peer failure handling and restoration through the deployment controller.
 5. Matched synthetic throughput, latency, correctness and memory measurements
@@ -133,6 +152,8 @@ comparison.
 - Compressed KV extents use ordinary CUDA allocation; our DRM-backed pool and
   reversible host lifecycle need a native implementation.
 - Retained extents can be evicted, but there is no live compaction path.
+- Admission fills a whole prompt synchronously, delaying every other stream
+  behind million-token prefill. Per-stream chunk state and interleaving are needed.
 
 These are implementation requirements, not settings that can safely be enabled
 without further work. Upstream's published C4 speeds do not establish this

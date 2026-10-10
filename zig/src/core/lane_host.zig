@@ -46,6 +46,10 @@ pub const LaneHost = struct {
     // the request at the queue's front waits for room in the backend's pool (its prompt pass refused ContextFull while
     // other streams ran): admitted again once fewer than this many streams are active
     full_wait: ?usize = null,
+    // Give active decoders at least the previous long chunk's elapsed time
+    // before the next long chunk (the Python deployment's 50% decode share).
+    last_fill_ns: i96 = 0,
+    decode_since_fill_ns: i96 = 0,
 
     const Mark = struct { at: i96, tokens: u64 };
     const window_ns: i96 = 2 * std.time.ns_per_s;
@@ -62,16 +66,19 @@ pub const LaneHost = struct {
         prefill_sent: bool = false, // a lone driver's prefilled event went out
         began: i96 = 0,
         prefilled: ?i96 = null,
+        prefill_ns: i96 = 0, // active prefill work, excluding interleaved requests
         entry: ?*pc.Entry = null, // the kept state the backend restores, until its prompt pass reports
         marks: []const u32 = &.{}, // where the pass keeps states (gpa-owned)
-        kept0: u64 = 0, // the store's kept count when the job looked it up
+        kept_count: u64 = 0, // this job's successful keeps, not other filling jobs'
 
         /// The backend's prompt pass stands at a mark: the cache keeps the stream's state there.
         fn kept(ptr: *anyopaque, s: *lanes.Stream, at: u32) void {
             const job: *Job = @ptrCast(@alignCast(ptr));
             job.reported(); // before a keep can evict the entry the pass restored
             if (job.request.images.len > 0) return; // a kept state is keyed by tokens: an image's are its placeholder's
-            if (job.host.cache) |store| _ = store.keep(job.request.prompt, at, s, job.request.chunks);
+            if (job.host.cache) |store| if (store.keep(job.request.prompt, at, s, job.request.chunks)) {
+                job.kept_count += 1;
+            };
         }
 
         /// Report a restored prefix or its failed copy; an untouched prefix remains kept.
@@ -228,7 +235,7 @@ pub const LaneHost = struct {
         job.reported();
         h.gpa.free(job.marks);
         const s = &job.stream;
-        const stats: Stats = if (job.started) .{ .rounds = s.rounds, .drafted = s.drafted, .accepted = s.accepted, .min_rows = s.min_rows, .loop_period = s.loop_period, .prefill_seconds = if (job.prefilled) |done| @as(f64, @floatFromInt(@as(i64, @intCast(@max(0, done - job.began))))) / 1e9 else null } else .{};
+        const stats: Stats = if (job.started) .{ .rounds = s.rounds, .drafted = s.drafted, .accepted = s.accepted, .min_rows = s.min_rows, .loop_period = s.loop_period, .prefill_seconds = if (job.prefilled != null) @as(f64, @floatFromInt(@max(0, job.prefill_ns))) / 1e9 else null } else .{};
         emit(job, .{ .finished = .{ .reason = reason, .stats = stats, .message = message } });
         if (job.started) {
             s.deinit(h.gpa);
@@ -296,7 +303,7 @@ pub const LaneHost = struct {
             return false;
         }
         if (h.full_wait) |n| {
-            const active = h.core.activeCount();
+            const active = h.admitted.items.len; // includes unfinished prefills
             if (active > 0 and active >= n) {
                 h.unlock();
                 return false;
@@ -315,7 +322,6 @@ pub const LaneHost = struct {
         // the entry stays alive until the backend restores it: nothing keeps between here and this stream's own pass
         if (r.images.len == 0) if (h.cache) |store| if (store.lookup(h.gpa, r.prompt, r.history_len, r.shared_prefixes, r.chunks)) |l| {
             job.entry = l.entry;
-            job.kept0 = store.counts.kept;
             job.marks = l.marks;
             reuse = .{ .saved = if (l.entry) |e| e.saved else null, .at = if (l.entry) |e| e.at else 0, .marks = l.marks, .hook = .{ .ptr = job, .at = Job.kept } };
         } else |_| {};
@@ -346,12 +352,17 @@ pub const LaneHost = struct {
         const began = std.Io.Clock.awake.now(h.io).toNanoseconds();
         job.began = began;
         if (h.loneFits(job)) return h.runLone(job, began);
-        h.core.addStream(&job.stream) catch |e| {
+        const ready = h.core.beginStream(&job.stream) catch |e| {
             if (e == error.Cancelled) return h.cancel(job);
-            if (e == error.ContextFull and h.core.activeCount() > 0) return h.requeue(job);
+            if (e == error.ContextFull and h.admitted.items.len > 1) return h.requeue(job);
             if (h.info_.fail_closed and !requestFailure(e)) h.poison(@errorName(e));
             return h.drop(job, h.words(e));
         };
+        job.prefill_ns = std.Io.Clock.awake.now(h.io).toNanoseconds() - began;
+        // Restore has completed. Another admitted request may now evict this
+        // store entry; no filling job may retain its unpinned pointer.
+        job.reported();
+        if (!ready) return true;
         h.prefilled(job, began);
         if (h.deliver(job)) h.remove(job);
         return true;
@@ -360,13 +371,46 @@ pub const LaneHost = struct {
     fn prefilled(h: *LaneHost, job: *Job, began: i96) void {
         const done = std.Io.Clock.awake.now(h.io).toNanoseconds();
         h.lock();
-        if (done > began) h.prefill_rate = @as(f64, @floatFromInt(job.request.prompt.len - job.stream.cached)) / (@as(f64, @floatFromInt(done - began)) / 1e9);
+        if (job.prefill_ns == 0) job.prefill_ns = done - began; // synchronous lone driver
+        if (job.prefill_ns > 0) h.prefill_rate = @as(f64, @floatFromInt(job.request.prompt.len - job.stream.cached)) / (@as(f64, @floatFromInt(job.prefill_ns)) / 1e9);
         h.prefill_at = done;
         job.prefilled = done;
         h.unlock();
         job.reported();
-        if (h.cache) |store| store.report(job.request.prompt.len, job.stream.cached, store.counts.kept - job.kept0);
+        if (h.cache) |store| store.report(job.request.prompt.len, job.stream.cached, job.kept_count);
         emit(job, .{ .prefilled = job.stream.cached });
+    }
+
+    /// Short remainders finish first. Long prefills alternate with a measured
+    /// decode share, so a million-token arrival cannot stall every live stream.
+    fn fillOne(h: *LaneHost, active: usize) bool {
+        var first: ?*Job = null;
+        var quick = false;
+        for (h.admitted.items) |job| {
+            if (!job.started or job.prefilled != null) continue;
+            if (first == null) first = job;
+            if (job.request.prompt.len -| job.stream.cache_len <= h.core.backend.vtable.prefill_chunk_tokens) {
+                first = job;
+                quick = true;
+                break;
+            }
+        }
+        const job = first orelse return false;
+        if (active > 0 and !quick and h.decode_since_fill_ns < h.last_fill_ns) return false;
+        const began = std.Io.Clock.awake.now(h.io).toNanoseconds();
+        const ready = h.core.advancePrefill(&job.stream) catch |e| {
+            if (e == error.Cancelled) return h.cancel(job);
+            if (h.info_.fail_closed and !requestFailure(e)) h.poison(@errorName(e));
+            return h.drop(job, h.words(e));
+        };
+        h.last_fill_ns = std.Io.Clock.awake.now(h.io).toNanoseconds() - began;
+        h.decode_since_fill_ns = 0;
+        job.prefill_ns += h.last_fill_ns;
+        if (ready) {
+            h.prefilled(job, job.began);
+            if (h.deliver(job)) h.remove(job);
+        }
+        return true;
     }
 
     /// An idle backend driver takes a lone drafted request, including sampling when supported.
@@ -448,6 +492,8 @@ pub const LaneHost = struct {
         job.started = false;
         job.began = 0;
         job.prefilled = null;
+        job.prefill_ns = 0;
+        job.kept_count = 0;
         job.delivered = 0;
         job.prefill_sent = false;
         h.lock();
@@ -456,7 +502,7 @@ pub const LaneHost = struct {
             h.finish(job, .failed, "out of memory");
             return true;
         };
-        h.full_wait = h.core.activeCount();
+        h.full_wait = h.admitted.items.len;
         h.unlock();
         return false;
     }
@@ -501,18 +547,27 @@ pub const LaneHost = struct {
                 h.closeAll();
                 continue;
             }
-            if (h.core.activeCount() == 0) {
+            const active = h.core.activeCount();
+            h.unlock();
+            if (h.fillOne(active)) {
+                h.noteLive();
+                continue;
+            }
+            h.lock();
+            if (active == 0) {
                 if (h.cancels.items.len == 0 and (h.queued.items.len == 0 or h.admitted.items.len >= h.info_.lanes))
                     h.wake.waitTimeout(h.io, &h.mutex, .{ .duration = .{ .raw = .fromMilliseconds(100), .clock = .awake } }) catch {};
                 h.unlock();
                 continue;
             }
             h.unlock();
+            const began = std.Io.Clock.awake.now(h.io).toNanoseconds();
             h.core.step() catch |e| {
                 if (h.info_.fail_closed) h.poison(@errorName(e));
                 h.failAll(@errorName(e));
                 continue;
             };
+            h.decode_since_fill_ns += std.Io.Clock.awake.now(h.io).toNanoseconds() - began;
             var i: usize = 0;
             while (i < h.admitted.items.len) {
                 const job = h.admitted.items[i];
@@ -719,4 +774,5 @@ test "a lane host serves the core's own tokens, in order, and cancels between ro
 
 test {
     _ = @import("lane_host_test.zig");
+    _ = @import("lane_host_incremental_test.zig");
 }

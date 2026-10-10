@@ -11,7 +11,8 @@ import time
 
 SOURCE = Path(__file__).resolve().parents[2]
 MAX_EVIDENCE_BYTES = 64 * 2**20
-GATES = {'features', 'parity', 'retention', 'compaction', 'capacity', 'million', 'recovery', 'matched-benefit'}
+GATES = {'features', 'parity', 'retention', 'compaction', 'capacity', 'million', 'prefill-responsiveness',
+         'recovery', 'matched-benefit'}
 
 
 def compact_result(result):
