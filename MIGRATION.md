@@ -59,6 +59,42 @@ requires reproducing the saved post-relocation reply prefix from an independent
 cold request on the same unchanged launch. The public qualification client now
 evicts retained checkpoints and requires zero cached tokens for that comparison.
 
+## Primary matched measurements (partial qualification)
+
+The [complete primary comparison](release/native-primary-comparison-20261010.json)
+contains 20 scored waves and 178 requests, with two repetitions per workload.
+Actual prompt hashes, output budgets and zero cached tokens match. These are
+observed test medians on the pinned images, not a completed benefit decision:
+
+| Workload, temperature 0 | Prompt / reply tokens per request | Python end-to-end tok/s | Native end-to-end tok/s | Change |
+| --- | --- | ---: | ---: | ---: |
+| C1 code | 43 / 384 | 89.88 | 95.41 | +6.2% |
+| C4 mixed | 1,024 / 256 | 95.58 | 90.98 | −4.8% |
+| C16 mixed | 1,024 / 256 | 117.37 | 132.10 | +12.6% |
+| C32 mixed | 1,024 / 256 | 153.22 | 141.38 | −7.7% |
+
+The full comparison retains every workload and repetition. Reported token
+hashes matched for 174 of 178 requests. The four differences are the two C1
+prose replies and the two 128k replies; their rate differences do not isolate
+runtime speed on identical generated output. C1 code, C4 and C32 also matched
+full text digests. C16's Python end-to-end repetitions differed by 16.4%, so its
+median needs that variability context.
+
+C4's eligible steady-decode median fell 11.1%, with only about three seconds
+of eligible interval per repetition and no native graph captures in either
+wave. A longer-reply ordinary/default diagnostic is prepared to investigate it;
+it has not run. A missing native steady interval at 32k stays null. The separate
+deep-context suite uses longer replies to make those measurements more useful.
+
+The [benefit policy](release/native-benefit-policy-20261010.json) was declared
+before native matched measurements. Temperature-1 and deeper-context results,
+memory interpretation, and the remaining functional/recovery/endurance gates
+are still required. Engine-specific cache eviction occurs outside scored timing:
+the Python client inserted 32 prefixes, and the native client inserted 64
+fixtures to displace its retained states. Every scored request reports zero
+cached tokens. Client changes adapt native counters and record post-response
+drain outside stream timings; native graph-capture cost remains included.
+
 ## Native integration changes
 
 The integration separates shared-pool capacity from each request's context

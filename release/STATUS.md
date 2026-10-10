@@ -13,8 +13,15 @@ results to runtime source `80b399cd023d3a88ad69501c8261143ea622328b` and its exa
 image. Partial-prefill compaction still needs an independent cold reference.
 Matched performance and memory acceptance, selected-image recovery (including
 a controlled reboot), and a new bounded 24-hour endurance run remain pending.
-The six-minute mixed soak is not endurance qualification. No native throughput
-advantage or production qualification is claimed.
+The six-minute mixed soak is not endurance qualification.
+
+The [20-wave primary comparison](native-primary-comparison-20261010.json) is
+complete. Its observed end-to-end medians include a 6.2% C1-code gain and a 7.7%
+C32 regression. C4's steady-decode regression needs follow-up, and temperature-1
+and deeper-context measurements remain pending. See the caveats in
+[MIGRATION.md](../MIGRATION.md) and the predeclared
+[benefit policy](native-benefit-policy-20261010.json). These results do not
+establish an overall throughput advantage or production qualification.
 
 The Python reference remains the qualified fallback and is stopped during the
 loopback candidate's hardware qualification. Its benchmark and qualification
