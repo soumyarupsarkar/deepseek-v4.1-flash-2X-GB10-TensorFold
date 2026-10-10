@@ -1,8 +1,9 @@
 # Native engine migration (in progress)
 
-This branch is an unqualified integration candidate. The published Python
-deployment remains the production and rollback reference until every cutover
-gate below passes. A successful compilation is not a serving qualification.
+This branch is an integration candidate. The published Python deployment
+remains the qualified rollback reference until every cutover gate below passes.
+The native candidate runs on loopback during maintenance; passing compilation
+alone does not establish serving qualification.
 
 The native engine starts at Bertholomus's
 [`4e80f05`](https://github.com/bertholomus/TensorFold/commit/4e80f05ecba89a4e90d16375ade2eddbdc0a10c4),
@@ -14,7 +15,7 @@ Original checkpoints and prepared rank caches are immutable inputs; generated
 native kernels and mutable caches use separate directories.
 
 As of October 10, the integration compiles for GB10. The follow-up source passes
-286 Zig CPU/server tests, the native xgrammar contract test, 56 portable recipe
+286 Zig CPU/server tests, the native xgrammar contract test, 64 portable recipe
 and benchmark contracts, and six native controller contracts. Both ranks' fresh
 native cache writers have independent full-byte readback checks. These checks
 are separate from serving qualification. The [20-case Python baseline](deployment/release/native-python-baseline-20261010.json)
@@ -39,6 +40,40 @@ tokenizer and grammar reproduced that rejection. The corrected close ends at
 token; ordinary text retains its existing close. Server and C++ regressions
 pass. Both hosts again passed restoration. Remaining feature/capacity gates
 still require a new live run.
+
+The third live image, built from `b7b884d`, passed the feature suite: text and
+image input; strict JSON/schema/tools including thinking budgets; random and
+explicit seeds; all context aliases; Chat, Responses and Messages; and JPEG/WebP
+through all three APIs. Greedy and temperature-1 ordinary/drafted output hashes
+matched at C4/8/16/24/32, with zero reported cached tokens in those short-prompt
+fixtures. Every request received drafts in the drafted runs. Thirty-two distinct
+strict schemas and 32 required tool calls also passed with observed C32 decode
+overlap. These are short-context checks, not the full 32 × 262k capacity gate.
+
+Thirty-two distinct 16k prefixes passed cold admission, cached replay, extension
+and extended replay, including output-hash comparisons and the 64-state bound.
+A separate test fragmented live reservations, required real relocation and
+compared continued outputs with solo execution after cancellation. Full-context
+capacity, matched performance, fault recovery and endurance remain pending.
+
+One parity attempt failed a client assumption: the final SSE response had ended
+before the scheduler removed its request. The runtime remained healthy, had no
+active GPU stream, and subsequently became idle; all four output hashes already
+matched. The failed receipt is retained. The corrected client records a bounded
+post-response accounting drain outside its stream timings. Later greedy checks
+needed at most about 24 ms. Parity fixtures omit unnecessary LRU eviction for
+their fixed 1024-token inputs, which are shorter than a native checkpoint chunk;
+they still reject every reported cache hit. Matched performance suites retain
+their explicit cold-cache preparation.
+
+Drafting was faster at C4/C8 in those correctness fixtures. At higher concurrency,
+its advantage varied with sampling: greedy C16/C24/C32 was slower than ordinary
+decoding, while temperature-1 C16/C24 was faster and C32 was close. These are not
+matched Python speedups. One tuning candidate is the inherited timing table:
+its cost stops increasing beyond 24 rows, even though this profile permits 48.
+That is a plausible contributor, not an isolated performance diagnosis. Matched
+temperature-1 and deep-context measurements are required before choosing a
+production profile.
 
 The serving engine, scheduler and sampler are native. The xgrammar compiler is
 a pinned C++ library. Offline compressed-token-map preparation uses the pinned
