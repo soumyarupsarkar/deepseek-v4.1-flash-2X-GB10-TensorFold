@@ -52,8 +52,10 @@ Compaction may add an admission pause. It does not increase the shared pool,
 reduce a context reservation, alter model tokens or weaken the host-memory
 watchdog. CPU planning, tensor-copy and allocator integration tests are covered
 in `tests/publication/test_kv_compaction.py` and
-`tests/test_dsv41_compaction.py`. Hardware parity, warm C32 capacity and a fresh
-day-long stability run remain qualification gates for this candidate.
+`tests/test_dsv41_compaction.py`. Warm C32 parity passed in the stopped October 9
+run: two 32-session waves matched all complete output-token hashes while moving
+8,189,952 rows. That finite check does not establish day-long stability; the
+requested stop ended the endurance attempt after approximately 78 minutes.
 
 ## Evidence collected by the monitor
 
@@ -103,6 +105,12 @@ twelve recent watchdog observations before normal paired stop/restoration.
 History-write failures cannot suppress that shutdown. The monitor does not
 automatically restart a faulted pair.
 
+Faults also identify the failing stage and kind (for example `host-floor` or
+`api-health-timeout`). If a head failure prevents that cycle's worker probe,
+`last_known_hosts` retains the previous observation with its timestamp, age and
+`current_cycle: false`. It is historical evidence, not a fresh reading. A
+missing observation remains absent. Collecting it never delays a required stop.
+
 ## Native-heap pressure experiment
 
 A later instrumented run reproduced a head-memory-floor shutdown after about
@@ -129,7 +137,18 @@ fields from a regular file up to 8 KiB; the usual bounded rings preserve the
 observations. No request data, environment or command-line arguments enter this
 report. Sampling/write failures are counted without exposing exception messages
 and cannot disable the paired watchdog. This change has no persistent host
-setting. Full-model reclaim and fresh endurance validation remain outstanding.
+setting. In the stopped 78-minute run, the first observed trims reduced rank
+anonymous-plus-swap usage by about 135 MiB on the head and 89 MiB on the worker
+while live glibc allocation was steady. This demonstrates some free-page
+reclamation; it does not resolve the original memory-floor failure or establish
+endurance. Startup-to-busy growth is not a matched-state leak measurement.
+
+The finite [busy/idle client](../tools/qualification/README.md) repeats the same
+synthetic schema workload, normalizes retained prefixes, and compares quiet
+windows only if their resident cache state matches. It rejects missing/stale
+observations, unrelated inference and an exceeded predeclared growth budget.
+Passing means those finite observations stayed within the declared budget.
+Interrupted receipts are separate from failures and are never counted as passes.
 
 For rollback, stop the pair, set `TF_DS_HOST_TRIM_GIB` to `0` in the selected
 profile, commit and rebuild/restart through the normal controller. Keeping

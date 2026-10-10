@@ -2,7 +2,7 @@
   "context": 1048576,
   "cost_model_file": "draft-costs-20261006.json",
   "cost_model_sha256": "2d0fcc85222ff0fe94a128209a5002fff7f78573eb3b2a42089bbe73f7cb5145",
-  "description": "Selective Bertholomus v0.5.1 fixes with explicit FP32 GEMMs and an opt-in loop guard; retained Oct 6 cost table; 1K prefill, shared round outputs and bounded 8K/262K/1M graphs; 8,650,752 logical KV tokens, 32 slots, Keys, vision and strict output",
+  "description": "Selective Bertholomus v0.5.1 fixes with explicit FP32 GEMMs an opt-in loop guard and the October 9 replay-floor correction; retained Oct 6 cost table; 1K prefill, shared round outputs and bounded 8K/262K/1M graphs; 8,650,752 logical KV tokens, 32 slots, Keys, vision and strict output",
   "drafts": 5,
   "drm": true,
   "environment": {
@@ -29,6 +29,7 @@
     "TF_DS_PREFILL_CHUNK": "1024",
     "TF_DS_RDMA": "1",
     "TF_DS_REPLAY": "1",
+    "TF_DS_REPLAY_FLOOR": "1",
     "TF_DS_SHARED_ROUND_OUTPUTS": "1",
     "TF_DS_VERIFY_BATCHED": "0",
     "TF_DS_WARM_LENGTHS": "1,17,33,131,256,512,2113"

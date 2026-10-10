@@ -179,6 +179,7 @@ Removing retained data or image tags is a separate, optional step after restorat
 
 - Selective Bertholomus v0.5 improvements: compact prompt histories and RoPE tables, reduced indexer/attention work and grouped-expert prefill. The framework remains based on TensorFold 0.6.3; this is not a full 0.6.6 merge.
 - Bertholomus v0.5.1 FP32 correction with a startup arithmetic check, plus an optional reasoning-loop guard. The guard is off by default and can be enabled per request; [behavior and qualification](deployment/UPSTREAM-V051.md).
+- Bertholomus's replay-floor correction, preventing short replay chunks from attending to a previous request's stale keys. [October 9 review and integration](deployment/UPSTREAM-V06.md) records this selective port and the deferred Zig migration.
 - Temporary DRM allocation, bounded graph/scratch memory, admission diagnostics and up to 32 retained prefixes with two recent checkpoints each. Pool tensors consume 7.49 GiB per rank in the measured configuration.
 - The Keys overlay, image input, strict structured output and configurable random or prompt-derived request seeds. The recipe selects random seeds; explicit request seeds still work.
 - A measured draft-cost policy, shared round outputs and bounded 8K/262K/1M graph widths. The selected 32-row target budget uses ordinary decoding at C17–32 and resumes drafting as concurrency falls. Experimental 64-row profiles are outside this portable candidate.

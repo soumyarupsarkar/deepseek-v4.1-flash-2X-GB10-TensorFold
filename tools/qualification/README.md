@@ -19,6 +19,19 @@ does not measure 32 independent cold document prefills. Allow several hours.
 The retention command checks 32 distinct cached prefixes, sequential reuse,
 continuation equality and LRU eviction.
 
+For the replay-floor correction, exercise 14 synthetic lengths in three request
+orders. All measured requests must be cold and all complete reply-token hashes
+must match their first pass:
+
+```bash
+python3 -B tools/qualification/qualify_replay_floor.py --record replay-floor
+```
+
+The default chunk is 1,024 and must match the running profile. The CUDA test
+`tests/cuda/test_dsv41_replay_floor.py` reproduces stale-ring dependence with the
+old switch and checks corrected attention on 1K and 2K chunk geometries. Run it
+on both GPUs with model weights unloaded. See [upstream decisions](../../deployment/UPSTREAM-V06.md).
+
 For a warm-pool compaction regression check, run identical full-context waves
 after mixed retention/schema traffic:
 
@@ -59,6 +72,24 @@ identity, answers, sealed graph count and unchanged allocation-error counters.
 They keep at most 4,096 scalar health/memory observations, with the total sample
 count reported separately. This probe does not establish endurance, throughput,
 or full-context capacity by itself.
+
+For a **finite** matched memory comparison:
+
+```bash
+python3 -B tools/qualification/qualify_memory_cycles.py --record matched-memory \
+  --cycles 3 --quiet-seconds 120 --streams 8 --tools 16 --max-growth-mib 256
+```
+
+Each cycle repeats the same synthetic schema workload and fills retention with
+the same 32 synthetic 4K prefixes before observing an idle interval. The first
+window follows warm-up; later windows must match its resident cache signature.
+The client compares medians of the last six fresh observations per window for
+live glibc bytes and rank anonymous-plus-swap bytes on both hosts. The declared
+growth budget applies to each metric independently; available RAM must also
+stay above the watchdog floor. Changed identities, allocation errors, missing
+or stale measurements, and unrelated inference fail the check. This is neither
+a 24-hour qualification nor proof of leak-free operation. User interruption
+is recorded as `interrupted`, never `passed`. It does not resume any old test.
 
 Each command creates receipts under Git-ignored
 `deployment/.local/qualification/records/`. Use a different `--record` prefix

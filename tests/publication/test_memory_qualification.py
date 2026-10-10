@@ -27,6 +27,8 @@ class MemoryQualificationTests(unittest.TestCase):
                             memory=dict(kv_compactions=int(bool(calls) and fault != 'no-compaction')))
 
             def post(body, *args, **kwargs):
+                if fault == 'interrupt':
+                    raise KeyboardInterrupt('requested stop')
                 seed = body.get('seed')
                 ids = list(range(body['max_tokens']))
                 if seed is not None:
@@ -62,7 +64,7 @@ class MemoryQualificationTests(unittest.TestCase):
                 spec.loader.exec_module(client)
                 try:
                     client.main()
-                except (AssertionError, RuntimeError) as exc:
+                except (AssertionError, RuntimeError, KeyboardInterrupt) as exc:
                     raised = exc
             result = json.loads((root/'records/validation-fixture.json').read_text())
             for cycle in result['cycles']:
@@ -96,6 +98,12 @@ class MemoryQualificationTests(unittest.TestCase):
         self.assertIsInstance(error,AssertionError)
         self.assertEqual(result['status'],'failed')
         self.assertIn('No KV compaction occurred',result['error'])
+
+    def test_user_stop_is_interrupted_and_never_a_pass(self):
+        error,result = self.exercise('interrupt')
+        self.assertIsInstance(error,KeyboardInterrupt)
+        self.assertEqual(result['status'],'interrupted')
+        self.assertNotIn('compactions_exercised',result)
 
 
 if __name__ == '__main__':

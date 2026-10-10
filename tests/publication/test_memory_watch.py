@@ -216,6 +216,33 @@ class WatchdogTests(unittest.TestCase):
         fault = configuration.read(self.state/'fault.json')
         self.assertEqual(set(fault['sample']['hosts']), {'head', 'worker'})
         self.assertEqual(fault['reason'], 'health timeout')
+        self.assertEqual(fault['sample']['failure_stage'], 'api:health')
+        self.assertEqual(fault['sample']['failure_kind'], 'api-health-timeout')
+
+    def test_head_floor_preserves_aged_worker_without_delaying_stop_for_a_probe(self):
+        from itertools import count
+        head = iter([4, 1.9, 1.8])
+        probes = []
+        def sample(pair, host, pid, **kwargs):
+            probes.append(host)
+            return dict(meminfo={'MemAvailable': (next(head) if host == 'head' else 4)*2**30})
+        with patch.object(self.pair, 'containers', side_effect=self.containers), \
+             patch('memory_watch.host_sample', side_effect=sample), \
+             patch.object(self.pair, 'get', return_value={'ok': True, 'busy': False}), \
+             patch.object(self.pair, 'stop') as stopper, patch('runtime.time.sleep'), \
+             patch('runtime.time.monotonic', side_effect=count()):
+            self.pair.watch()
+        stopper.assert_called_once()
+        self.assertEqual(probes, ['head', 'worker', 'head', 'head'])
+        fault = configuration.read(self.state/'fault.json')
+        self.assertEqual(set(fault['sample']['hosts']), {'head'})
+        self.assertEqual(fault['sample']['failure_kind'], 'host-floor')
+        self.assertEqual(fault['sample']['failure_stage'], 'head:memory-floor')
+        old = fault['last_known_hosts']['worker']
+        self.assertFalse(old['current_cycle'])
+        self.assertGreater(old['age_seconds'], 0)
+        self.assertEqual(old['sample']['meminfo']['MemAvailable'], 4*2**30)
+        self.assertTrue(fault['last_known_hosts']['head']['current_cycle'])
 
 
 if __name__ == '__main__':

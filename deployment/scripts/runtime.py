@@ -443,6 +443,7 @@ class Pair:
         floor = int(expected['profile']['minimum_available_gib']*2**30)
         last_health = None
         last_health_at = None
+        last_hosts = {}
         next_detail = 0.0
         failed = 0; previous = None; changed = time.monotonic()
         while True:
@@ -454,20 +455,26 @@ class Pair:
                 next_detail = time.monotonic()+60
             try:
                 for host in ('head','worker'):
+                    stage, kind = host+':container', 'rank-state'
                     rows = self.containers(host)
                     if (len(rows)!=1 or not rows[0]['State']['Running']
                             or rows[0]['Id']!=expected['containers'][host]):
                         raise RuntimeError(host+': rank absent, exited or replaced')
+                    stage, kind = host+':memory-probe', 'host-probe'
                     host_memory = host_sample(self, host, rows[0]['State']['Pid'],
                                               floor_bytes=floor, detail=detail)
                     sample['hosts'][host] = host_memory
+                    last_hosts[host] = (sample['time'], time.monotonic(), host_memory)
+                    stage, kind = host+':memory-floor', 'host-floor'
                     if host_memory['meminfo']['MemAvailable'] < floor:
                         raise RuntimeError(host+': host memory floor crossed')
+                stage, kind = 'api:health', 'api-health'
                 health = self.get('/health')
                 last_health = sample['health'] = health_sample(health)
                 last_health_at = time.monotonic()
                 if not health.get('ok') or health.get('fatal'):
                     raise RuntimeError('API reports an unhealthy runtime')
+                stage, kind = 'scheduler:progress', 'scheduler-stall'
                 progress = (health.get('requests_total'),health.get('completion_tokens_total'),
                             json.dumps(health.get('progress',{}),sort_keys=True))
                 if progress != previous or not health.get('busy'):
@@ -477,6 +484,10 @@ class Pair:
                 failed = 0
             except Exception as exc:
                 reason = str(exc); failed += 1
+                sample['failure_stage'] = stage
+                sample['failure_kind'] = (kind+'-timeout' if isinstance(exc, (TimeoutError, subprocess.TimeoutExpired))
+                                          else kind)
+                sample['exception_type'] = type(exc).__name__
             sample['failure_count'] = failed
             if reason:
                 sample['reason'] = reason
@@ -488,8 +499,15 @@ class Pair:
                 print('Memory history recording failed: '+type(exc).__name__, file=sys.stderr, flush=True)
             if failed >= 2:
                 try:
+                    # A head failure can precede the worker probe. Preserve the
+                    # previous observation with its age, without delaying a
+                    # required shutdown to fetch another host sample.
+                    last_known = {host: dict(time=stamp, age_seconds=round(time.monotonic()-at, 3),
+                                           current_cycle=host in sample['hosts'], sample=values)
+                                  for host, (stamp, at, values) in last_hosts.items()}
                     atomic(self.state/'fault.json',dict(time=now(),reason=reason,
-                           sample=sample,last_health=last_health,recent_samples=list(history.recent)))
+                           sample=sample,last_health=last_health,last_known_hosts=last_known,
+                           recent_samples=list(history.recent)))
                 finally:
                     # Even a full/read-only history filesystem must not prevent
                     # the original paired cleanup and host restoration.

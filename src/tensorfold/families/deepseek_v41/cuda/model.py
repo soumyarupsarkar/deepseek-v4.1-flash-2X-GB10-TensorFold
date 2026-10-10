@@ -28,6 +28,9 @@ RAW = 64                            # per-position compressor inputs kept (a ver
 RING_EXTRA = 16                     # window ring slots beyond the 128-token window (verify windows never clobber)
 KV_QUANT = os.environ.get("TF_DS_KV", "native") != "bf16"
 KERNELS = os.environ.get("TF_DS_KERNELS", "1") != "0"      # 0: the plain-torch phase-1 path (A/B and debugging)
+# A shortened replay chunk must not attend to the slot's previous request below its floor.
+# Port of Bertholomus's native-engine correction (bdcfd10); 0 retains the old path for comparisons.
+REPLAY_FLOOR = os.environ.get("TF_DS_REPLAY_FLOOR", "1") != "0"
 TIMING = os.environ.get("TF_DS_TIMING", "0") == "1"        # per-section wall times (synchronizing; profiling only)
 # TF_DS_ENGRAM_PREFETCH=1 (default): a prompt chunk reads its Engram rows ahead on a second reader pool
 ENGRAM_PREFETCH = os.environ.get("TF_DS_ENGRAM_PREFETCH", "1") == "1"
@@ -998,7 +1001,9 @@ class Model:
         K.rope_heads(q, cos, sin, pos, rd)
         ring = sc.ring[lay.idx]
         R = sc.ring_size
-        ring_mode = n <= RING_EXTRA
+        clipped_window = (REPLAY_FLOOR and n <= RING_EXTRA
+                          and floor > max(0, start - (c.window - 1)))
+        ring_mode = n <= RING_EXTRA and not clipped_window
         if ring_mode:
             kv = K.kv_norm_rope(y, lay.kv_norm, cos, sin, pos, ring, pos % R, c.eps, KV_QUANT, rd)
             wsrc, wlo = ring, self._zero
@@ -1063,7 +1068,8 @@ class Model:
                 shared["topk"] = cidx
             cidx = shared["topk"]
             comp = sc.comp[src]
-        o = K.sparse_attn(q, lay.sink, wsrc, wlo, ring_mode, comp, cidx, pos, hd ** -0.5, c.window)
+        o = K.sparse_attn(q, lay.sink, wsrc, wlo, ring_mode, comp, cidx, pos, hd ** -0.5, c.window,
+                          one_split=clipped_window)
         K.rope_heads(o, cos, sin, pos, rd, inverse=True)
         if not ring_mode:
             keep = min(n, R)

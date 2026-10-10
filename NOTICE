@@ -80,3 +80,9 @@ The v0.5.1 integration selectively ports Bertholomus commits dfbe519, 741a507 an
 adaptation previews multiple loop windows per callback, checks guard eligibility
 before tokenizer lookup, and preserves local sampling and grammar behavior.
 deployment/UPSTREAM-V051.md records the source commits, scope and validation.
+
+The October 9 replay-floor correction is adapted from Bertholomus's native
+engine commit bdcfd10a2a9091b515e220525d439546ce90de15 in model.py and kernels.py.
+The local Python port enables it by default and adds poisoned-ring CUDA and
+cold request-order probes. deployment/UPSTREAM-V06.md records the review,
+deferred native-engine migration and separate local monitoring changes.

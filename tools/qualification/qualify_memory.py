@@ -165,6 +165,9 @@ def main():
         record['vision_after']=vision((240,20,20))
         assert 'red' in text(record['vision_after']).lower()
         record.update(status='passed',health_after=get('/health'))
+    except (KeyboardInterrupt, SystemExit) as exc:
+        record.update(status='interrupted',error=type(exc).__name__+': '+str(exc))
+        raise
     except BaseException as exc:
         record.update(status='failed',error=type(exc).__name__+': '+str(exc))
         raise

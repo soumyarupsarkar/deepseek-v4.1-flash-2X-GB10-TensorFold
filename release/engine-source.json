@@ -700,7 +700,7 @@
     },
     {
       "path": "src/tensorfold/families/deepseek_v41/cuda/kernels.py",
-      "sha256": "f770b0ada46ab9b8a0d802a6c56d756c877ca64f0e7a3b5878beb140b74f6388"
+      "sha256": "30ffaf4635c03841e0e6d088c48bc6204514d1733bc7170b885d54a93695f93f"
     },
     {
       "path": "src/tensorfold/families/deepseek_v41/cuda/markov.py",
@@ -716,7 +716,7 @@
     },
     {
       "path": "src/tensorfold/families/deepseek_v41/cuda/model.py",
-      "sha256": "591f9f0494fbb00bffeef34a048b9db7c233149a4736f9f844dd0cfa17b34e63"
+      "sha256": "616c057c6d217454bcad2c389aa04ac677fc285e5decc9846c37e8d957b2827e"
     },
     {
       "path": "src/tensorfold/families/deepseek_v41/cuda/multi.py",
@@ -1921,9 +1921,11 @@
     "90b68e063a0b8bba59aaf13340ef16619e751195"
   ],
   "schema": 2,
-  "scope": "Current engine and benchmark-client fingerprints, based on the original qualified build plus the listed selective updates and documented local adaptations. Baseline build identifiers are historical provenance, not public ancestors or a qualification claim for these updated bytes. See deployment/UPSTREAM-V051.md for the preceding validation and deployment/MEMORY.md for the compaction and native-heap pressure candidates and their pending endurance gates.",
+  "scope": "Current engine and benchmark-client fingerprints, based on the original qualified build plus the listed selective updates and documented local adaptations. Baseline build identifiers are historical provenance, not public ancestors or a qualification claim for these updated bytes. See deployment/UPSTREAM-V051.md for the preceding validation and deployment/MEMORY.md for the compaction and native-heap pressure candidates and their pending endurance gates. The October 9 selective replay-floor port is reviewed in deployment/UPSTREAM-V06.md; finite and endurance qualification remain distinct.",
   "selective_port": "808eb4a1090ca7b79173cc2c799de16da5f923e3",
   "upstream": "https://github.com/bertholomus/TensorFold",
   "upstream_base": "d5d7bb389ddf4325c1edf4a15dd1c23727040ea1",
-  "upstream_review": "90b68e063a0b8bba59aaf13340ef16619e751195"
+  "upstream_review": "90b68e063a0b8bba59aaf13340ef16619e751195",
+  "native_upstream_review": "4e80f05ecba89a4e90d16375ade2eddbdc0a10c4",
+  "replay_floor_port": "bdcfd10a2a9091b515e220525d439546ce90de15"
 }

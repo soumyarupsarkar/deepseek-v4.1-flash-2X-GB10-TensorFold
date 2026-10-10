@@ -182,6 +182,10 @@ def main():
         final = check()
         with lock:
             record.update(status='passed', health_after=final)
+    except (KeyboardInterrupt, SystemExit) as exc:
+        with lock:
+            record.update(status='interrupted', error=type(exc).__name__+': '+str(exc))
+        raise
     except BaseException as exc:
         with lock:
             record.update(status='failed', error=type(exc).__name__+': '+str(exc))
