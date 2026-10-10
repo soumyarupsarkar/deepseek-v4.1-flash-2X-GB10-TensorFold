@@ -19,12 +19,13 @@ asset receipts and image/precompile records. Git history does not back it up.
    Only one installation may occupy the GPUs and API port at a time.
 3. Prepare a clean deployment checkout of the reviewed candidate. Initialize
    new, empty data roots with its own configuration and ownership records.
-4. Fetch pinned assets, or use the [verified reuse workflow](README.md#reuse-an-existing-pinned-installation).
+4. Fetch pinned assets, or use the [verified reuse workflow](README.md#acquire-verified-inputs).
    Reuse shares immutable bytes; it does not copy ownership records or mutable
    kernel caches. Refresh the previous controller's hash receipts if new
    hardlinks change the fingerprints it guards.
 5. Build and transfer the exact same image, compare dependency inventories,
-   precompile with weights unloaded, and exercise interrupted-setup recovery.
+   prepare absent native rank caches, run GPU primitives with weights unloaded,
+   compare every prepared tensor byte, and exercise interrupted-setup recovery.
 6. Start the candidate and run the [paired acceptance workloads](../tools/qualification/README.md),
    retention checks and [benchmarks](../benchmarks/README.md). Keep failed and
    slow runs. Inspect host headroom as well as API/GPU health.

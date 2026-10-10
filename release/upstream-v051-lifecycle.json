@@ -1,0 +1,73 @@
+{
+  "final_checks": {
+    "active_slots": 32,
+    "allocation_ooms": 0,
+    "allocation_retries": 0,
+    "loop_guard_default": false,
+    "paired_monitor_active": true,
+    "per_request_tokens": 1048576,
+    "precision_override": "0",
+    "random_seeds_and_explicit_replay": true,
+    "sealed_graphs": 96,
+    "seed_mode": "random",
+    "shared_assets_mounted_readonly": true,
+    "shared_pool_tokens": 8650752,
+    "strict_json_schema_tools": true,
+    "text_vision": true,
+    "worker_to_lan_api": true
+  },
+  "finished": "2026-10-08T10:10:38.972621+00:00",
+  "image_id": "sha256:928fc8e4416e4494de8e600ef81c3ed60393f3871959d77ae20965bc99d2e8ba",
+  "normal_stop_and_host_restoration": true,
+  "owned_ranks_absent_and_drm_journals_inactive_before_restart": true,
+  "previous_build": {
+    "fallback_exercised_during_this_update": false,
+    "image_id": "sha256:07cd312dca050f9be3c14c5ca9c3ec728c3a28d1b9c2142e45c6a4d1fe54f98b",
+    "image_present_on_both_nodes": true,
+    "source_revision": "2f65892284376d6a59eda1270e3a9ab59f79897b"
+  },
+  "privacy": "Host identities, private configuration, ownership state and operational logs remain with the installation.",
+  "scope": "Normal current-update stop, host comparison and restart of the same qualified candidate. This update did not repeat reboot, worker-loss or previous-image fallback exercises; historical controller evidence is separate.",
+  "source_receipt_sha256": "c9c12eda87d7a555450bfa3e4ab3dd15d93b2592cc0481b62df25c9aae48ea1a",
+  "source_revision": "c068898375337c1f2a7bd222e5d1c342b0a83f9c",
+  "started": "2026-10-08T10:07:23.849846+00:00",
+  "status": "passed",
+  "steps": [
+    {
+      "finished": "2026-10-08T10:08:05.716837+00:00",
+      "name": "final-selected-stop",
+      "returncode": 0,
+      "started": "2026-10-08T10:07:23.857059+00:00"
+    },
+    {
+      "finished": "2026-10-08T10:08:06.604202+00:00",
+      "name": "final-host-restoration",
+      "returncode": 0,
+      "started": "2026-10-08T10:08:05.724562+00:00"
+    },
+    {
+      "finished": "2026-10-08T10:09:48.053284+00:00",
+      "name": "final-selected-start",
+      "returncode": 0,
+      "started": "2026-10-08T10:08:07.736134+00:00"
+    },
+    {
+      "finished": "2026-10-08T10:10:09.010258+00:00",
+      "name": "final-baseline",
+      "returncode": 0,
+      "started": "2026-10-08T10:09:48.138540+00:00"
+    },
+    {
+      "finished": "2026-10-08T10:10:23.364067+00:00",
+      "name": "final-structured",
+      "returncode": 0,
+      "started": "2026-10-08T10:10:09.019720+00:00"
+    },
+    {
+      "finished": "2026-10-08T10:10:36.774489+00:00",
+      "name": "final-sampling",
+      "returncode": 0,
+      "started": "2026-10-08T10:10:23.372051+00:00"
+    }
+  ]
+}

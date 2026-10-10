@@ -1,30 +1,59 @@
-# Portable two-GB10 setup
+# Native two-GB10 setup
 
-**The verified asset-reuse path has paired hardware evidence.** The [cutover report](CUTOVER.md) covers a fresh portable image, inference/capacity, failure cleanup and restoration. Fresh model download/extraction remains an end-to-end [release gate](../release/STATUS.md). A successful offline plan alone does not establish resource fit or recovery.
+This runbook describes the native candidate. A build, a successful plan, and
+cache compatibility checks do not establish serving qualification. Consult the
+release's qualification report before selecting it for production. Historical
+Python benchmark and recovery receipts are reference results, not native results.
 
-Run the controller on the head node. Both nodes need an already configured compatible NVIDIA driver, Docker with NVIDIA GPU support, RDMA tools, Python 3.12+, rsync, verified passwordless SSH, and noninteractive sudo for the documented Docker/display operations. Host CUDA development packages and host NCCL are not installed by this recipe. Use two connected RoCE rails, stable IPv4 addresses, Ethernet MTU 9000 and active RDMA MTU 4096; `doctor` checks those settings without changing them.
+## Prerequisites
 
-Use otherwise idle hosts. This profile needs at least 112 GiB `MemAvailable` per host before model loading and temporarily takes over the NVIDIA display. Kernel compilation happens before loading weights. There is no boot service for the inference pair.
+Use two otherwise idle NVIDIA GB10 Linux hosts with compatible NVIDIA drivers,
+Docker with NVIDIA GPU support, Python 3.12+, rsync, verified passwordless SSH,
+noninteractive sudo, systemd, module tools, `ip`, `ibv_devinfo` and `nvidia-smi`.
+Install Git on the head. The controller runs there and manages the worker over
+SSH. Host CUDA development packages, host NCCL and a host Zig installation are
+not required: compilation and inference dependencies stay in the image.
 
-## Configuration and baseline
+Prepare both RoCE rails, stable IPv4 addresses, Ethernet MTU 9000 and active
+RDMA MTU 4096 before capturing the baseline. Startup requires at least 112 GiB
+`MemAvailable` on each host and temporarily takes over the NVIDIA display.
+Routine start/stop needs no reboot. Prerequisite driver/package/network changes
+are outside the recipe's rollback scope.
+
+Use dedicated writable data roots, initially empty and without symlink
+redirection. Fresh acquisition needs roughly 724 GB on the head and 520 GB on
+the worker, plus the approximately 24.5 GB image, temporary download/build
+space, logs and free-space margin. These are decimal GB. The estimate retains
+the original Engram shards on the head and approximately 106 GB of prepared
+weights per rank. The pinned native kit adds approximately 0.67 GB per node.
+
+## Configure and record the baseline
 
 ```bash
 cp deployment/config/cluster.example.json deployment/local.json
-# Edit deployment/local.json for this installation.
+# Edit this file before init.
 python3 cluster plan
 python3 cluster doctor
 python3 cluster init
 ```
 
-Set the worker SSH target, each node's two rail devices/addresses, and dedicated data roots. The configured SSH users must be able to create/write those roots; the `/srv` example is not automatically made writable with sudo. Empty dedicated directories under the appropriate users' home directories are also supported. Existing nonempty or symlinked directories are refused.
+Configure the worker SSH target, both hosts' rail devices and addresses, data
+roots, API bind/port and rendezvous port. Review rollback before setting
+`allow_temporary_drm=true`. Keep the default loopback bind while qualifying a
+new build. A LAN bind additionally requires
+`api.allow_unauthenticated_lan=true`; this recipe exposes no API authentication.
 
-The example binds the API to loopback. To expose it on a trusted LAN, set `api.bind` to the desired local IPv4 address (or `0.0.0.0`) and explicitly set `api.allow_unauthenticated_lan=true`. There is no API authentication in this recipe. Review [security](../SECURITY.md).
+`plan` performs no host actions. `doctor` reads host/network state. `init`
+creates an installation UUID, captures both host baselines and pins the local
+configuration. Later configuration drift is refused. Preserve the ignored
+`deployment/local.json` and the complete `deployment/.local/` directory; Git
+alone does not back up recovery state.
 
-After reviewing [rollback](ROLLBACK.md), explicitly set `allow_temporary_drm=true` **before `init`** if using the selected profile. `init` pins the configuration, captures both hosts' baseline and creates per-installation ownership records. Later configuration drift is rejected; the original settings are saved as `deployment/.local/installed.json` for recovery. Do not edit that saved record.
+## Acquire verified inputs
 
-`deployment/local.json` and `deployment/.local/` are Git-ignored and private. Keep the latter until every host change has been restored. Setup does not install host packages or change persistent network, boot, module or display configuration.
-
-## Acquire and verify assets
+If model access needs authentication, set `HF_TOKEN_PATH` to an external file
+containing a read-only token. Do not put credentials in this checkout, image,
+command history or serving containers.
 
 ```bash
 python3 cluster fetch
@@ -32,61 +61,93 @@ python3 cluster replicate
 python3 cluster verify
 ```
 
-`fetch` reads `HF_TOKEN` or `HF_TOKEN_PATH` if access is needed. Provide the credential outside this repository; do not paste it into a command that records it in shell history. Credentials are not put into image layers or serving containers.
+The manifests pin the Mia EXL3 weights, the matching 104 Keys tensor overrides,
+original Engram/vision assets and Bertholomus's native kernel kit to immutable
+revisions and hashes. Extraction creates a separate verified model view and
+retains stock files. Replication uses rsync without deletion. Completed files
+whose hashes differ are refused.
 
-[assets.json](config/assets.json) pins the Mia checkpoint, matching Keys EXL3 sidecar, original Engram shards and metadata to immutable Hugging Face revisions and file hashes. The tool creates a separate hardlinked model view, checks the exact 104 tensor overrides and their shapes/dtypes, and verifies overlay index precedence. Original stock files are retained.
-
-Original Engram shards are downloaded and extracted into standard safetensors files with the pinned headers/hashes in [engram-layouts.json](config/engram-layouts.json). The vision extra is assembled from bounded ranges of the pinned original weights. Files are fully hashed before replication; replication uses rsync without deletion and is followed by full worker verification.
-
-Allow space for stock weights, the overlay, original Engram shards, extracted assets, image layers, temporary downloads and the generated rank caches. The pinned inputs are about 210.7 GB of stock files, 0.68 GB of overlay and 203.1 GB of original Engram files; derived Engram files add about 202.8 GB. With hardlinked model views and the observed prepared caches, budget roughly 724 GB on the head and 520 GB on the worker before images, logs and free-space margin (decimal GB). Prepared rank caches alone were approximately 106 GB per rank in the original installation. The controller retains the original Engram shards; it does not silently delete them to make room. Derive download sizes from the manifest and check local free space before beginning.
-
-Downloads resume through their own range journals. A failed extraction can leave a `.prepare-part` file; inspect the failure and remove only that incomplete output before retrying. A completed file with a different hash is refused, not overwritten. Serving mounts model assets read-only. It still writes prepared weights, compiled kernels and bounded logs; disabling session KV writes does not eliminate all SSD writes.
-
-### Reuse an existing pinned installation
-
-On idle hosts, a migration can reuse the existing files instead of downloading another copy:
+For a migration from an installation with the same pinned assets, initialize
+new empty roots, then reuse the files instead:
 
 ```bash
 python3 cluster reuse --from-head /path/to/previous-head-data \
   --from-worker /path/to/previous-worker-data --reuse-prepared
+python3 cluster fetch-kit
+python3 cluster replicate-kit
 ```
 
-Run `init` first with **new, empty data roots**. The head source must contain `stock-model/`, `overlays/`, `engram/` and `vision-extra/`; the worker source needs `model/`, `engram/` and `vision-extra/`. Both sources must match the pinned assets. This command verifies hashes and creates hardlinks on each host's filesystem, builds a new model index, and verifies both complete runtime views. It copies no ownership markers, host journals, private provenance or request logs. Source and destination must be on the same filesystem.
+Reuse verifies files and creates immutable hardlinks on each host's filesystem.
+It does not copy ownership markers, host journals, private request logs or
+mutable caches. Prepared caches are mounted read-only. A complete comparison
+of every prepared tensor with the intended checkpoint is required below; a
+file hash alone does not establish which weights a cache contains.
 
-The optional prepared-cache import verifies complete cache files, records their hashes and loader source, and mounts them **read-only** in the new serving containers. Both prepared caches must be imported successfully before startup. Mutable kernel caches remain separate and are rebuilt by `precompile`. Incompatible prepared caches can fall back to reading the original weights; the read-only mount prevents the new deployment from replacing the old prepared bytes.
+Additional hardlinks change inode change times. Before restarting a previous
+installation, refresh its full asset verification and revalidate its prepared
+cache fingerprints against the original content hashes. Never edit shared
+files, erase an integrity check, or replace current host journals with a backup.
 
-Prepared files created by Docker may be root-owned. Their import uses scoped sudo to create protected hardlinks without changing source ownership or permissions. A cache-only retry is available as `cluster reuse-prepared --from-head ... --from-worker ...`; follow an interrupted model import with `cluster verify` before startup. Cache hashes record the imported bytes; they do not independently establish that a cache was prepared from the intended weights. Import prepared files only from a trusted, previously qualified installation; omit `--reuse-prepared` otherwise.
+## Build, prepare, verify and start
 
-Hardlinks preserve file contents and modification times but change inode change times. **Refresh the previous installation's full asset verification receipts before starting it again** if it checks change times. Keep its image, source and journals. Removing a link from the new root does not remove the original file; writing through either link would change shared bytes, so never edit imported assets in place. The controller serves all model files read-only.
-
-## Build, precompile and start
+Use a clean, committed checkout. Run each step only after its predecessor
+succeeds:
 
 ```bash
 python3 cluster build
+python3 cluster prepare
 python3 cluster precompile
 python3 cluster start
 python3 cluster status
 ```
 
-`build` requires a clean committed checkout, builds from `git archive` with the pinned NVIDIA base, transfers the same image to the worker and compares image IDs. It does not push to a registry. The [resolved dependency inventory](config/requirements-resolved.txt) describes the historical image; its container-local wheel URLs are not portable pip requirements. The Dockerfile derives package constraints and preserves the base's PyTorch. A fresh build still needs dependency and hardware qualification.
+`build` archives the exact Git commit, verifies the pinned Zig compiler,
+compiles the native engine/kernels and xgrammar bridge, runs their CPU tests,
+and transfers the identical image to the worker. It does not publish an image.
 
-`precompile` compiles serving extensions on both nodes with weights unloaded, network disabled and a bounded 16 GiB container. `start` verifies ownership, assets, rails, image, memory and ports; journals display state; applies current-boot DRM settings; then launches worker and head. It requires both ranks and an active transient monitor before reporting success.
+`prepare` creates absent rank caches with a CPU-only native tool, or preserves
+imported caches. It prepares the compressed Engram token map and checks it
+against the pinned kit's digest. Completed rank caches are never overwritten.
+A failed write retains its `.partial` file; inspect the failure before removing
+only that incomplete output and retrying. This preparation writes persistent
+weight/cache artifacts, not session KV histories.
 
-The selected profile has a 2.5 GiB engine memory floor and a 2 GiB host-availability watchdog. The monitor stops both owned ranks after repeated failed health/memory checks or stalled progress; it does not automatically restart a poisoned runtime. No monitoring service is enabled at boot. See [sampling](SAMPLING.md) and [capacity/measurement limits](../benchmarks/README.md).
+`precompile` exercises CUDA copies, graphs, sampling, cuBLAS and NCCL with
+weights unloaded, verifies router widths 1–48 against single-row GPU launches,
+then compares every prepared tensor byte on both hosts. Its
+receipts bind the results to the selected image and asset identities. Native
+kernels are already built into the image; no model-time extension compilation
+is required.
 
-Once ready, a local request is:
+`start` checks ownership, immutable assets and kit, cache compatibility,
+identical image IDs, rails, memory and ports. It journals display state before
+applying current-boot DRM settings, then starts worker and head. A transient
+monitor observes both ranks and stops the pair on repeated health/memory
+failures or stalled progress. A poisoned runtime requires both ranks to restart.
+No inference service is enabled at boot.
 
-```bash
-curl --fail http://127.0.0.1:8000/v1/chat/completions \
-  -H 'Content-Type: application/json' \
-  -d '{"model":"DeepSeek-V4.1-Flash-Keys","messages":[{"role":"user","content":"What is 12 times 13?"}],"max_tokens":64}'
-```
+The serving engine, scheduler and sampler are native Zig/CUDA. xgrammar is a
+pinned C++ library. Offline token-map preparation uses `tokenizers`; upstream's
+bounded Pillow helper handles image codecs beyond native PNG. The NVIDIA base
+contains Python/PyTorch, but no Python model engine or PyTorch tensor loop runs
+in this native serving path.
 
-The 1,048,576 limit covers prompt plus reply; the 8,650,752-token pool is shared by active and retained states. The 32 slots do not promise 32 simultaneously full million-token histories.
+## API and resource policy
 
-The [paired acceptance clients](../tools/qualification/README.md) exercise the
-selected installation with synthetic inputs and keep their receipts private.
-Run them during qualification before treating a new build as serving-ready.
+The base model ID is `DeepSeek-V4.1-Flash-Keys`. Advertised suffix aliases are
+`-262k`, `-524k`, `-614k` and `-1m`, with ceilings of 262,144, 524,288, 614,400 and
+1,048,576 tokens respectively, counting prompt plus reply. The aliases use the
+same loaded model and shared pool; they do not allocate separate models.
+
+The candidate targets 32 active slots and 8,650,752 shared KV tokens. Active and
+retained sessions share this capacity. Thirty-two slots do not imply thirty-two
+full million-token histories. Read measured qualification evidence for the
+release's supported combinations.
+
+Unseeded sampled requests use random seeds in the deployment. Explicit seeds
+remain replayable, and prompt-derived seeding remains configurable. Greedy
+requests remain deterministic where kernels and request paths are deterministic.
+Prefix snapshots stay in memory; session KV writes to NVMe are disabled.
 
 ## Stop and restore
 
@@ -95,4 +156,21 @@ python3 cluster stop
 python3 cluster check-host
 ```
 
-Stop retains weights, caches, images and source. It removes only this installation's labeled rank containers and transient monitor, and restores captured display state where safe. `check-host` compares driver/kernel, display/module state and configured rail addresses/MTUs with the baseline. It reports differences without automatically correcting them. [Recovery and removal details](ROLLBACK.md).
+Stop removes only this installation's owned rank containers and transient
+monitor, saves logs and restores captured display/module state. It retains
+models, prepared/kernel caches, images and source. `check-host` compares the
+host baseline, including rail addresses and MTUs, without overwriting unexpected
+differences. Keep all recovery state until restoration succeeds.
+
+If local configuration changed, use its saved original copy:
+
+```bash
+python3 cluster --config deployment/.local/installed.json stop
+python3 cluster --config deployment/.local/installed.json check-host
+```
+
+If a worker is unavailable, bring it back and retry with the same journals.
+After reboot, the controller compares state without imposing stale current-boot
+module settings. Do not alter ownership records to silence a failure. Removing
+retained assets or image tags is a separate decision after restoration and
+shared-reference checks; no global Docker prune is part of rollback.

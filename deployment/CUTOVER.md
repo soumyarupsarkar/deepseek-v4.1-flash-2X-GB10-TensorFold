@@ -1,5 +1,7 @@
 # Portable cutover qualification
 
+**Historical Python deployment evidence.** This report does not qualify the native Zig candidate. See [the native migration gates](../MIGRATION.md).
+
 This records the initial portable cutover. The subsequent
 [FP32 correctness update](UPSTREAM-V051.md) changes three engine files and has
 separate qualification and measurements; the results below remain historical.

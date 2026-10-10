@@ -1,312 +1,165 @@
-# deepseek-v4.1-flash-2X-GB10-TensorFold — native migration candidate
+# DeepSeek-V4.1-Flash · 2× GB10 · TensorFold
 
-This branch is undergoing hardware qualification. It is not the qualified
-deployment release. [MIGRATION.md](MIGRATION.md) lists the feature, capacity,
-performance, recovery and endurance gates and preserves the Python rollback
-reference. The inherited TensorFold documentation below describes the native
-engine; its general installation commands do not install this two-node recipe.
+**Keys abliteration · Vision · Strict JSON and tools · A large shared KV pool**
 
-Use `./cluster plan` to inspect the candidate's portable deployment plan.
-Native setup and rollback instructions will be finalized with measured
-qualification evidence before a release or production cutover.
+Run DeepSeek-V4.1-Flash across two NVIDIA GB10s using Mia's EXL3 weights, drowzeys' Keys overlay and Bertholomus's native Zig TP2 engine. This fork adds the recipe's context aliases, structured output, shared-pool capacity and reversible deployment controls to that engine.
 
-> **This is a fork of TensorFold 1.0.2** by Bertholomus AI, not the upstream project. It adds the `dsv41` family:
-> DeepSeek-V4.1-Flash (EXL3), with image input, on TensorFold 1.0's native Zig engine, tensor-parallel over two NVIDIA
-> GB10 (DGX Spark) nodes. The family is in `zig/src/families/dsv41/`, its tools and attribution in `tools/dsv41-zig/`
-> (`ATTRIBUTION.md`). `NOTICE` lists every upstream file this fork changes. Upstream TensorFold is at
-> https://github.com/ashhart/TensorFold; the text below is upstream's README, unchanged, and its install commands
-> install upstream, not this fork.
->
-> Weights: [Mia-AiLab/DeepSeek-V4.1-Flash-EXL3-2.9bpw](https://huggingface.co/Mia-AiLab/DeepSeek-V4.1-Flash-EXL3-2.9bpw)
-> (MIT), an EXL3 quant of [deepseek-ai/DeepSeek-V4.1-Flash](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash).
+**Native qualification is in progress.** The configured targets below are not native hardware qualification or performance claims. The previous Python deployment remains the rollback reference; see [migration gates](MIGRATION.md).
 
-TensorFold 1.0.0 serves language models from a Zig binary on Apple Silicon and NVIDIA GPUs.
-The engine reads checkpoints, tokenizes requests and runs Metal or CUDA kernels directly.
-Serving needs no Python or MLX installation.
+| Configuration target | Setting |
+|---|---|
+| Shared KV pool | **8,650,752 logical tokens** shared by active and retained sessions |
+| Concurrent active slots | **32** |
+| Maximum context | **1,048,576 tokens per request**, prompt plus reply |
+| Context aliases | **262,144 / 524,288 / 614,400 / 1,048,576** tokens |
+| Features under qualification | Vision, Keys, strict JSON/schema/tools, random and explicit request seeds |
+| Session KV writes to NVMe | **Off** |
 
-## Install and serve
+Slots and maximum context are separate limits: 32 slots do not mean 32 simultaneously full million-token histories. [Fresh Python reference measurements](deployment/release/native-python-baseline-20261010.json) and [historical benchmarks](benchmarks/README.md) must not be read as native results.
 
-The macOS Homebrew formula installs the native binary as `tensorfold`:
+[Credits](#credits) · [Setup](#setup) · [Rollback](#rollback) · [Development](#development) · [License](#license)
 
-```sh
-brew install ashhart/tensorfold/tensorfold
-tensorfold --version
-tensorfold serve "$HOME/models/nemotron-lightning" \
-  --name local-model --parallel 1 --context 8192 --temperature 0 --no-thinking
+## Author's anecdote
+
+I have personally been using this with model aliases suffixed with `-1m` and `-262k` (variants differing only in context window) configured in my coding agent: `-1m` interactively and `-262k` for 32 parallel sessions, and I've been seeing ~140 aggregate tok/s for long-running code review/refactor agent sessions. As far as I know, this is the only dual GB10 recipe for this model that supports this (C32 at full 262k) as of today, 2026-10-08.
+
+This dated observation describes the previous Python deployment. Native measurements will be reported separately.
+
+## Credits
+
+This work builds on the following projects and contributors:
+
+| Contributor | Contribution |
+|---|---|
+| [ashhart / TensorFold contributors](https://github.com/ashhart/TensorFold) | TensorFold framework, EXL3 foundation and inherited kernels |
+| [Bertholomus / Albert Lee](https://github.com/bertholomus/TensorFold/tree/deepseek-v41-tp2) | DeepSeek TP2 native Zig engine, vision/RDMA integration, benchmark kit and CUDA kernels; earlier Python correctness and memory improvements |
+| [Capicua25x](https://github.com/bertholomus/deepseek-v4.1-tensorfold-tp2-2xgb10/pull/9) | Novelty signal used by Bertholomus's optional reasoning-loop guard |
+| [Mia-AiLab](https://huggingface.co/Mia-AiLab/DeepSeek-V4.1-Flash-EXL3-2.9bpw) | EXL3 2.9-bpw checkpoint |
+| [drowzeys / Keys](https://huggingface.co/drowzeys/DeepSeek-V4.1-Flash-Abliterated-Cybersecurity-Unleashed) | Matching Keys attention overlay |
+| [DeepSeek](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash) | Original model, assets and model research |
+| [Urtho](https://github.com/urtho/TensorFold) | Adapted structured-output/DRM work and approaches to graph and memory budgeting |
+| [Jay Leaton](https://github.com/jayleaton/deepseek-v41-tensorfold-spark) | Parsing/grammar work adapted through Urtho, with its MIT notice retained |
+| [coolbho3k / Emi Huang](https://github.com/coolbho3k/DeepSeek-v4.1-Flash-2x-DGX-Spark) | vLLM recipe reference and the display-memory idea credited by Urtho's independent DRM implementation |
+| Soumyarup Sarkar | Local integration, sampling controls, capacity/retention policies, diagnostics, measured draft policy, reversible deployment tools and publication preparation |
+
+Performance results describe the combined system. [Detailed attribution and source pins](deployment/COMPARISON.md#attribution), [native family provenance](tools/dsv41-zig/ATTRIBUTION.md) and [third-party notices](THIRD_PARTY_NOTICES.md) identify adapted code and its origins.
+
+
+The native grammar bridge uses [MLC-AI xgrammar](https://github.com/mlc-ai/xgrammar) directly from C++; [Zig](https://ziglang.org/) supplies the compiler and standard library. Their pinned revisions and retained notices are included with this source.
+
+## Setup
+
+Run the controller on the head node; it manages the worker over verified SSH. The [full native installation runbook](deployment/README.md) describes fresh acquisition, verified asset reuse, storage and recovery. Use an otherwise idle pair and preserve the prior installation during migration.
+
+### Prerequisites
+
+- Two GB10 Linux/systemd hosts with compatible NVIDIA drivers and Docker with NVIDIA GPU support.
+- Python 3.12+, rsync, SSH, noninteractive sudo, `ip`, `ibv_devinfo`, `nvidia-smi`, systemd and module tools on both hosts; Git on the head.
+- Two working RoCE rails with stable IPv4 addresses, Ethernet MTU 9000 and active RDMA MTU 4096.
+- At least 112 GiB `MemAvailable` per host before loading. The profile temporarily takes over the NVIDIA display.
+- Dedicated writable data roots. Fresh acquisition needs roughly 724 GB on the head and 520 GB on the worker, plus the approximately 24.5 GB image, build/download scratch space, logs and margin. These are decimal GB.
+- Access to the [pinned model assets](deployment/config/assets.json), using an external read-only HF token file if required.
+
+Host CUDA development packages, host NCCL and host Zig are unnecessary: build and inference dependencies are containerized. Routine recipe start/stop requires no reboot. Prerequisite package, credential and network changes are outside recipe rollback.
+
+### Configure and capture the baseline
+
+```bash
+cp deployment/config/cluster.example.json deployment/local.json
+# Edit the file for your pair before init.
+python3 cluster plan
+python3 cluster doctor
+python3 cluster init
 ```
 
-Use a complete local model directory or an existing Hugging Face cache.
-The binary in a release archive is `bin/tensorfold-native`; the [runbook](RUNBOOK.md) covers archive installation and CUDA runtime files.
-Use `tensorfold-native --help` or `-h`, and `tensorfold-native capabilities --json`, to inspect the installed binary.
-Model weights have separate downloads and licenses.
+Set the worker SSH target, each host's data root and rail names/addresses, API bind/port and rendezvous port. Set `allow_temporary_drm=true` after reviewing [rollback](#rollback). The API defaults to loopback; choosing a LAN bind also requires `api.allow_unauthenticated_lan=true`. There is no API authentication.
 
-The API listens at `http://127.0.0.1:8080/v1` by default.
-It serves OpenAI chat completions, completions and Responses, plus Anthropic Messages.
-Use the model ID returned by `/v1/models`, or set one with `--name`.
+`plan` has no host side effects. `doctor` reads host and network state. `init` creates installation ownership and captures both host baselines. Preserve the ignored `deployment/local.json` and the complete `deployment/.local/` directory. Later configuration drift is refused.
 
-```sh
-curl -fsS http://127.0.0.1:8080/v1/chat/completions \
+### Acquire and verify assets
+
+If needed, set `HF_TOKEN_PATH` to an existing token file outside the checkout. The token is not included in the image or serving containers.
+
+```bash
+python3 cluster fetch
+python3 cluster replicate
+python3 cluster verify
+```
+
+Acquisition pins immutable weights, the 104 Keys tensor overrides, Engram/vision assets and the native kernel kit. The [reuse path](deployment/README.md#acquire-verified-inputs) can instead hardlink verified compatible assets from a retained installation without copying private journals or mutable caches. Shared files must remain immutable.
+
+### Build and start
+
+Keep the tracked checkout clean and committed. Run each step only after its predecessor succeeds:
+
+```bash
+python3 cluster build
+python3 cluster prepare
+python3 cluster precompile
+python3 cluster start
+python3 cluster status
+```
+
+`build` verifies the compiler pin, runs CPU/server and C++ grammar tests and installs the same image on both hosts. `prepare` creates missing rank caches with a CPU-only native writer and prepares the Engram token map. `precompile` exercises GPU primitives and router widths, then independently compares every prepared tensor byte to the intended checkpoint. Existing completed caches are not overwritten.
+
+`start` verifies both hosts, journals temporary display/module settings, and launches the worker, head and paired monitor. The monitor stops both ranks after repeated health/memory failures or stalled progress. A poisoned rank pair requires a coordinated restart; no inference service is enabled at boot.
+
+With the default bind and port:
+
+```bash
+curl --fail http://127.0.0.1:8000/v1/chat/completions \
   -H 'Content-Type: application/json' \
-  -d '{"model":"local-model","messages":[{"role":"user","content":"Say hello in one sentence."}],"max_tokens":128,"temperature":0}'
+  -d '{"model":"DeepSeek-V4.1-Flash-Keys-262k","messages":[{"role":"user","content":"What is 12 times 13?"}],"max_tokens":64}'
 ```
 
-## Qualified models
+Use your configured address/port if different. The `-262k`, `-524k`, `-614k` and `-1m` aliases differ only in the allowed prompt-plus-reply window. See [sampling and replay](deployment/SAMPLING.md).
 
-Only these model and platform combinations are admitted to 1.0.0.
-The platform column names the hardware tested for each model.
+## Rollback
 
-| Model | Checkpoint format | Qualified platform |
-| --- | --- | --- |
-| Nemotron 3.5 Lightning 30B-A3B | MLX affine 4-bit, group 64, included MTP head | Metal on M1 through M5; CUDA on GB10 |
-| Qwen3.8 Flash Next | MLX affine 6-bit, group 32 | Metal on M5 Ultra |
-| GLM-5.3-Flash | MLX affine 4-bit, group 64 | Metal on two M5 Ultras |
-| Qwen3.5-2B | Pinned MLX affine 4-bit, group 64, tied embeddings | Metal on M5 Max |
-
-Nemotron's named checkpoint is `TensorFold/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-MLX-4bit`.
-The 2B checkpoint is `mlx-community/Qwen3.5-2B-MLX-4bit`, revision `93760be4f1f69842a46bc13dbdc0f19e291392a3`.
-Flash Next loads its checkpoint directly and builds its weight packs locally, without a recorded kernel directory.
-GLM's two-Mac setup uses one settings file per rank and a separate MCDMA runtime.
-The [release notes](RELEASE-NOTES-1.0.0.md) give qualification limits and credit the contributors.
-
-The 27B's drafted output passes its native plain comparison, but its paired served speed is below Python 0.6.6.
-Bonsai, Gemma 4, Qwen3.6 and DeepSeek-V4 are still under qualification for 1.0.x.
-The Python 0.6.6 engine remains on the `python-0.6` line for those models and other backends.
-On CUDA, 1.0.0 serves Nemotron on a GB10, greedy and sampled, with concurrent requests sharing each round.
-
-## Exact decoding
-
-Every accepted draft must equal the token the same native engine would produce with `"draft": false`.
-A resumed request must equal fresh execution, and each concurrent stream must equal its solo run.
-The comparison fixes the checkpoint, backend, settings and runtime.
-Different quantizations and different backends can produce different outputs.
-Flash Next runs one active reply per engine; Nemotron, GLM and the 2B model use shared lane rounds.
-
-## Models on disk
-
-```sh
-tensorfold pull TensorFold/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-MLX-4bit
-tensorfold models
-tensorfold info TensorFold/NVIDIA-Nemotron-3.5-Lightning-30B-A3B-MLX-4bit
+```bash
+python3 cluster stop
+python3 cluster check-host
 ```
 
-`pull` downloads a checkpoint into the Hugging Face cache, resumes an interrupted download and checks every file's sha256.
-It refuses a model that no 1.0.0 family serves. `models` lists the cached checkpoints 1.0.0 can serve, and `info` shows one checkpoint's family, format, context and memory floor.
-`tensorfold serve REPO` serves a cached checkpoint by its repository name.
+Stop removes this installation's serving containers and restores its journaled host state. It retains downloaded assets, caches, source, images and receipts. Keep every file in `deployment/.local/` until restoration succeeds; Git does not back up this ignored state.
 
-## Context compaction
+If the configuration changed, use the saved original:
 
-Compaction is off by default, and with it off every reply is unchanged.
-With `--compact-at`, a conversation that would overflow is compacted instead of refused.
-The server keeps the system prompt and the most recent turns word for word, and never separates a tool call from its result.
-The older turns become a memory note: goal, constraints, progress, decisions, next steps, exact names and numbers, and the files the tool calls read or changed.
-Each later compaction updates the previous note instead of starting over. A client that sends back the compacted conversation keeps its note.
-The reply carries the note and the compaction counts under `tensorfold.compaction`, and every reply reports `context_window` and `context_used`.
-The same request gives the same compaction and the same reply. With `--compact-memory`, the stored note carries over between requests.
-
-## Serve flags
-
-The binary's `capabilities --json` response lists its supported flags and platform-specific values.
-`serve MODEL --help` prints usage without loading a model.
-
-| Flag | Meaning |
-| --- | --- |
-| `--host HOST`, `--port PORT` | Listen address and port, default `127.0.0.1:8080`. |
-| `--name NAME` | Model ID advertised to clients. |
-| `--alias NAME` | Another accepted model ID; repeat for multiple aliases. |
-| `--api-key KEY` | Require a bearer key; repeat for multiple keys. |
-| `--api-key-file FILE` | Read keys from a restricted-permission file. |
-| `--metrics-open` | Allow `/metrics` without a key when API authentication is enabled. |
-| `--dashboard` | Enable the local `/dashboard` page and `/stats` endpoint. |
-| `--context N` | Bound prompt plus reply tokens; the model's window and memory checks still apply. |
-| `--speed-up FILE` | Rank and link settings for two-Mac Flash Next or GLM serving. |
-| `--max-tokens N` | Default reply limit, 4096; requests can override it. |
-| `--temperature T` | Sampling temperature; zero requests greedy decoding. |
-| `--top-p P`, `--top-k K`, `--min-p P` | Sampling defaults. |
-| `--thinking`, `--no-thinking` | Choose whether the chat template opens a reasoning block. |
-| `--reasoning-effort LEVEL` | Default template effort: `low`, `medium`, `high` or `xhigh`. |
-| `--thinking-budget N` | Limit reasoning tokens where the engine supports closing the reasoning block. |
-| `--loop-guard` | Close a short repeated reasoning cycle where the engine supports it. |
-| `--no-drafts` | Produce the plain reference through the same engine. |
-| `--keep-warm SECONDS` | Keep the Metal GPU active while idle for this long after a request, default 900; zero disables it. |
-| `--parallel N` | Admit up to N requests where the engine shares lanes; `auto` is the default. |
-| `--prompt-cache-gib GIB` | Flash Next and GLM retained-prefix budget; zero disables retention. |
-| `--prompt-cache-over-cap` | Permit an explicit Flash Next prefix budget above its default allowance. |
-| `--learn` | Keep shared prompt prefixes, such as a system prompt and its tools, on disk so new conversations resume them after a restart or an upgrade that computes the same bits. GLM only for now. |
-| `--learn-dir DIR` | Where `--learn` keeps them, `~/.cache/tensorfold/learned` by default; implies `--learn`. |
-| `--learn-gib GIB` | Disk for learned prefixes on each Mac, 32 by default; the least recently used go first. Implies `--learn`. |
-| `--snapshot-dir none` | Keep prefix state in memory; `none` is the supported value. |
-| `--max-snapshots 0` | Disable disk snapshots at startup; `0` is the supported value. |
-| `--compact-at auto\|FRACTION` | Turn on context compaction (below). `auto` compacts when the prompt and reply would pass the window minus a reserve. |
-| `--compact-keep TOKENS` | Recent tokens kept word for word when compacting; the default is 20,000 or a quarter of the window, whichever is smaller. |
-| `--compact-memory DIR` | Also keep each conversation's memory note as a Markdown file in DIR. |
-| `--no-update-check` | Accepted compatibility switch; update the installed binary through its package manager. |
-| `--backend auto` | Use the backend compiled for the platform; `mlx` selects native Metal on macOS and `cuda` selects CUDA on Linux. |
-
-Sampling defaults come from the checkpoint's `generation_config.json`, then serve flags and request fields override them.
-`--context 0` is family-specific; use a positive limit for GLM and inspect the capacity reported at startup.
-The supported environment variables are listed in `capabilities --json`, including API keys, request logging and Hugging Face cache paths.
-
-## Build and contribute
-
-Use the Zig version pinned in `.zig-version`, currently 0.17.0.
-On a Mac with Xcode's Metal toolchain:
-
-```sh
-zig build native -Dcpu=apple_m1 -Dversion=1.0.0
-zig build test test-golden -Dcpu=apple_m1
+```bash
+python3 cluster --config deployment/.local/installed.json stop
+python3 cluster --config deployment/.local/installed.json check-host
 ```
 
-The server is `zig-out/native/bin/tensorfold-native`.
-Release archives include the native executable, runtime assets and license notices; [packaging](packaging/README.md) describes the qualified CUDA inputs.
-Read [CONTRIBUTING.md](CONTRIBUTING.md) for exactness, precision and performance gates.
-TensorFold is Apache-2.0; see [LICENSE](LICENSE), [NOTICE](NOTICE) and [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+If a host is unreachable, recover it and retry with the same journals. After a reboot, the controller compares state without imposing stale current-boot settings. Preserve failed restoration evidence. [Full rollback](deployment/ROLLBACK.md) and [migration rollback](deployment/MIGRATION-ROLLBACK.md) cover updates and returning to a retained Python installation. Never overwrite current recovery journals with backup copies.
 
-## Contributors
+## Native changes and limits
 
-Thank you to everyone who has sent TensorFold a pull request, a measurement or a bug report:
+- Independently sized request windows and shared KV pool, with 32 slots, bounded retained checkpoints and live extent compaction.
+- Native DRM-backed KV allocation, bounded graph caching with eager fallback, and measured engine/host diagnostics.
+- Batched drafting, verifier and communication bounds checked independently; router rounds wider than 16 rows use validated slices of the pinned AOT kernels.
+- A C++ xgrammar bridge for JSON objects, schemas, required/named tool calls and guided formats. Constrained requests use ordinary decoding.
+- Configurable prompt-derived or random request seeding. The deployment chooses random; explicit seeds support replay.
+- Pinned image/asset identities, read-only model mounts, paired failure handling and journaled current-boot host restoration.
 
-[@0mao0](https://github.com/0mao0),
-[@321sssrt-bit](https://github.com/321sssrt-bit),
-[@aditya1503](https://github.com/aditya1503),
-[@AdrianBinDC](https://github.com/AdrianBinDC),
-[@akol1](https://github.com/akol1),
-[@Alexbob0](https://github.com/Alexbob0),
-[@anvilsong](https://github.com/anvilsong),
-[@Arminova](https://github.com/Arminova),
-[@b-ostrov](https://github.com/b-ostrov),
-[@barelyworkingcode](https://github.com/barelyworkingcode),
-[@Benjamin-Wegener](https://github.com/Benjamin-Wegener),
-[@benthecarman](https://github.com/benthecarman),
-[@benwilson](https://github.com/benwilson),
-[@BHCC2025](https://github.com/BHCC2025),
-[@Bizuayeu](https://github.com/Bizuayeu),
-[@BlivionIaG](https://github.com/BlivionIaG),
-[@BobClawblaw](https://github.com/BobClawblaw),
-[@borodach23](https://github.com/borodach23),
-[@Boscoeuk](https://github.com/Boscoeuk),
-[@boxabirds](https://github.com/boxabirds),
-[@brandonmmusic-max](https://github.com/brandonmmusic-max),
-[@bunnyfu](https://github.com/bunnyfu),
-[@CerebralCoding](https://github.com/CerebralCoding),
-[@cesarswong](https://github.com/cesarswong),
-[@chadhurley25075-png](https://github.com/chadhurley25075-png),
-[@chaog992](https://github.com/chaog992),
-[@Charlie-Louis](https://github.com/Charlie-Louis),
-[@Chedrian07](https://github.com/Chedrian07),
-[@chris247474](https://github.com/chris247474),
-[@christrade215](https://github.com/christrade215),
-[@crescit](https://github.com/crescit),
-[@cshintov](https://github.com/cshintov),
-[@cwschroeder](https://github.com/cwschroeder),
-[@DakotaTexas](https://github.com/DakotaTexas),
-[@danyo1399](https://github.com/danyo1399),
-[@Deesha08](https://github.com/Deesha08),
-[@Defilan](https://github.com/Defilan),
-[@DevRico003](https://github.com/DevRico003),
-[@di37](https://github.com/di37),
-[@drowzeys](https://github.com/drowzeys),
-[@ecohash-co](https://github.com/ecohash-co),
-[@edurdias](https://github.com/edurdias),
-[@eleqtrizit](https://github.com/eleqtrizit),
-[@ericlsimplifi](https://github.com/ericlsimplifi),
-[@EugeneClaw](https://github.com/EugeneClaw),
-[@feni6](https://github.com/feni6),
-[@gbgbgbg](https://github.com/gbgbgbg),
-[@GDACONSULT](https://github.com/GDACONSULT),
-[@gecobattya](https://github.com/gecobattya),
-[@gilby](https://github.com/gilby),
-[@Gogo6969](https://github.com/Gogo6969),
-[@gprot42](https://github.com/gprot42),
-[@GraithSecurity](https://github.com/GraithSecurity),
-[@grantoverton](https://github.com/grantoverton),
-[@grearjake-star](https://github.com/grearjake-star),
-[@greatyingzi](https://github.com/greatyingzi),
-[@harrisonfriia](https://github.com/harrisonfriia),
-[@haxudev](https://github.com/haxudev),
-[@heitke](https://github.com/heitke),
-[@hichaiuse](https://github.com/hichaiuse),
-[@ivanfioravanti](https://github.com/ivanfioravanti),
-[@jasontitus](https://github.com/jasontitus),
-[@jayleaton](https://github.com/jayleaton),
-[@jeffpeng3](https://github.com/jeffpeng3),
-[@jeidbugs404](https://github.com/jeidbugs404),
-[@jetnet](https://github.com/jetnet),
-[@jkuepker](https://github.com/jkuepker),
-[@johnymoo](https://github.com/johnymoo),
-[@JordiPosthumus](https://github.com/JordiPosthumus),
-[@JRaxworthy](https://github.com/JRaxworthy),
-[@jregan-beasley-smc](https://github.com/jregan-beasley-smc),
-[@jschmied](https://github.com/jschmied),
-[@juliankang4](https://github.com/juliankang4),
-[@kingjamez](https://github.com/kingjamez),
-[@kky42](https://github.com/kky42),
-[@lcgutierrez](https://github.com/lcgutierrez),
-[@LECYWZA](https://github.com/LECYWZA),
-[@lijian1999](https://github.com/lijian1999),
-[@liumorrisclaw](https://github.com/liumorrisclaw),
-[@LXD-8](https://github.com/LXD-8),
-[@m-naoki-m](https://github.com/m-naoki-m),
-[@mapamalu](https://github.com/mapamalu),
-[@mcclanahanaman](https://github.com/mcclanahanaman),
-[@MESevenJourney](https://github.com/MESevenJourney),
-[@mgoldwasser](https://github.com/mgoldwasser),
-[@MiaAI-Lab](https://github.com/MiaAI-Lab),
-[@mikolaj92](https://github.com/mikolaj92),
-[@millaguie](https://github.com/millaguie),
-[@Mirrdhyn](https://github.com/Mirrdhyn),
-[@Moutonc](https://github.com/Moutonc),
-[@MovieMaker93](https://github.com/MovieMaker93),
-[@mrpmorris](https://github.com/mrpmorris),
-[@MV10](https://github.com/MV10),
-[@NeoAiLabs](https://github.com/NeoAiLabs),
-[@Nipale-ai](https://github.com/Nipale-ai),
-[@nood-co1](https://github.com/nood-co1),
-[@nullburn](https://github.com/nullburn),
-[@olexale](https://github.com/olexale),
-[@omar16100](https://github.com/omar16100),
-[@optimisme](https://github.com/optimisme),
-[@outcastofmusic](https://github.com/outcastofmusic),
-[@paragontasx](https://github.com/paragontasx),
-[@peacockesq](https://github.com/peacockesq),
-[@philip-pentatonic](https://github.com/philip-pentatonic),
-[@plotarmordev](https://github.com/plotarmordev),
-[@pmeenan](https://github.com/pmeenan),
-[@pulseandthread](https://github.com/pulseandthread),
-[@quigles1977](https://github.com/quigles1977),
-[@rafafortes](https://github.com/rafafortes),
-[@raymondkpwong](https://github.com/raymondkpwong),
-[@robertpitt](https://github.com/robertpitt),
-[@RoscoeTT](https://github.com/RoscoeTT),
-[@salmanarshad321](https://github.com/salmanarshad321),
-[@samwang0041-star](https://github.com/samwang0041-star),
-[@sanjaibalajee](https://github.com/sanjaibalajee),
-[@satindergrewal](https://github.com/satindergrewal),
-[@scottleimroth](https://github.com/scottleimroth),
-[@sethforprivacy](https://github.com/sethforprivacy),
-[@sfxnz](https://github.com/sfxnz),
-[@shantanugoel](https://github.com/shantanugoel),
-[@simon-lin88](https://github.com/simon-lin88),
-[@simonmd](https://github.com/simonmd),
-[@spenchey](https://github.com/spenchey),
-[@squarrier](https://github.com/squarrier),
-[@ss-cong](https://github.com/ss-cong),
-[@styles01](https://github.com/styles01),
-[@SxMShaDoW](https://github.com/SxMShaDoW),
-[@sxuff](https://github.com/sxuff),
-[@taussoe](https://github.com/taussoe),
-[@tfolkman](https://github.com/tfolkman),
-[@ThinkOffApp](https://github.com/ThinkOffApp),
-[@Thotheris](https://github.com/Thotheris),
-[@tinyapps](https://github.com/tinyapps),
-[@tolewis](https://github.com/tolewis),
-[@tomByrer](https://github.com/tomByrer),
-[@tonydehnke](https://github.com/tonydehnke),
-[@tournierjc](https://github.com/tournierjc),
-[@tpischke](https://github.com/tpischke),
-[@urtho](https://github.com/urtho),
-[@vcruz305](https://github.com/vcruz305),
-[@vinicius-symetrix](https://github.com/vinicius-symetrix),
-[@wojo](https://github.com/wojo),
-[@xjqx2z](https://github.com/xjqx2z),
-[@Yuepixel](https://github.com/Yuepixel),
-[@YvesLaRose](https://github.com/YvesLaRose).
+Session KV histories are not written to NVMe. Prepared weights, compiler/driver caches and bounded operational logs still write to storage. Python remains for orchestration, offline token-map preparation and the bounded image-codec helper; model execution, scheduling and sampling run in Zig/CUDA.
+
+## Development
+
+Use separate development and pinned serving checkouts. Keep the active checkout at its recorded path. Update it only after stopping and verifying host restoration, preserving the old source, image, configuration, journals and assets.
+
+Portable checks need Python's standard library and do not contact either host:
+
+```bash
+python3 -B -m unittest discover -s tests/publication -v
+python3 -B -m unittest discover -s deployment/tests -v
+python3 -B scripts/check_release.py
+python3 -B cluster --config deployment/config/cluster.example.json plan
+```
+
+The ARM64 Linux CI job additionally verifies the pinned Zig compiler and xgrammar revision, runs native CPU/server tests and checks the C++ grammar bridge. It downloads build dependencies, not model weights, and makes no GPU inference claim. Paired hardware qualification remains separate. [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md).
+
+## License
+
+Source licensing and retained notices are in [LICENSE](LICENSE), [NOTICE](NOTICE), [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [native family attribution](tools/dsv41-zig/ATTRIBUTION.md).
+
+Weights, overlays and the NVIDIA container base have their own terms. This repository distributes source and asset references; model files and container images are acquired separately.

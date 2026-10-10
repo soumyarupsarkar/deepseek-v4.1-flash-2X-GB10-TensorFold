@@ -13,11 +13,22 @@ documented and published in `29c1a04ecd75ea56ba85502279aa39b0bf6705f8`.
 Original checkpoints and prepared rank caches are immutable inputs; generated
 native kernels and mutable caches use separate directories.
 
-As of October 10, the integration compiles for GB10 and has passed 284 Zig CPU
-tests plus the native xgrammar contract tests. The portable controller's native
-health and launch contracts also pass. These results precede hardware serving
-qualification. The [20-case Python baseline](deployment/release/native-python-baseline-20261010.json)
-is recorded separately from any future native measurements.
+As of October 10, the integration compiles for GB10. The follow-up source passes
+286 Zig CPU/server tests, the native xgrammar contract test, 56 portable recipe
+and benchmark contracts, and six native controller contracts. Both ranks' fresh
+native cache writers have independent full-byte readback checks. These checks
+are separate from serving qualification. The [20-case Python baseline](deployment/release/native-python-baseline-20261010.json)
+is recorded separately from native measurements.
+
+The first live candidate reached ready state and exercised text, image input,
+prefix reuse and a single-stream drafted/ordinary comparison, then failed at
+C4: the router requested an 18-row `_rowmm_parts` variant while the pinned kit
+only supplies up to 16. The fix slices wide router rounds into supported
+variants. A GPU regression compares every width from 1 through 48 against
+independent one-row launches: 9,048,144 words matched, with intact canaries.
+The paired monitor stopped both ranks and host restoration passed. A second
+live qualification is required; the primitive regression alone does not pass
+C32, structured-output, performance or endurance gates.
 
 The serving engine, scheduler and sampler are native. The xgrammar compiler is
 a pinned C++ library. Offline compressed-token-map preparation uses the pinned

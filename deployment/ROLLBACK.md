@@ -1,6 +1,6 @@
 # Restore the pre-installation host state
 
-The [portable cutover](CUTOVER.md) exercised interrupted-controller recovery and idle worker-loss cleanup on both hosts. The operations below restore recipe-managed state using each installation's own journals. Actual reboot recovery remains a hardware release gate; its decision paths have offline test coverage.
+The historical Python [portable cutover](CUTOVER.md) exercised interrupted-controller recovery and idle worker-loss cleanup. Native lifecycle qualification is recorded separately in [MIGRATION.md](../MIGRATION.md). The operations below restore recipe-managed state using each installation's own journals. Actual reboot recovery remains a hardware release gate; its decision paths have offline test coverage.
 
 ## Normal stop
 

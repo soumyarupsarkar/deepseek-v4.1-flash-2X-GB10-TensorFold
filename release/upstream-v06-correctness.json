@@ -1,0 +1,66 @@
+{
+  "gpu_checks": {
+    "cuda_compaction_controls_per_host": 2,
+    "hosts": 2,
+    "passed_per_host": 22,
+    "scope": "Real attention dispatch and CUDA kernels; norm/projection/rotary stages replaced by synthetic identities, no weights",
+    "stale_key_reproductions_per_host": 16,
+    "unaffected_bitwise_controls_per_host": 4
+  },
+  "image_id": "sha256:973b52dedb5e9e9270fdcaa1840f4ff61076c08fadb3d97c1aea98bef6795834",
+  "limits": [
+    "No endurance or performance claim",
+    "Capacity, memory-cycle and lifecycle qualification recorded separately"
+  ],
+  "offline_publication_tests": 84,
+  "ported_fix": "bdcfd10a2a9091b515e220525d439546ce90de15",
+  "privacy": "Generated synthetic fixtures only; raw prompts, replies, private host identities and operational logs omitted",
+  "replay_http": {
+    "all_complete_token_hashes_match": true,
+    "cache_hits": 0,
+    "finished": "2026-10-10T02:56:20.909170+00:00",
+    "orders": [
+      "ascending",
+      "descending",
+      "seeded_shuffle"
+    ],
+    "passes": 3,
+    "prefill_chunk": 1024,
+    "previous_requests_varied": true,
+    "prompt_lengths": [
+      2050,
+      2064,
+      2159,
+      2160,
+      2168,
+      2175,
+      2176,
+      4098,
+      4112,
+      4207,
+      4208,
+      4216,
+      4223,
+      4224
+    ],
+    "reply_tokens": 64,
+    "requests": 42,
+    "sampling": "temperature 0, explicit seed, ordinary decode",
+    "source_receipt_sha256": "9c7d964316a21d3d16e2fd43e49a15833a76022ff0cd88ae24e1848621a0f768",
+    "started": "2026-10-10T02:49:53.124831+00:00"
+  },
+  "reviewed_upstream": "4e80f05ecba89a4e90d16375ade2eddbdc0a10c4",
+  "selected_defaults": {
+    "loop_guard": false,
+    "replay_floor": true,
+    "seed_mode": "random"
+  },
+  "source_identity": {
+    "dependencies_identical_to_baseline": true,
+    "dependency_inventory_lines": 225,
+    "installed_files_checked": 473,
+    "source_files_checked": 478
+  },
+  "source_revision": "32c4ebea7d0a81808aaa503d88ebe1a84612d0cf",
+  "status": "passed"
+}

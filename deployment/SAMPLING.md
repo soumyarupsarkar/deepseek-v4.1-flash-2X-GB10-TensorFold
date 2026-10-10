@@ -1,15 +1,15 @@
 # Sampling and replay
 
-The engine supports both `TENSORFOLD_SEED_MODE=prompt` and `random`. Its code default remains prompt-derived; this recipe explicitly selects **random**. An explicit integer request seed, including zero, overrides either mode. Greedy decoding can return identical output regardless of seed mode.
+The native engine supports `TENSORFOLD_SEED_MODE=prompt` and `random`. Its code default is prompt-derived; this deployment explicitly selects **random**. The API defaults are temperature 1, top-p 0.95 and top-k 20. Benchmarks specify their sampling settings separately.
 
-The normal API defaults are temperature 1, top-p 0.95 and top-k 20. Benchmarks explicitly override sampling, commonly using temperature zero. Returned TensorFold metadata exposes the effective seed where applicable. With random mode, repeated unseeded requests can differ; repeatability is still available through an explicit seed. Prompt mode derives a keyed seed from the prompt and can produce identical repeated answers.
+In random mode, an absent or null request seed selects fresh 64-bit entropy. `tensorfold.sampling_seed` returns the effective seed as a decimal string, which may exceed JavaScript's exact integer range. Send that string back as `seed` for replay. Explicit zero is a real seed and overrides either mode. Greedy requests (`temperature=0`) return a null sampling seed and can produce identical replies regardless of seed mode.
 
-This resembles the usual vLLM client expectation of varying unseeded sampling, but is not a promise of bitwise parity with vLLM. Different engines, batch shapes, precision, prefill chunking or model revisions can change results even with the same seed. Reproduction claims must pin those settings too.
+Prompt mode uses the native engine's prompt-derived keyed seed rule. Repeated identical prompts can therefore produce identical sampled answers. Changing seed mode does not resize the KV pool or disable draft verification.
 
-Strict JSON/schema and tool-constrained requests use ordinary constrained decoding. The short counting prompt used in headline benchmarks does not exercise that path. Changing the seed mode in the profile requires a rebuilt/requalified configuration; do not edit an initialized installation's private ownership records to bypass configuration checks.
+Random mode provides the familiar client behavior of varying unseeded sampled requests. It does not promise vLLM token parity. Replay comparisons must fix the checkpoint/overlay, image, backend, numerical settings, sampling parameters and input. Cross-version Python/native replay is a separate correctness observation, not a seed-mode guarantee.
 
-The optional [reasoning-loop guard](UPSTREAM-V051.md#optional-reasoning-loop-guard)
-keeps the same seed when it closes repetitive thinking and resumes generation.
-It is off by default. The v0.5.1 integration also enforces FP32 prompt arithmetic;
-the previous container's TF32 override can produce different replies at the same
-seed, so replay comparisons must include the precision setting.
+Strict JSON/schema and tool-constrained requests use ordinary decoding. The `TF_DSV41_TOOL_GRAMMAR=required` deployment setting constrains required/named calls and explicit strict tools; optional non-strict automatic tool selection remains unconstrained. `all` and `off` are alternative build/profile choices that need their own qualification.
+
+The reasoning-loop guard is off by default. A boolean request `loop_guard` can opt in or out; null inherits the server default. Non-thinking requests, structured output and an explicit positive thinking budget exclude the guard. This is the native engine's repetition detector; the previous Python novelty-based guard is documented in the historical [v0.5.1 report](UPSTREAM-V051.md). Enabling either guard can change output when it fires.
+
+Change profile settings through a reviewed, rebuilt deployment. Do not edit an initialized installation's ownership records to bypass configuration checks. Live qualification receipts establish which replay, streaming and concurrent cases have actually passed on a particular image.

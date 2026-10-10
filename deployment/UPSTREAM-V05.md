@@ -1,8 +1,10 @@
 # Selective Bertholomus v0.5 integration
 
+**Historical Python deployment evidence.** This report does not qualify the native Zig candidate. See [the native migration gates](../MIGRATION.md).
+
 The public base is `d5d7bb389ddf4325c1edf4a15dd1c23727040ea1` in [Bertholomus/TensorFold](https://github.com/bertholomus/TensorFold). The selective port was reviewed at `808eb4a1090ca7b79173cc2c799de16da5f923e3`, following release `508bfb34743f88d35abcb514f7013ef531ce34a5`.
 
-Imported changes include compact host histories, cosine/sine-only positional tables, exact pruned top-k selection, candidate-only scoring, invisible attention-tile skipping, grouped-expert work lists and smaller prompt scratch. Associated correctness probes remain in `tools/dsv41/`. Credits and license notices are retained in [family attribution](../tools/dsv41/ATTRIBUTION.md) and [third-party notices](../THIRD_PARTY_NOTICES.md).
+Imported changes include compact host histories, cosine/sine-only positional tables, exact pruned top-k selection, candidate-only scoring, invisible attention-tile skipping, grouped-expert work lists and smaller prompt scratch. Associated correctness probes remain in `tools/dsv41/`. Credits and license notices are retained in [family attribution](https://github.com/soumyarupsarkar/deepseek-v4.1-flash-2X-GB10-TensorFold/blob/29c1a04ecd75ea56ba85502279aa39b0bf6705f8/tools/dsv41/ATTRIBUTION.md) and [third-party notices](../THIRD_PARTY_NOTICES.md).
 
 Local adaptations retain the request-bounded positional tables, explicit decode workspace, 8,650,752-token logical pool, 32 slots, bounded prefix checkpoints and shared round outputs. The selected profile uses 1,024-token prefill, three graph widths and the October 6 draft-cost table. Repeated policy comparisons gave mixed results from a new fit, so the established table stayed selected. The profile uses ordinary decoding at C17–32 within its 32-row target budget. Larger experimental target-row profiles are outside this portable candidate.
 

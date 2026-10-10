@@ -1,125 +1,91 @@
-# Paired acceptance workloads
+# Native qualification clients
 
-Run these on an otherwise idle, running installation after `cluster start`.
-They use the saved local configuration and synthetic fixtures, generated color
-images, or the unchanged public upstream benchmark corpus. They never read
-ordinary inference request logs or select/restart the serving profile.
+These clients send deterministic synthetic fixtures to an already running,
+otherwise idle candidate. They are not installation or startup commands. Use
+a dedicated loopback-bound installation with its matching image and private
+state; the native adapters refuse a LAN-bound configuration. They neither read
+ordinary inference traffic nor reuse user prompts.
 
-```bash
-python3 -B tools/qualification/qualify_capacity.py --phase draft-tuning --record acceptance
-python3 -B tools/qualification/qualify_retention.py --record acceptance-retention
-python3 -B tools/qualification/qualify_loop_guard.py --record acceptance-loop-guard
-```
+Receipts are private under `deployment/.local/qualification/records/`; benchmark
+receipts are under `deployment/.local/records/`. Choose a new `--record` for
+every attempt. Preserve failures and interruptions. Publish only reviewed
+aggregate evidence, not raw host state or service logs.
 
-The first command checks text and vision, strict schemas/tools, random seeding
-and explicit replay, ordinary/drafted token parity, two waves of 32 simultaneous
-262,144-token sessions, native-million retrieval, queue/cancel recovery and a
-mixed-request soak. The large C32 workload primes an identical document; it
-does not measure 32 independent cold document prefills. Allow several hours.
-The retention command checks 32 distinct cached prefixes, sequential reuse,
-continuation equality and LRU eviction.
+## Feature gates
 
-For the replay-floor correction, exercise 14 synthetic lengths in three request
-orders. All measured requests must be cold and all complete reply-token hashes
-must match their first pass:
+Run these separately, stopping after any failure:
 
 ```bash
-python3 -B tools/qualification/qualify_replay_floor.py --record replay-floor
+python3 -B tools/qualification/native_features.py baseline --record native-baseline-01
+python3 -B tools/qualification/native_features.py structured --record native-structured-01
+python3 -B tools/qualification/native_features.py sampling --record native-sampling-01
+python3 -B tools/qualification/native_features.py aliases --record native-aliases-01
+python3 -B tools/qualification/native_features.py protocols --record native-protocols-01
 ```
 
-The default chunk is 1,024 and must match the running profile. The CUDA test
-`tests/cuda/test_dsv41_replay_floor.py` reproduces stale-ring dependence with the
-old switch and checks corrected attention on 1K and 2K chunk geometries. Run it
-on both GPUs with model weights unloaded. See [upstream decisions](../../deployment/UPSTREAM-V06.md).
+The baseline checks arithmetic, drafted/ordinary greedy parity, two synthetic
+PNG colors, prefix reuse and four concurrent replies. Structured tests cover
+JSON objects, strict schemas, streamed JSON, named/automatic/required tools,
+thinking budgets, mixed traffic and invalid schemas. Sampling tests cover
+fresh seeds, explicit zero, returned-seed replay, streaming and concurrency.
+Alias tests check the four exact context limits and over-limit refusals.
+Protocol tests cover Chat, Responses and Anthropic Messages.
 
-For a warm-pool compaction regression check, run identical full-context waves
-after mixed retention/schema traffic:
+## Capacity, replay and compaction
+
+These workloads are more expensive and belong on the isolated pair:
 
 ```bash
-python3 -B tools/qualification/qualify_memory.py --record warm-compaction \
-  --streams 32 --rounds 2 --initial-tokens 261120 --growth 0 --reply-tokens 1024 \
-  --shared-prefix --identical --require-concurrency --require-replay-parity \
-  --require-compaction
+python3 -B tools/qualification/native_parity.py --record native-parity-greedy-01
+python3 -B tools/qualification/native_parity.py --temperature 1 --record native-parity-sampled-01
+python3 -B tools/qualification/native_retention.py --record native-retention-01
+python3 -B tools/qualification/native_qualification.py pool --streams 32 --prompt-tokens 2048 --reply-tokens 1024 --check-solo --record native-pool-01
+python3 -B tools/qualification/native_qualification.py memory --streams 32 --rounds 2 --initial-tokens 261120 --growth 0 --reply-tokens 1024 --shared-prefix --identical --require-concurrency --require-replay-parity --record native-c32-full-01
+python3 -B tools/qualification/native_compaction.py --record native-compaction-01
+python3 -B tools/qualification/native_context.py --tokens 1048576 --reply-tokens 256 --mixed --record native-million-01
 ```
 
-This requires 32 simultaneous decoders in each wave, identical output token
-hashes for each fixed seed across the two waves, and at least one compaction.
-If the starting layout needs no compaction, the command fails that coverage
-gate; it does not silently claim to have tested relocation. Receipts retain
-hashes rather than full output token lists. Cold prefills of 32 independent
-documents and compaction performance require separate measurements.
+The parity client compares ordinary and drafted token hashes at C4/8/16/24/32,
+with matching prompt hashes and explicit seeds. A mode labeled drafted must
+actually exercise drafting. Retention tests cold, replayed and extended
+prefixes, including the retained-state bound.
 
-The loop-guard smoke checks ordinary non-looping replies, streaming, concurrent
-requests and exclusions for schemas/thinking budgets. Deterministic forced-loop
-and continuation-seed checks use synthetic HTTP engines in
-`tests/test_cuda_loop_guard.py`; they do not reuse real inference traffic.
+The full C32 test primes one identical document and creates independent active
+session state. It does not claim 32 cold independent document prefills. The
+compaction client reserves large extents with short prompts, fragments the
+live reservations, requires actual relocation, then compares continued output
+with solo execution. It tests relocation correctness, not long-context speed.
+The million-token fixture places three passphrases across synthetic filler and
+requires retrieval while checking the total prompt-plus-reply boundary.
 
-For CPU-grammar pressure, a separate probe creates distinct strict JSON schemas
-and tool sets, checks short constant answers, then replays its first wave:
+## Recovery and endurance
 
 ```bash
-# Offline fixture summary; sends no inference or host commands.
-python3 -B tools/qualification/qualify_schema_churn.py --describe --streams 4 --tools 8
-# Run only on an otherwise idle installation, between other acceptance jobs.
-python3 -B tools/qualification/qualify_schema_churn.py --record schemas-c4 --streams 4 --tools 8
+python3 -B tools/qualification/native_qualification.py recovery --record native-recovery-01
+python3 -B tools/qualification/native_qualification.py soak --streams 32 --seconds 360 --record native-short-soak-01
 ```
 
-Increase `--streams` (up to 32), `--tools` (up to 64) and `--rounds` deliberately.
-`--variant-base` offsets fixture names/constants so repeated runs can exercise
-fresh compilation; the default is zero. `--mode tools` or `--mode json` isolates
-one compiler instead of the default mixed workload. Receipts verify the pair's
-identity, answers, sealed graph count and unchanged allocation-error counters.
-They keep at most 4,096 scalar health/memory observations, with the total sample
-count reported separately. This probe does not establish endurance, throughput,
-or full-context capacity by itself.
+Cancellation and protocol recovery do not replace paired host-failure and
+restoration tests. A six-minute soak does not establish day-long stability.
+The migration's separately scheduled 24-hour run must use a new unit/record,
+stop on faults, include quiet windows and retain bounded evidence. Never
+restart a user-stopped endurance unit as a shortcut.
 
-For a **finite** matched memory comparison:
+## Performance
 
-```bash
-python3 -B tools/qualification/qualify_memory_cycles.py --record matched-memory \
-  --cycles 3 --quiet-seconds 120 --streams 8 --tools 16 --max-growth-mib 256
-```
+Use `deployment/scripts/benchmark.py` with an explicit JSON suite. Its native
+health adapter measures live committed tokens, preserves the original native
+counters and errors on missing counters. It does not invent Python allocation
+or sealed-graph counters. Cold waves evict retained prefixes and require zero
+reported cached tokens in every scored reply. Native graph captures during a
+wave are recorded; they are not silently removed from timings.
 
-Each cycle repeats the same synthetic schema workload and fills retention with
-the same 32 synthetic 4K prefixes before observing an idle interval. The first
-window follows warm-up; later windows must match its resident cache signature.
-The client compares medians of the last six fresh observations per window for
-live glibc bytes and rank anonymous-plus-swap bytes on both hosts. The declared
-growth budget applies to each metric independently; available RAM must also
-stay above the watchdog floor. Changed identities, allocation errors, missing
-or stale measurements, and unrelated inference fail the check. This is neither
-a 24-hour qualification nor proof of leak-free operation. User interruption
-is recorded as `interrupted`, never `passed`. It does not resume any old test.
+Compare concurrency, exact prompt/output budgets, prompt hashes, model/overlay,
+sampling, cache state, repetitions and image identities. End-to-end throughput
+includes prefill and admission. Steady decode requires a sufficiently long
+sampled interval with all requested streams decoding and none queued. A short
+or unobserved steady interval is null, not a guessed rate.
 
-Each command creates receipts under Git-ignored
-`deployment/.local/qualification/records/`. Use a different `--record` prefix
-for another run. Preserve failures and slow runs. Receipts contain installation
-identifiers and responses to the synthetic probes; review and summarize them
-before publishing. Performance claims require the separate benchmark clients
-and their documented timing boundaries.
-
-Set `DEEPSEEK_CLUSTER_CONFIG` to use a different local configuration path.
-The controller's normal configuration-ownership checks still apply. These
-clients place substantial load on both GPUs and can exercise the watchdog;
-run them during a maintenance window. They do not perform the separate
-worker-failure, interrupted-start or host-restoration acceptance checks.
-
-## Lifecycle fault tests
-
-These explicit maintenance operations each leave both ranks stopped and check
-restoration against this installation's baseline. They preserve models/images.
-
-```bash
-# Start with both hosts idle and the pair stopped.
-python3 -B tools/qualification/check_lifecycle.py interrupted-start --record interrupted
-python3 -B cluster start
-# Run inference/capacity acceptance, then wait until all requests have finished.
-python3 -B tools/qualification/check_lifecycle.py worker-failure --record worker-loss
-python3 -B cluster start
-```
-
-The first terminates a setup child after writing both display journals, then
-uses normal paired stop to recover. The second deliberately kills only the
-owned idle worker and waits for the real paired monitor to clean up and restore
-both hosts. A failed fault test retains its receipt; use normal `cluster stop`
-and `check-host` for recovery before investigating. Neither test reboots a host.
+`qualify_*.py` files also contain the retained Python fixture implementations.
+Invoke the `native_*.py` adapters above for native serving; a historical Python
+receipt or an unchanged fixture is not itself native qualification.

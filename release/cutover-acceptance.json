@@ -1,0 +1,174 @@
+{
+  "acceptance_wall_seconds": 3014.842,
+  "admission": {
+    "fragmentation_observed": false,
+    "million_token_reservations": 8,
+    "ninth_held_and_released": true,
+    "oversize_rejected": true,
+    "plain_and_schema_cancellation": true,
+    "solo_offset_output_checks": 9
+  },
+  "capacity": {
+    "allocated_pool_rows": 8716288,
+    "display_bytes": 1865286488,
+    "ordinary_pool_bytes": 6175852488,
+    "parallel": 32,
+    "per_request_tokens": 1048576,
+    "pool_bytes": 8041138976,
+    "shared_pool_tokens": 8650752,
+    "target_decode_rows": 32
+  },
+  "features": {
+    "explicit_seed_replay": true,
+    "keys_overlay": true,
+    "seed_mode": "random",
+    "streaming_constraints": true,
+    "strict_json_schema_tools": true,
+    "text": true,
+    "unique_unseeded_replies": 4,
+    "vision_red_and_blue": true
+  },
+  "finished": "2026-10-08T06:38:43.822967+00:00",
+  "full_sessions": {
+    "identical_primed_document": true,
+    "note": "Populated independent session states; not 32 cold independent document prefills.",
+    "peak_decoders": [
+      32,
+      32
+    ],
+    "prompt_tokens": 261120,
+    "reply_tokens": 1024,
+    "sampled_reserved_rows": 8454144,
+    "sampled_resident_logical_tokens": 8388288,
+    "seconds": 583.82,
+    "streams_per_wave": 32,
+    "total_tokens_per_request": 262144,
+    "waves": 2
+  },
+  "image_id": "sha256:07cd312dca050f9be3c14c5ca9c3ec728c3a28d1b9c2142e45c6a4d1fe54f98b",
+  "memory": {
+    "allocation_ooms": 0,
+    "allocation_retries": 0,
+    "graphs_sealed": true,
+    "minimum_available_gib": {
+      "head": 2.1572608947753906,
+      "worker": 3.447986602783203
+    },
+    "monitor_minimum_available_gib": 2,
+    "note": "The lowest head observation was close to the watchdog floor. Finite test evidence is not an uptime or memory guarantee.",
+    "peak_allocated_bytes": 115775078912,
+    "reserved_bytes": 116702314496,
+    "retention_minimum_available_gib": {
+      "head": 3.035724639892578,
+      "worker": 3.9920806884765625
+    },
+    "sealed_graphs": 96
+  },
+  "native_million": {
+    "cached_tokens": 0,
+    "concurrent_small_request_seconds": [
+      3.383,
+      3.534
+    ],
+    "note": "Bounded three-needle synthetic retrieval, not a comprehensive long-context quality evaluation.",
+    "prompt_tokens": 1048320,
+    "reply_tokens": 256,
+    "seconds": 890.467,
+    "three_passphrases_recovered": true,
+    "total_tokens": 1048576
+  },
+  "observations": {
+    "acceptance_error_type": "three five-second health-read timeouts during one C32 parity wave; inference checks passed",
+    "acceptance_errors": 3,
+    "acceptance_samples": 1424,
+    "parity_errors": 2,
+    "parity_samples": 186,
+    "retention_errors": 0,
+    "retention_samples": 88
+  },
+  "ordinary_default_parity": {
+    "all_token_hashes_match": true,
+    "inference_requests": 208,
+    "note": "Default policy can draft below C17; C17-C32 normally uses ordinary decoding.",
+    "pair_concurrencies": [
+      16,
+      24,
+      32,
+      32
+    ],
+    "paired_replies": 104
+  },
+  "privacy": "Inputs come from the published synthetic clients. Ordinary inference traffic was not used. Raw operational receipts remain private; their hashes are provenance references, not downloadable artifacts.",
+  "profile": "c32-keys-v05",
+  "profile_sha256": "a64191397ccb810f3ba81daed3e310cca5363a7409e780dc5d088b695ad22750",
+  "retention": {
+    "entries": 32,
+    "recent_checkpoints_per_entry": 2,
+    "requests": 132,
+    "resident_logical_tokens": 524288,
+    "seconds": 484.264723286964,
+    "snapshot_bytes": 239075328,
+    "stages": [
+      "32-distinct-cold-prefixes",
+      "32-sequential-revisits",
+      "32-sequential-extensions",
+      "32-extended-prefix-revisits",
+      "least-recently-used-eviction"
+    ]
+  },
+  "scope": "Paired inference/capacity and retention on a fresh portable image, with verified existing model and prepared-cache reuse. Acquisition and lifecycle evidence are recorded separately.",
+  "soak": {
+    "requests": 288,
+    "structured_recheck": true,
+    "waves": 9
+  },
+  "source_revision": "2f65892284376d6a59eda1270e3a9ab59f79897b",
+  "sources": [
+    {
+      "receipt": "validation-cutover-draft-tuning-phase.json",
+      "sha256": "8be4772d0824b2520d036e8db3bfd12d90d80512c267bde595ec64912b41288d"
+    },
+    {
+      "receipt": "validation-cutover-baseline.json",
+      "sha256": "64cabc3662c5449f7d95e394c57e8ab33809a178fbfa4d8b5fec1c944443ab80"
+    },
+    {
+      "receipt": "validation-cutover-structured.json",
+      "sha256": "1043bf9b58a2b3b7640aa42b4e05d0142e09f7aff6c38d09ed268770ec325dc8"
+    },
+    {
+      "receipt": "validation-cutover-sampling.json",
+      "sha256": "4015a49c91f1ed86587227049da86b70bb600794627d681dd78d724af41ff0fc"
+    },
+    {
+      "receipt": "validation-cutover-ordinary-parity.json",
+      "sha256": "884e5484d780ea42c6bd460cd0539747e90fc6d55301c6182ff43060cddd55d1"
+    },
+    {
+      "receipt": "validation-cutover-full-sessions.json",
+      "sha256": "4e184096c04303b3c7043b3442ebb3a0fcaf8185268f5a2c2006c7c364d95dc0"
+    },
+    {
+      "receipt": "validation-cutover-million.json",
+      "sha256": "2bc63a388161aaa6e32d786b580c247ec2104da249d450896c1d5fd57dffec18"
+    },
+    {
+      "receipt": "validation-cutover-queue.json",
+      "sha256": "6be93c6b5724b21d5b94a7e53f400748ab4d60940ea558e4c6bf805fb99fda8a"
+    },
+    {
+      "receipt": "validation-cutover-recovery.json",
+      "sha256": "685dba8dc26804a7c416a203a30b82cec22a155f7386495579b748573b047c22"
+    },
+    {
+      "receipt": "validation-cutover-soak.json",
+      "sha256": "f1be8ad5773d83aa28945e6f9039fe6fbaa53abeee4380ddc57e9d77f005fb41"
+    },
+    {
+      "receipt": "validation-cutover-retention.json",
+      "sha256": "49c764e8994edf187a64ad61ebe099f99135513883164970c54f884fcfd7b0c3"
+    }
+  ],
+  "started": "2026-10-08T05:40:21.761676+00:00",
+  "status": "passed"
+}

@@ -1,5 +1,7 @@
 # Bertholomus v0.5.1 correctness updates
 
+**Historical Python deployment evidence.** This report does not qualify the native Zig candidate. See [the native migration gates](../MIGRATION.md).
+
 Reviewed the `deepseek-v41-tp2` branch at
 [`90b68e063a0b8bba59aaf13340ef16619e751195`](https://github.com/bertholomus/TensorFold/commit/90b68e063a0b8bba59aaf13340ef16619e751195)
 on 2026-10-08. Three commits followed the previous selective v0.5 integration:

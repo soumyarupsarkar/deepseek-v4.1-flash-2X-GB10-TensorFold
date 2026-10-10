@@ -1,5 +1,7 @@
 # October 9 upstream review and selective integration
 
+**Historical Python deployment evidence.** This report does not qualify the native Zig candidate. See [the native migration gates](../MIGRATION.md).
+
 Reviewed on 2026-10-09 (Pacific). The Python branch remains at
 [`90b68e0`](https://github.com/bertholomus/TensorFold/commit/90b68e063a0b8bba59aaf13340ef16619e751195),
 already covered by our [v0.5.1 integration](UPSTREAM-V051.md). The new engine is

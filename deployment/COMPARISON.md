@@ -22,7 +22,7 @@ bitwise agreement with the corrected engine or another recipe.
 ## Attribution
 
 - [ashhart/TensorFold](https://github.com/ashhart/TensorFold) and its contributors provide the framework, EXL3 foundation and inherited kernels.
-- [Bertholomus / Albert Lee](https://github.com/bertholomus/TensorFold/tree/deepseek-v41-tp2) provides the DeepSeek TP2 engine, vision/RDMA integration, benchmark kit, selective v0.5 kernel/memory improvements and v0.5.1 FP32/loop-guard fixes. [Detailed family provenance](../tools/dsv41/ATTRIBUTION.md).
+- [Bertholomus / Albert Lee](https://github.com/bertholomus/TensorFold/tree/deepseek-v41-tp2) provides the DeepSeek TP2 engine, vision/RDMA integration, benchmark kit, selective v0.5 kernel/memory improvements and v0.5.1 FP32/loop-guard fixes. [Detailed family provenance](https://github.com/soumyarupsarkar/deepseek-v4.1-flash-2X-GB10-TensorFold/blob/29c1a04ecd75ea56ba85502279aa39b0bf6705f8/tools/dsv41/ATTRIBUTION.md).
 - [Capicua25x](https://github.com/bertholomus/deepseek-v4.1-tensorfold-tp2-2xgb10/pull/9) provided the novelty signal that Bertholomus reimplemented for the optional reasoning-loop guard.
 - [Mia-AiLab](https://huggingface.co/Mia-AiLab/DeepSeek-V4.1-Flash-EXL3-2.9bpw) provides the EXL3 checkpoint; [drowzeys / Keys](https://huggingface.co/drowzeys/DeepSeek-V4.1-Flash-Abliterated-Cybersecurity-Unleashed) provides the matching attention overlay. They are downloaded separately at [pinned revisions](config/assets.json).
 - [DeepSeek](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash) provides the original model/assets and model research; the original family provenance identifies its math references.

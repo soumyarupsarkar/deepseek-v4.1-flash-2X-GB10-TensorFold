@@ -1,0 +1,91 @@
+{
+  "image_id": "sha256:928fc8e4416e4494de8e600ef81c3ed60393f3871959d77ae20965bc99d2e8ba",
+  "offline_tests": {
+    "forced_loop_scope": "Synthetic token and HTTP engines, including callbacks spanning multiple windows; not a reproduced real-model reasoning loop.",
+    "publication_passed": 47,
+    "targeted_http_passed": 222,
+    "targeted_http_skipped": 1
+  },
+  "paired_guard": {
+    "allocation_ooms": 0,
+    "concurrent_requests": 4,
+    "concurrent_token_parity": true,
+    "finished": "2026-10-08T09:23:53.323879+00:00",
+    "grammar_budget_and_nonthinking_exclusions": true,
+    "nonlooping_default_disabled_enabled_token_parity": true,
+    "scope": "Real paired non-looping guard parity, streaming, concurrent requests, schema/budget and non-thinking exclusions. This does not force a real-model loop.",
+    "started": "2026-10-08T09:23:34.678190+00:00",
+    "streaming_token_and_seed_parity": true
+  },
+  "precision_probe": {
+    "ranks": {
+      "head": [
+        {
+          "guard": "refused",
+          "override": "1",
+          "sum": 4096.0
+        },
+        {
+          "guard": "passed",
+          "override": "0",
+          "sum": 4098.0
+        }
+      ],
+      "worker": [
+        {
+          "guard": "refused",
+          "override": "1",
+          "sum": 4096.0
+        },
+        {
+          "guard": "passed",
+          "override": "0",
+          "sum": 4098.0
+        }
+      ]
+    },
+    "scope": "Standalone model-unloaded GPU GEMM probes using the preserved image and reviewed FP32 guard"
+  },
+  "privacy": "Only synthetic qualification inputs were used. Host identities, raw replies and private operational receipts are omitted.",
+  "reviewed_upstream": "90b68e063a0b8bba59aaf13340ef16619e751195",
+  "selected_defaults": {
+    "fp32_override": "0",
+    "loop_guard": false,
+    "seed_mode": "random"
+  },
+  "source_identity": {
+    "changed_files": [
+      "src/tensorfold/cuda/server.py",
+      "src/tensorfold/engine/call_gate.py",
+      "src/tensorfold/families/deepseek_v41/__init__.py"
+    ],
+    "dependency_inventory_identical_lines": 225,
+    "files_checked": 476,
+    "installed_changes_checked_on_both_ranks": true,
+    "shared_asset_mounts_readonly": true
+  },
+  "source_revision": "c068898375337c1f2a7bd222e5d1c342b0a83f9c",
+  "sources": [
+    {
+      "receipt": "precision-repro.json",
+      "sha256": "92b1351c66ee9db6c07e06922f2b9457bd09ed92de4d6131f907494588b96ab3"
+    },
+    {
+      "receipt": "image-identity.json",
+      "sha256": "5fb2cbb13a467f8d1d711a2b550a89cff628d8b1dae89491ae5cf76ec30aee38"
+    },
+    {
+      "receipt": "validation-upstream-v051-loop.json",
+      "sha256": "e21048bf18fad92c785a526b22f2897ec241680521ef5bf48f0506d2b84ce508"
+    },
+    {
+      "receipt": "offline-regressions.log",
+      "sha256": "33d25176b1b0cb384752f39edc686458bbd3a471ea8e2fae73b6c40881e4a955"
+    },
+    {
+      "receipt": "http-regressions.log",
+      "sha256": "aa5896f3d46104a8f5d6ccdd8cc1692ae836b1ed91b53fde41dee41fb3822b93"
+    }
+  ],
+  "status": "passed"
+}
