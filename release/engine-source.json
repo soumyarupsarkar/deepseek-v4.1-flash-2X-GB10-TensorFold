@@ -2682,7 +2682,7 @@
     },
     {
       "path": "zig/src/native/cuda.zig",
-      "sha256": "0e5032d9a481a66c3445c7c0705175828a58903942d2d647c4f65c03aa53e476"
+      "sha256": "434f1b9fba7bf6b1a7c27eaa3abe2712c4a5786a509db4aacff7e6f8596759c1"
     },
     {
       "path": "zig/src/native/cuda_memory.zig",

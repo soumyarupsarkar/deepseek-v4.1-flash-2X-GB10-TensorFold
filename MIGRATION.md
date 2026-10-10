@@ -89,6 +89,13 @@ million-token gate and a separate mixed-image/cancellation gate require small
 requests to finish during long prefill, within a declared 30-second limit.
 Earlier live passes belong to the third image; they do not qualify this change.
 
+The first incremental build passed 290 CPU/server tests, but review caught a
+missing integration before serving: the CUDA context-binding adapter forwarded
+only the legacy blocking prefill call. A new adapter-level test reproduced the
+resulting short-request stall and passes after forwarding both incremental
+callbacks and the chunk size. Cancellation is checked through both adapter
+paths. The corrected image still needs fresh hardware qualification.
+
 One parity attempt failed a client assumption: the final SSE response had ended
 before the scheduler removed its request. The runtime remained healthy, had no
 active GPU stream, and subsequently became idle; all four output hashes already

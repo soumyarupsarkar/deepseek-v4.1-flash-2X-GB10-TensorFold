@@ -215,6 +215,19 @@ const Host = struct {
                     return x.inner.vtable.prefill(x.inner.ptr, s);
                 }
             }.f,
+            .prefill_begin = if (v.prefill_begin != null) struct {
+                fn f(p: *anyopaque, s: *lanes.Stream) anyerror!void {
+                    const x = bind(p);
+                    return x.inner.vtable.prefill_begin.?(x.inner.ptr, s);
+                }
+            }.f else null,
+            .prefill_step = if (v.prefill_step != null) struct {
+                fn f(p: *anyopaque, s: *lanes.Stream) anyerror!bool {
+                    const x = bind(p);
+                    return x.inner.vtable.prefill_step.?(x.inner.ptr, s);
+                }
+            }.f else null,
+            .prefill_chunk_tokens = v.prefill_chunk_tokens,
             .first = struct {
                 fn f(p: *anyopaque, s: *lanes.Stream, position: u64) anyerror!u64 {
                     const x = bind(p);
@@ -449,6 +462,11 @@ test "context windows: the family default inside the model's, 0 for the model's,
 }
 
 test "a cancel during a long prompt stops it, and the next request's reply is unchanged (#291)" {
+    try cancelLongPrompt(false);
+    try cancelLongPrompt(true);
+}
+
+fn cancelLongPrompt(incremental: bool) !void {
     const gpa = std.testing.allocator;
     var target: lanes.fake.Fake = .{ .gpa = gpa, .prefill_chunks = 10 };
     defer target.deinit();
@@ -457,7 +475,7 @@ test "a cancel during a long prompt stops it, and the next request's reply is un
     };
     const h = try gpa.create(Host);
     defer gpa.destroy(h);
-    h.* = .{ .gpa = gpa, .gpu = null, .family = &target, .release = Nothing.release, .inner = target.backend(), .vtable = undefined, .cfg = undefined, .clock = undefined, .core = undefined, .host = undefined };
+    h.* = .{ .gpa = gpa, .gpu = null, .family = &target, .release = Nothing.release, .inner = if (incremental) target.incrementalBackend() else target.backend(), .vtable = undefined, .cfg = undefined, .clock = undefined, .core = undefined, .host = undefined };
     try h.serve(std.testing.io, .{ .exact_width = 8, .mtp = true, .speculate = true, .drafts = 7, .hidden_rows = true }, 8, .{ .lanes = 2 }, null);
     defer {
         h.host.stop();
@@ -523,4 +541,90 @@ test "a cancel during a long prompt stops it, and the next request's reply is un
         try history.append(gpa, t);
     }
     try std.testing.expectEqual(@as(usize, 40), restored.tokens.items.len);
+}
+
+test "CUDA host adapter serves a short arrival before a long incremental prefill finishes" {
+    const gpa = std.testing.allocator;
+    var target: lanes.fake.Fake = .{ .gpa = gpa, .prefill_chunks = 32 };
+    defer target.deinit();
+    const Nothing = struct {
+        fn release(_: *anyopaque) void {}
+    };
+    const Box = struct {
+        done: std.atomic.Value(bool) = .init(false),
+        prefilled: std.atomic.Value(bool) = .init(false),
+        other: ?*std.atomic.Value(bool) = null,
+        finished_first: bool = false,
+        reason: api.Reason = .failed,
+        tokens: std.ArrayList(u32) = .empty,
+
+        fn event(ptr: *anyopaque, _: api.Id, value: *const api.Event) void {
+            const b: *@This() = @ptrCast(@alignCast(ptr));
+            switch (value.*) {
+                .prefilled => b.prefilled.store(true, .release),
+                .tokens => |tokens| b.tokens.appendSlice(gpa, tokens) catch unreachable,
+                .finished => |finished| {
+                    b.reason = finished.reason;
+                    if (b.other) |other| b.finished_first = !other.load(.acquire);
+                    b.done.store(true, .release);
+                },
+            }
+        }
+
+        fn sink(b: *@This()) api.Sink {
+            return .{ .ctx = b, .event = event };
+        }
+
+        fn check(b: *@This(), prompt: []const u32, count: usize) !void {
+            for (0..5000) |_| {
+                if (b.done.load(.acquire)) break;
+                try std.Io.sleep(std.testing.io, .fromMilliseconds(1), .awake);
+            } else return error.TestTimedOut;
+            try std.testing.expectEqual(api.Reason.length, b.reason);
+            try std.testing.expectEqual(count, b.tokens.items.len);
+            var history: std.ArrayList(u32) = .empty;
+            defer history.deinit(gpa);
+            try history.appendSlice(gpa, prompt);
+            for (b.tokens.items) |token| {
+                try std.testing.expectEqual(lanes.fake.next(history.items, null, history.items.len), token);
+                try history.append(gpa, token);
+            }
+        }
+    };
+    var long: Box = .{};
+    defer long.tokens.deinit(gpa);
+    var short: Box = .{ .other = &long.prefilled };
+    defer short.tokens.deinit(gpa);
+    const long_prompt: [64]u32 = @splat(7);
+    const short_prompt = [_]u32{ 11, 5 };
+    const long_request: api.Request = .{ .prompt = &long_prompt, .max_tokens = 8, .drafts = false };
+    const short_request: api.Request = .{ .prompt = &short_prompt, .max_tokens = 3, .drafts = false };
+    const h = try gpa.create(Host);
+    defer gpa.destroy(h);
+    h.* = .{ .gpa = gpa, .gpu = null, .family = &target, .release = Nothing.release, .inner = target.incrementalBackend(), .vtable = undefined, .cfg = undefined, .clock = undefined, .core = undefined, .host = undefined };
+    try h.serve(std.testing.io, .{ .exact_width = 8, .gpu_tokens = true, .hidden_rows = true }, 8, .{ .lanes = 2 }, null);
+    defer {
+        h.host.stop();
+        h.core.deinit();
+        h.cfg.deinit(gpa);
+    }
+    const Arrival = struct {
+        engine: api.Engine,
+        request: *const api.Request,
+        box: *Box,
+        once: bool = false,
+        fn chunk(ptr: *anyopaque, s: *lanes.Stream, _: usize) void {
+            const x: *@This() = @ptrCast(@alignCast(ptr));
+            if (s.prompt_len != 64 or x.once) return;
+            x.once = true;
+            x.engine.submit(2, x.request, x.box.sink()) catch unreachable;
+        }
+    };
+    var arrival: Arrival = .{ .engine = h.host.engine(), .request = &short_request, .box = &short };
+    target.prefill_hook = Arrival.chunk;
+    target.prefill_hook_ctx = &arrival;
+    try h.host.engine().submit(1, &long_request, long.sink());
+    try short.check(&short_prompt, 3);
+    try long.check(&long_prompt, 8);
+    try std.testing.expect(short.finished_first);
 }
