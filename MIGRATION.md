@@ -141,15 +141,16 @@ the comparison; there is no supported C1-code speedup claim.
 C4's eligible steady-decode median fell 10.5%, with only three to four seconds
 of eligible interval per repetition. C32 steady decode fell 7.5%, and its
 end-to-end regression is close to the declared 10% guard. No native graph captures
-occurred in these waves. A longer-reply ordinary/default diagnostic at C4 and C32
-is running to investigate drafting costs. A missing native steady
-interval at 32k stays null. The separate deep-context suite uses longer replies
+occurred in these waves. The longer-reply ordinary/default diagnostic below
+investigates drafting costs; four further matched C32 repetitions are running.
+A missing native steady interval at 32k stays null. The separate deep-context
+suite uses longer replies
 to make those measurements more useful. The first 32k primary wave captured three
 graphs, with that cost included in timing.
 
 The [benefit policy](release/native-benefit-policy-20261010.json) was declared
 before native matched measurements. The completed deep-context and memory review
-appears below; the C4/C32 follow-up and recovery/endurance gates remain open.
+appears below; C32 confirmation and recovery/endurance gates remain open.
 Engine-specific cache eviction occurs outside scored timing:
 the Python client inserted 32 prefixes, and the native client inserted 64
 fixtures to displace its retained states. Every scored request reports zero
@@ -190,7 +191,7 @@ C1/C32 benefit criterion.
 The memory observations include different resident and swapped states. They
 do not establish a reduction in physical memory requirements. The short C1
 variance reviews preserve the association with head-host paging and the limits
-of coarse sampling. The longer C4/C32 diagnostic is running.
+of coarse sampling. The completed longer C4/C32 diagnostic appears below.
 
 ## Deep-context matched measurements on the corrected image
 
@@ -249,6 +250,44 @@ private review. They cannot be added into a physical-memory total, and these
 observations do not establish a reduction in physical memory requirements.
 Long-run memory stability remains part of the pending endurance qualification.
 
+## Longer-reply drafting diagnostic
+
+The [complete native diagnostic](release/native-drafting-diagnostic-20261010.json)
+compares ordinary and default drafted decoding with 1,024 prompt tokens and
+1,024 output tokens, at C4 and C32 and temperatures 0 and 1. Two repetitions
+reverse the mode and concurrency order. All 288 requests completed; full-text
+digests and reported token hashes matched for all 144 paired replies. Every wave
+reached its requested concurrency and every request reported zero cached tokens.
+The prompts are below the native 2,048-token checkpoint boundary, so this internal
+diagnostic omitted prefix eviction. It is separate from the matched Python suites.
+
+| Concurrency | Temperature | Ordinary steady decode (tok/s) | Drafted steady decode (tok/s) | Change |
+| ---: | ---: | ---: | ---: | ---: |
+| 4 | 0 | 109.90 | 154.63 | +40.7% |
+| 4 | 1 | 96.13 | 146.80 | +52.7% |
+| 32 | 0 | 222.99 | 216.38 | −3.0% |
+| 32 | 1 | 205.15 | 206.25 | +0.5% |
+
+C32 end-to-end medians change by −4.2% at temperature 0 and −0.3% at temperature 1.
+The first C32 temperature-0 drafted wave captured three graphs; its cost remains
+included. The reversed-order repetition captured none and showed the same small
+slowdown. No eager graph fallbacks, benchmark probe errors or host sample errors
+were recorded. Coarse GPU observations showed no thermal-slowdown flags.
+
+The [current cost table](zig/src/families/dsv41/draft.zig) has 24 entries; the
+[lane adapter](zig/src/families/dsv41/lanes.zig) uses its final value for wider
+rounds through the configured 48-row budget. Wider-round calibration remains a
+potential optimization. This experiment does not isolate that table as the sole
+cause of the Python/native difference. Drafting still helps C4 on this longer
+workload; the earlier short C4 comparison against Python remains unchanged.
+
+The original matched C32 regression is close to the declared guard. A fixed
+follow-up of **four additional native C32 temperature-0 waves**, with the original
+1,024/256-token workload, standard warm-up and full prefix eviction, is running.
+Its review will retain the original two native repetitions and the same two-run
+Python reference. It is additional candidate evidence, not a fresh balanced
+six-versus-six comparison. The original benefit policy remains unchanged.
+
 ## Historical measurements on the earlier image
 
 The [earlier primary comparison](release/native-primary-comparison-20261010.json)
@@ -293,8 +332,9 @@ a known format/loader revision, not proof of which commit wrote an imported file
 
 ## Remaining cutover gates
 
-1. Finish the C4/C32 drafting-cost follow-up and review the completed primary,
-   temperature-1, deep-context and memory comparisons against the Python reference.
+1. Finish the four predeclared C32 confirmation measurements and review them
+   alongside the completed primary, temperature-1, deep-context and memory
+   comparisons against the Python reference.
    Require a measured benefit without unexplained material regressions; investigate
    noisy or marginal results before selecting a production profile.
 2. Recheck paired failure, interrupted startup, host restoration and controlled

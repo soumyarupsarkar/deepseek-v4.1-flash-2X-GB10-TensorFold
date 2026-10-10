@@ -47,8 +47,18 @@ throughput is 15.1% higher. C32 steady decode is 4.1% higher, below the declared
 5% benefit threshold; its apparent 11.2% end-to-end gain is affected by a noisy
 Python reference. Full-text digests and reported token hashes match for 98 of
 100 requests; the two prose replies differ. All repetitions remain included,
-including the 12.9% native C1-code end-to-end range. A longer-reply C4/C32
-ordinary/default diagnostic is running. No measured-benefit gate has been accepted.
+including the 12.9% native C1-code end-to-end range. No measured-benefit gate has
+been accepted.
+
+The [longer-reply C4/C32 diagnostic](native-drafting-diagnostic-20261010.json)
+completed 16 waves and 288 requests. All 144 ordinary/default reply comparisons
+matched in full-text and reported token hashes. Drafting improved C4 steady
+decode; at C32 it changed the median by −3.0% at temperature 0 and +0.5% at
+temperature 1. Three graph captures in the first drafted C32 wave remain included.
+This is an internal native comparison, not a replacement Python benchmark.
+Four predeclared additional repetitions of the original C32 temperature-0
+workload are running to investigate its near-threshold regression. The original
+measurements and policy remain intact.
 
 The [complete ten-wave deep-context comparison](native-deep-comparison-20261010.json)
 now covers 32k, 128k, 256k, 614k and one million total tokens, with two cold C1-code
