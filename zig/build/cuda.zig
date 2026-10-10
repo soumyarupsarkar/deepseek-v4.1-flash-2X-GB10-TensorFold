@@ -110,6 +110,9 @@ pub fn targets(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.bu
     const ds_check = b.createModule(.{ .root_source_file = b.path("zig/src/families/dsv41/check_main.zig"), .target = target, .optimize = optimize, .link_libc = true });
     ds_check.addImport("dsv41", engines(b, target, optimize, cuda, mods.lanes, mods.nemotron, mods.core).dsv41);
     b.installArtifact(b.addExecutable(.{ .name = "tf-dsv41-check", .root_module = ds_check }));
+    const ds_prepare = b.createModule(.{ .root_source_file = b.path("zig/src/families/dsv41/prepare_main.zig"), .target = target, .optimize = optimize, .link_libc = true });
+    ds_prepare.addImport("dsv41", ds_check.import_table.get("dsv41").?);
+    b.installArtifact(b.addExecutable(.{ .name = "tf-dsv41-prepare", .root_module = ds_prepare }));
     const ds_load = b.createModule(.{ .root_source_file = b.path("zig/src/families/dsv41/load_main.zig"), .target = target, .optimize = optimize, .link_libc = true });
     ds_load.addImport("dsv41", ds_check.import_table.get("dsv41").?);
     ds_load.addImport("cuda", cuda);
@@ -193,22 +196,39 @@ fn nativeServer(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.b
     }
     const install = b.addInstallArtifact(exe, .{ .dest_dir = .{ .override = .{ .custom = "native/bin" } } });
     b.step("native", "tensorfold-native with the CUDA engines into zig-out/native/bin").dependOn(&install.step);
+    const server_tests = b.createModule(.{
+        .root_source_file = b.path("zig/src/server/root.zig"),
+        .target = target,
+        .optimize = .debug,
+        .link_libc = true,
+        .imports = &.{ .{ .name = "engine_api", .module = m.api }, .{ .name = "tokenizer", .module = tokenizer }, .{ .name = "template", .module = template } },
+    });
+    b.step("test-server", "Native HTTP validation, sampling, streaming and grammar tests (CPU only)").dependOn(hostTest(b, server_tests));
     return exe;
 }
 
 /// Host unit tests of the CUDA runtime, the backend-neutral core, the lane core and the CUDA family (no GPU), on any host.
+fn hostTest(b: *std.Build, module: *std.Build.Module) *std.Build.Step {
+    const work = b.addWriteFiles();
+    _ = work.add(".test-work", "Temporary files for native host tests.\n");
+    const run = b.addRunArtifact(b.addTest(.{ .root_module = module }));
+    // Keep source mounts read-only; std.testing.tmpDir uses the test's cwd.
+    run.setCwd(work.getDirectory());
+    return &run.step;
+}
+
 pub fn hostTests(b: *std.Build, draft_ids: *std.Build.Module, step: *std.Build.Step) void {
     const host = b.graph.host;
     const cuda = runtime(b, host, .debug, &.{});
     const mods = family(b, host, .debug, cuda, draft_ids);
     const eng = engines(b, host, .debug, cuda, mods.lanes, mods.nemotron, mods.core);
-    for ([_]*std.Build.Module{ cuda, mods.core, mods.lanes, mods.nemotron, eng.engines, eng.dsv41, stagger(b, host, .debug) }) |m| step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = m })).step);
+    for ([_]*std.Build.Module{ cuda, mods.core, mods.lanes, mods.nemotron, eng.api, eng.engines, eng.dsv41, stagger(b, host, .debug) }) |m| step.dependOn(hostTest(b, m));
     const cli = b.createModule(.{ .root_source_file = b.path("zig/src/cli/cuda_main.zig"), .target = host, .optimize = .debug, .link_libc = true });
     cli.addImport("cuda", cuda);
     cli.addImport("core", mods.core);
     cli.addImport("lanes", mods.lanes);
     cli.addImport("nemotron", mods.nemotron);
-    step.dependOn(&b.addRunArtifact(b.addTest(.{ .root_module = cli })).step);
+    step.dependOn(hostTest(b, cli));
 }
 
 /// nvcc -fatbin with torch's flags, the kernel's own and one -gencode per SASS target, as the Python build passes them.

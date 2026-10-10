@@ -57,6 +57,14 @@ pub fn main(init: std.process.Init) !u8 {
     const dir = try hub.resolve(a, io, init.environ_map, args.model, &problem) orelse return fail(problem);
     const text = hf_text.HfText.load(gpa, io, dir, a, &problem) catch |e| return fail(if (problem.len > 0) problem else @errorName(e));
     defer text.deinit();
+    var grammars: ?*@import("xgrammar.zig").Compiler = null;
+    defer if (grammars) |compiler| compiler.deinit();
+    if (init.environ_map.get("TENSORFOLD_XGRAMMAR_LIBRARY")) |library| {
+        const raw = try std.Io.Dir.cwd().readFileAlloc(io, try std.fs.path.join(a, &.{ dir, "tokenizer.json" }), gpa, .limited(64 << 20));
+        defer gpa.free(raw);
+        var message: [1024]u8 = @splat(0);
+        grammars = @import("xgrammar.zig").Compiler.open(gpa, library, raw, text.eos, &message) catch |e| return fail(if (message[0] != 0) std.mem.sliceTo(&message, 0) else @errorName(e));
+    }
     const model_type = modelType(a, io, dir);
     const opened = try engines.open(a, gpa, io, dir, model_type, args, &problem) orelse return fail(problem);
     defer opened.close(opened.ctx);
@@ -65,6 +73,7 @@ pub fn main(init: std.process.Init) !u8 {
         .text = text.text(),
         .served = hub.servedName(args.name, args.model, dir),
         .sampling = try sampling(a, io, dir, args),
+        .grammars = grammars,
         .environ = init.environ_map,
         .started = started,
     });

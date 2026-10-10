@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "name": "deepseek-spark",
+  "head": {
+    "data_root": "/srv/deepseek-spark",
+    "rails": [
+      {"hca": "rocep1s0f0", "interface": "enp1s0f0np0", "address": "10.20.0.1"},
+      {"hca": "roceP2p1s0f0", "interface": "enP2p1s0f0np0", "address": "10.21.0.1"}
+    ]
+  },
+  "worker": {
+    "ssh": "operator@worker.example.invalid",
+    "data_root": "/srv/deepseek-spark",
+    "rails": [
+      {"hca": "rocep1s0f0", "interface": "enp1s0f0np0", "address": "10.20.0.2"},
+      {"hca": "roceP2p1s0f0", "interface": "enP2p1s0f0np0", "address": "10.21.0.2"}
+    ]
+  },
+  "api": {"bind": "127.0.0.1", "port": 8000, "allow_unauthenticated_lan": false},
+  "master_port": 29581,
+  "allow_temporary_drm": false
+}

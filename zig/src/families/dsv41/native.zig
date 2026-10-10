@@ -11,16 +11,16 @@
 //!                                               they need, the pool's caches by the context)
 //!   TF_DS_ROUND_MS                              the lane core's round costs by rows (ms, comma separated; the
 //!                                               served ROUND_MS unless set: a four-node lane's rounds cost less)
-//!   TF_DS_ROUND_ROWS, TF_DS_STREAMS             a round's rows at most (16; the four-node lane's 48) and the pool's
-//!                                               streams (4; its 16): --parallel at most the streams
+//!   TF_DS_ROUND_ROWS, TF_DS_STREAMS             a round's rows at most (16..48), and resident streams (1..32)
+//!   TF_DS_POOL_TOKENS                           shared KV capacity, separate from each request's --context
 //!   TF_RDMA_DEVICES                             the decode gathers over the RDMA ring on these devices (else NCCL)
 //!   TF_DS_GRAPHS=1                              the rounds' stretches as CUDA graphs
 //!   TF_DS_HC_SIDE=1                             the mixes' side work on a stream of its own
 //!   TF_DS_L2_PREFETCH=1                         the paced L2 prefetch of the next kernels' weights
 //!   TF_DS_ENGRAM_AIO=1                          a round's Engram reads by Linux AIO on O_DIRECT
 //!   TF_DS_FIX_K=K                               a measurement: every drafted stream verifies K drafts a round
-//! The kernel set (TENSORFOLD_CUDA_KERNELS) is the recorded Triton set (aot_pack.py). The pool holds --context
-//! positions for every stream together (each takes an extent: its prompt, its max_tokens and a round's rows).
+//! The kernel set (TENSORFOLD_CUDA_KERNELS) is the recorded Triton set (aot_pack.py). Each stream reserves its prompt,
+//! max_tokens and round slack in the shared pool. TF_DS_POOL_TOKENS defaults to --context for upstream compatibility.
 //! TF_TP_WORLD=4: the four nodes of the exact 2D split (prompt2d.zig), ranks 1-3 `tf-dsv41-lanes` following on the
 //! other nodes; TF_RDMA_DEVICES (and TF_DS_RDMA_KERNELS: rdma_gather.cu's fatbin, unset: the embedded one) put its
 //! decode-size exchanges on the RDMA rings, as the four-node Python lane's TF_RDMA_DEVICES does.
@@ -41,6 +41,10 @@ pub const default_context: i64 = 262144;
 pub const max_segments: u32 = 1;
 /// The served build's prompt chunk (TF_DS_PREFILL_CHUNK).
 pub const prompt_rows: u32 = 2048;
+/// Two checkpoints for each of 32 sessions, subject to the byte budget and live
+/// KV pressure. One recent history mark plus the last complete prefill chunk.
+pub const prompt_cache_states: usize = 64;
+pub const prompt_cache_marks: usize = 1;
 /// The served lane's reasoning effort numbers (text.zig): the server passes each name and the template hears its number.
 pub const efforts = @import("text.zig").efforts;
 
@@ -56,6 +60,9 @@ pub const Loaded = struct {
     rows: u32,
     /// Device bytes each admitted stream allocates for its own sequence.
     stream_bytes: usize,
+    max_streams: u32,
+    logit_constraints: bool = true,
+    fail_closed: bool = true,
     ctx: *anyopaque,
     deinit: *const fn (*anyopaque) void,
     lone: ?LoneRun = null,
@@ -133,7 +140,8 @@ pub fn open(gpa: std.mem.Allocator, io: std.Io, ctx: *const cuda.Context, dir: [
         .side = if (getenv("TF_DS_HC_SIDE")) |v| !std.mem.eql(u8, v, "0") else false,
         .prefetch = if (getenv("TF_DS_L2_PREFETCH")) |v| !std.mem.eql(u8, v, "0") else false,
         .engram_aio = if (getenv("TF_DS_ENGRAM_AIO")) |v| !std.mem.eql(u8, v, "0") else false,
-        .pool = o.context,
+        .pool = if (getenv("TF_DS_POOL_TOKENS")) |v| std.fmt.parseInt(usize, v, 10) catch return error.BadPool else o.context,
+        .context = o.context,
         .drafts = o.drafts,
         .arena_bytes = arena_gib << 30,
         .round_rows = if (getenv("TF_DS_ROUND_ROWS")) |v| std.fmt.parseInt(usize, v, 10) catch return error.BadRoundRows else round.default_rows,
@@ -151,7 +159,7 @@ pub fn open(gpa: std.mem.Allocator, io: std.Io, ctx: *const cuda.Context, dir: [
     // the pool is the model's (preallocated): a stream takes no device memory of its own
     const L = lanes_mod.Lanes;
     const snaps: Snaps = .{ .ptr = &st.lanes, .bytes = L.snapBytesFn, .save = L.snapSaveFn, .restore = L.snapRestoreFn, .drop = L.snapDropFn };
-    return .{ .backend = st.lanes.backend(), .facts = st.lanes.facts(), .rows = @intCast(st.m.eng.round_rows), .stream_bytes = 0, .ctx = st, .deinit = deinitFn, .snaps = snaps, .vision = if (st.vision) |v| v.hook() else null };
+    return .{ .backend = st.lanes.backend(), .facts = st.lanes.facts(), .rows = @intCast(st.m.eng.round_rows), .stream_bytes = 0, .max_streams = @intCast(st.m.streams), .ctx = st, .deinit = deinitFn, .snaps = snaps, .vision = if (st.vision) |v| v.hook() else null };
 }
 
 fn deinitFn(ptr: *anyopaque) void {
@@ -172,7 +180,8 @@ pub fn explain(_: ?*anyopaque, err: anyerror) ?[]const u8 {
         error.NoKit => "set TF_DS_KIT to the kernel kit (cubins/, the RoPE tables, engram.json)",
         error.NoFreeSlot => "this engine serves TF_DS_STREAMS streams at once (default 4): --parallel at most that",
         error.BadRoundRows => "TF_DS_ROUND_ROWS: a round's rows at most, 16 .. 48",
-        error.BadStreams => "TF_DS_STREAMS: the pool's streams, 1 .. 16",
+        error.BadStreams => "TF_DS_STREAMS: the pool's streams, 1 .. 32",
+        error.BadPool => "TF_DS_POOL_TOKENS must be positive and at least the per-request --context window",
         error.ContextFull => "the streams' prompts and budgets fill the context's pool: lower max_tokens, or retry when a stream ends",
         error.PromptTooLong => "the prompt and its max_tokens do not fit the context window",
         error.NoVisionKit => "this checkpoint reads images: its kit (TF_DS_KIT) needs vision/torch_fmha_sm120.cubin and vision/gate_bias_vl.safetensors",

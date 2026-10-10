@@ -8,6 +8,7 @@ pub const DeviceBuffer = @import("memory.zig").DeviceBuffer;
 pub const HostBuffer = @import("memory.zig").HostBuffer;
 pub const usage = @import("memory.zig").usage;
 pub const Usage = @import("memory.zig").Usage;
+pub const carveout = @import("carveout.zig");
 pub const Stream = @import("stream.zig").Stream;
 pub const Event = @import("stream.zig").Event;
 pub const Module = @import("module.zig").Module;
@@ -26,6 +27,7 @@ pub const segments = @import("segments.zig");
 
 test {
     _ = @import("memory.zig");
+    _ = carveout;
     _ = launch;
     _ = abi;
     _ = aot;

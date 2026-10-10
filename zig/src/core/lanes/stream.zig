@@ -118,12 +118,20 @@ pub const Vision = struct {
     pub const PrepareError = error{ BadImage, OutOfMemory };
 };
 
+/// A request-owned constraint, called immediately before sampling. The owner
+/// lives until the stream is released; constrained streams use ordinary decode.
+pub const LogitGate = struct {
+    ctx: *anyopaque,
+    mask: *const fn (*anyopaque, []f32, []const u32) anyerror!void,
+};
+
 pub const Spec = struct {
     id: []const u8,
     prompt: []const u32,
     max_new: u32,
     eos: []const u32 = &.{},
     sampling: ?Sampling = null,
+    logit_gate: ?LogitGate = null,
     drafts: bool = true,
     proposer: ?Proposer = null,
     stop_check: ?StopCheck = null,
@@ -144,6 +152,7 @@ pub const Stream = struct {
     max_new: u32,
     eos: []const u32,
     sampling: ?Sampling,
+    logit_gate: ?LogitGate = null,
     drafts: bool,
     proposer: ?Proposer,
     stop_check: ?StopCheck,
@@ -198,8 +207,9 @@ pub const Stream = struct {
             .max_new = spec.max_new,
             .eos = spec.eos,
             .sampling = spec.sampling,
-            .drafts = spec.drafts,
-            .proposer = if (spec.drafts) spec.proposer else null,
+            .logit_gate = spec.logit_gate,
+            .drafts = spec.drafts and spec.logit_gate == null,
+            .proposer = if (spec.drafts and spec.logit_gate == null) spec.proposer else null,
             .stop_check = spec.stop_check,
             .cancel_check = spec.cancel_check,
             .think_budget = spec.think_budget,

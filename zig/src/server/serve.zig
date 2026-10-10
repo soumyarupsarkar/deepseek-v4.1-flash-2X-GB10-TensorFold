@@ -67,6 +67,7 @@ pub const Setup = struct {
     served: []const u8,
     /// Sampling defaults from generation_config.json and the flags, as a JSON object; null: greedy.
     sampling: ?json.Value = null,
+    grammars: ?*@import("xgrammar.zig").Compiler = null,
     environ: ?*const std.process.Environ.Map = null,
     started: i96 = 0,
     /// Called once the socket listens, with its port (tests read it).
@@ -101,9 +102,21 @@ pub fn run(gpa: Allocator, io: std.Io, args: cli.Args, s: Setup) u8 {
         std.debug.print("tensorfold: TENSORFOLD_SEED_SALT={s}: an integer\n", .{t});
         return 1;
     } else 0;
+    const seed_mode = @import("seed_mode.zig").parse(env(s, "TENSORFOLD_SEED_MODE") orelse "prompt") catch {
+        std.debug.print("tensorfold: TENSORFOLD_SEED_MODE must be prompt or random\n", .{});
+        return 1;
+    };
+    const tool_mode = std.meta.stringToEnum(@import("tool_grammar.zig").Mode, env(s, "TF_DSV41_TOOL_GRAMMAR") orelse "required") orelse {
+        std.debug.print("tensorfold: TF_DSV41_TOOL_GRAMMAR must be off, required or all\n", .{});
+        return 1;
+    };
     const config: server_mod.Config = .{
         .served_name = s.served,
         .model_ids = ids.items,
+        .model_contexts = if (env(s, "TENSORFOLD_MODEL_CONTEXTS")) |raw| @import("model_windows.zig").parse(a, raw, ids.items, s.engine.info().context_window) catch |e| {
+            std.debug.print("tensorfold: invalid TENSORFOLD_MODEL_CONTEXTS ({s})\n", .{@errorName(e)});
+            return 1;
+        } else &.{},
         .default_max_tokens = args.max_tokens,
         .enable_thinking = args.thinking,
         .reasoning_effort = args.reasoning_effort,
@@ -113,6 +126,9 @@ pub fn run(gpa: Allocator, io: std.Io, args: cli.Args, s: Setup) u8 {
         .default_sampling = s.sampling,
         .use_drafts = !args.no_drafts,
         .seed_salt = salt,
+        .seed_mode = seed_mode,
+        .grammars = s.grammars,
+        .tool_grammar_mode = tool_mode,
         .request_log = env(s, "TENSORFOLD_REQUEST_LOG"),
         .dashboard = args.dashboard,
         .compact_at = if (args.compact_auto) .{ .auto = {} } else if (args.compact_fraction) |f| .{ .fraction = f } else null,

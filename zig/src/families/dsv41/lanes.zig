@@ -21,6 +21,7 @@ const draft = @import("draft.zig");
 const sampling = @import("sampling.zig");
 const link = @import("link.zig");
 const cuda = @import("cuda");
+const extent_plan = @import("extent_plan.zig");
 
 const be = lanes.backend;
 const Model = model.Model;
@@ -37,7 +38,7 @@ pub const image_piece = 32 << 10;
 pub var logits_sha = false;
 
 /// The primitives rank 0 sends rank 1 (each frame: kind u8, step u64, its fields little-endian).
-pub const Kind = enum(u8) { fill_begin = 1, fill_chunk = 2, verify = 3, pass = 4, snap_save = 5, snap_restore = 6, snap_drop = 7, fill_images = 8, done = 9 };
+pub const Kind = enum(u8) { fill_begin = 1, fill_chunk = 2, verify = 3, pass = 4, snap_save = 5, snap_restore = 6, snap_drop = 7, fill_images = 8, done = 9, relocate = 10 };
 
 /// A frame being written.
 pub const Wire = struct {
@@ -242,6 +243,14 @@ pub const Lanes = struct {
     next: u64 = 0,
     snaps: std.ArrayList(*Snap) = .empty, // kept prompt states, oldest first
     next_snap: u64 = 1,
+    compactions: std.atomic.Value(u64) = .init(0),
+    relocated_tokens: std.atomic.Value(u64) = .init(0),
+    active_streams: std.atomic.Value(u64) = .init(0),
+    prefilling_streams: std.atomic.Value(u64) = .init(0),
+    prefill_tokens: std.atomic.Value(u64) = .init(0),
+    verify_rounds: std.atomic.Value(u64) = .init(0),
+    draft_passes: std.atomic.Value(u64) = .init(0),
+    retained_states: std.atomic.Value(u64) = .init(0),
 
     pub fn init(gpa: std.mem.Allocator, m: *Model) Lanes {
         var ln: Lanes = .{ .gpa = gpa, .m = m, .peer = if (m.world > 1) m.peer() else null };
@@ -276,7 +285,33 @@ pub const Lanes = struct {
             .draft = draftFn,
             .probabilities = probabilitiesFn,
             .release = releaseFn,
+            .diagnostics = diagnosticsFn,
         } };
+    }
+
+    fn diagnosticsFn(ptr: *anyopaque) be.Diagnostics {
+        const self = of(ptr);
+        const cv = cuda.carveout.usage();
+        return .{
+            .pool_tokens = self.m.pool_cap,
+            .context_tokens = self.m.context_cap,
+            .stream_slots = @intCast(self.m.streams),
+            .active_streams = self.active_streams.load(.monotonic),
+            .prefilling_streams = self.prefilling_streams.load(.monotonic),
+            .prefill_tokens = self.prefill_tokens.load(.monotonic),
+            .verify_rounds = self.verify_rounds.load(.monotonic),
+            .draft_passes = self.draft_passes.load(.monotonic),
+            .retained_states = self.retained_states.load(.monotonic),
+            .snapshot_bytes = self.retained_states.load(.monotonic) * self.m.snapBytes(),
+            .compactions = self.compactions.load(.monotonic),
+            .relocated_tokens = self.relocated_tokens.load(.monotonic),
+            .round_graphs = if (self.m.graphs) |*g| g.count() else 0,
+            .graph_limit = if (self.m.graphs) |*g| g.policy.limit else 0,
+            .graph_eager_fallbacks = if (self.m.graphs) |*g| g.eager_fallbacks.load(.monotonic) else 0,
+            .drm_reserved_bytes = cv.reserved,
+            .drm_used_bytes = cv.used,
+            .rdma_failed = if (self.m.ring) |r| r.failure() != null else false,
+        };
     }
 
     /// The facts the round loop reads: windows of the pending row and up to the drafter's block, several streams'
@@ -343,6 +378,8 @@ pub const Lanes = struct {
     /// the chunks the gates checked; the host's chunk plan is not followed), the head's draw of the first token.
     fn prefillFn(ptr: *anyopaque, s: *lanes.Stream) anyerror!void {
         const self = of(ptr);
+        _ = self.prefilling_streams.fetchAdd(1, .monotonic);
+        defer _ = self.prefilling_streams.fetchSub(1, .monotonic);
         const m = self.m;
         const gpa = self.gpa;
         const t0 = m.now();
@@ -353,6 +390,7 @@ pub const Lanes = struct {
         const ids = s.prompt();
         const len = ids.len;
         if (len == 0) return error.EmptyPrompt;
+        if (len > m.context_cap or s.max_new > m.context_cap - len) return error.PromptTooLong;
         const size = std.mem.alignForward(usize, len + s.max_new + m.eng.round_rows + 2, model.chunk_rows);
         if (size > m.pool_cap) return error.PromptTooLong;
         if (self.streams.fetchRemove(s)) |old| self.used[old.value.slot] = false;
@@ -385,9 +423,11 @@ pub const Lanes = struct {
         // the rows this stream writes are no other kept state's
         self.staleOver(if (kept != null and !moved) base + kept.?.at else base, base + size, kept);
         try self.streams.put(gpa, s, .{ .slot = slot, .base = base, .end = base + size });
+        self.active_streams.store(self.streams.count(), .monotonic);
         self.used[slot] = true;
         errdefer {
             _ = self.streams.remove(s);
+            self.active_streams.store(self.streams.count(), .monotonic);
             self.used[slot] = false;
         }
         const seq = &self.seqs[slot];
@@ -483,6 +523,7 @@ pub const Lanes = struct {
                 try self.flush();
             }
             head = try m.fillChunk(seq.items[0 .. start + n], start, n, replay);
+            _ = self.prefill_tokens.fetchAdd(n, .monotonic);
             start += n;
             if (s.images.len == 0) if (s.reuse.hook) |k| if (start < len and start <= replay and (start == last_end or markEnds(s.reuse.marks, start))) k.at(k.ptr, s, @intCast(start));
         }
@@ -493,6 +534,7 @@ pub const Lanes = struct {
             std.crypto.hash.sha2.Sha256.hash(std.mem.sliceAsBytes(logits), &dg, .{});
             std.debug.print("{{\"prompt_logits\": \"{s}\", \"sha256\": \"{s}\"}}\n", .{ s.id, std.fmt.bytesToHex(dg, .lower) });
         }
+        if (s.logit_gate) |gate| try gate.mask(gate.ctx, @constCast(logits), s.emitted());
         const token = try draw(logits, len, s.sampling);
         self.streams.getPtr(s).?.first = self.take(token);
     }
@@ -525,6 +567,7 @@ pub const Lanes = struct {
         var ids: [max_streams][max_rows]i32 = undefined;
         var wins: [max_streams]Win = undefined;
         for (windows, 0..) |w, k| {
+            if (w.stream.logit_gate != null and w.rows() != 1) return error.GrammarNeedsOrdinaryDecode;
             if (w.parents != null) return error.TreesNotBuilt;
             const l = self.streams.getPtr(w.stream) orelse return error.UnknownStream;
             const rows = w.rows();
@@ -557,12 +600,14 @@ pub const Lanes = struct {
         // every row greedy: the device's argmax (R tokens back); else the logits for the host's draws
         var greedy = true;
         for (windows) |w| {
+            if (w.stream.logit_gate != null) greedy = false;
             if (w.stream.sampling) |sm| if (sm.temperature > 0) {
                 greedy = false;
             };
         }
         const tokens: []const u32 = if (greedy) try m.roundArgmax(rows.ids.len) else &.{};
         const logits: []const f32 = if (greedy) &.{} else try m.roundLogits(rows.ids.len);
+        _ = self.verify_rounds.fetchAdd(1, .monotonic);
         const t3 = m.now();
         defer if (self.prof) |*p| {
             p.send += t1 - t0;
@@ -577,6 +622,7 @@ pub const Lanes = struct {
         const V = m.vocab;
         for (windows, out, 0..) |w, *o, k| {
             const row0 = self.built.wins[k].row;
+            if (w.stream.logit_gate) |gate| try gate.mask(gate.ctx, @constCast(logits[row0 * V ..][0..V]), w.stream.emitted());
             for (0..w.rows()) |r| o.sampled[r] = if (greedy) tokens[row0 + r] else try draw(logits[(row0 + r) * V ..][0..V], w.positions[r], w.stream.sampling);
             const l = self.streams.getPtr(w.stream).?;
             @memcpy(o.drafts[0..w.held], l.held[0..w.held]);
@@ -625,30 +671,38 @@ pub const Lanes = struct {
             n += 1;
         }
         if (n == 0) return;
-        if (try self.begin(.pass)) {
-            try self.wire.int(gpa, u32, @intCast(n));
-            try self.wire.int(gpa, u32, @intCast(steps));
-            for (0..n) |i| {
-                try self.wire.int(gpa, i64, tokens[i]);
-                try self.wire.int(gpa, i64, q0[i]);
-                try self.wire.int(gpa, i64, slots[i]);
+        // Slot numbers remain global. Bound each pass to the original workspace and
+        // kernel geometry instead of doubling a MoE/drafter buffer without qualification.
+        var start: usize = 0;
+        while (start < n) {
+            const end = @min(start + draft.max_pass_streams, n);
+            if (try self.begin(.pass)) {
+                try self.wire.int(gpa, u32, @intCast(end - start));
+                try self.wire.int(gpa, u32, @intCast(steps));
+                for (start..end) |i| {
+                    try self.wire.int(gpa, i64, tokens[i]);
+                    try self.wire.int(gpa, i64, q0[i]);
+                    try self.wire.int(gpa, i64, slots[i]);
+                }
+                try self.flush();
             }
-            try self.flush();
-        }
-        const t0 = m.now();
-        try m.pass(tokens[0..n], q0[0..n], slots[0..n], steps);
-        if (self.prof) |*p| {
-            p.pass += m.now() - t0;
-            p.passes += 1;
-            p.pass_streams += n;
-        }
-        const d = &m.dr.?;
-        for (asked[0..n], depths[0..n], 0..) |l, k, i| {
-            for (0..k) |j| {
-                l.held[j] = @intCast(d.drafts[i][j]);
-                l.confs[j] = d.confs[i][j];
+            const t0 = m.now();
+            try m.pass(tokens[start..end], q0[start..end], slots[start..end], steps);
+            _ = self.draft_passes.fetchAdd(1, .monotonic);
+            if (self.prof) |*p| {
+                p.pass += m.now() - t0;
+                p.passes += 1;
+                p.pass_streams += end - start;
             }
-            l.nheld = k;
+            const d = &m.dr.?;
+            for (asked[start..end], depths[start..end], 0..) |l, k, i| {
+                for (0..k) |j| {
+                    l.held[j] = @intCast(d.drafts[i][j]);
+                    l.confs[j] = d.confs[i][j];
+                }
+                l.nheld = k;
+            }
+            start = end;
         }
     }
 
@@ -687,9 +741,48 @@ pub const Lanes = struct {
             if (place(used.items, size, self.m.pool_cap)) |b| return b;
             const oldest = for (self.snaps.items) |sn| {
                 if (!sn.stale) break sn;
-            } else return error.ContextFull;
+            } else return self.compactLive(size);
             oldest.stale = true;
         }
+    }
+
+    /// Only live reservations remain after stale-prefix eviction. Reclaim
+    /// fragmented free space between them before asking the host to queue.
+    fn compactLive(self: *Lanes, size: usize) !usize {
+        var extents: [max_streams]extent_plan.Extent = undefined;
+        var n: usize = 0;
+        var it = self.streams.valueIterator();
+        while (it.next()) |lane| {
+            extents[n] = .{ .slot = lane.slot, .base = lane.base, .end = lane.end };
+            n += 1;
+        }
+        const plan = (try extent_plan.plan(extents[0..n], size, self.m.pool_cap, model.chunk_rows)) orelse return error.ContextFull;
+        self.m.joinAhead();
+        self.m.fill_seq = &.{};
+        for (self.snaps.items) |snap| snap.stale = true;
+        var moved: u64 = 0;
+        for (plan.moves[0..plan.count]) |move| {
+            if (move.from == move.to) continue;
+            if (try self.begin(.relocate)) {
+                try self.wire.int(self.gpa, u64, move.from);
+                try self.wire.int(self.gpa, u64, move.to);
+                try self.wire.int(self.gpa, u64, move.len);
+                try self.flush();
+            }
+            try self.m.copyExtent(move.from, move.to, move.len);
+            var lanes_it = self.streams.valueIterator();
+            while (lanes_it.next()) |lane| if (lane.slot == move.slot) {
+                lane.base = move.to;
+                lane.end = move.to + move.len;
+                break;
+            };
+            moved += move.len;
+        }
+        if (moved > 0) {
+            _ = self.compactions.fetchAdd(1, .monotonic);
+            _ = self.relocated_tokens.fetchAdd(moved, .monotonic);
+        }
+        return plan.end;
     }
 
     /// Kept states with rows in [lo, hi) go stale (a stream writes there), `except` aside.
@@ -716,6 +809,7 @@ pub const Lanes = struct {
         sn.* = .{ .id = self.next_snap, .at = at, .base = l.base, .buf = try cuda.DeviceBuffer.alloc(self.m.ctx.d, self.m.snapBytes()) };
         errdefer sn.buf.free();
         try self.snaps.append(self.gpa, sn);
+        errdefer _ = self.snaps.pop(); // a failed copy must not leave a freed snapshot in the live list
         self.next_snap += 1;
         if (try self.begin(.snap_save)) {
             try self.wire.int(self.gpa, u64, sn.id);
@@ -723,6 +817,7 @@ pub const Lanes = struct {
             try self.flush();
         }
         try self.m.snapCopy(l.slot, sn.buf.ptr, true);
+        self.retained_states.store(self.snaps.items.len, .monotonic);
         return sn;
     }
 
@@ -735,6 +830,7 @@ pub const Lanes = struct {
         const sn: *Snap = @ptrCast(@alignCast(saved));
         const i = std.mem.indexOfScalar(*Snap, self.snaps.items, sn) orelse return;
         _ = self.snaps.orderedRemove(i);
+        self.retained_states.store(self.snaps.items.len, .monotonic);
         if (self.begin(.snap_drop) catch false) {
             self.wire.int(self.gpa, u64, sn.id) catch {};
             self.flush() catch |err| std.log.err("dsv41: rank 1 kept a dropped prompt state: {s}", .{@errorName(err)});
@@ -746,6 +842,7 @@ pub const Lanes = struct {
     fn releaseFn(ptr: *anyopaque, s: *lanes.Stream) void {
         const self = of(ptr);
         const kv = self.streams.fetchRemove(s) orelse return;
+        self.active_streams.store(self.streams.count(), .monotonic);
         self.used[kv.value.slot] = false;
     }
 };
@@ -771,7 +868,7 @@ pub var follow_prof: struct { rounds: u64 = 0, enqueue: u64 = 0, forward: u64 = 
 /// Rank 1 (each of ranks 1-3 on the four-node split): the primitives rank 0 sends, run in order until it says done.
 pub fn follow(gpa: std.mem.Allocator, m: *Model) !void {
     const peer = m.peer();
-    const buf = try gpa.alloc(u8, (m.pool_cap + 1) * 4 + (1 << 16));
+    const buf = try gpa.alloc(u8, (m.context_cap + 1) * 4 + (1 << 16));
     defer gpa.free(buf);
     var seqs: [max_streams]std.ArrayList(i32) = @splat(.empty);
     defer for (&seqs) |*q| q.deinit(gpa);
@@ -802,6 +899,7 @@ pub fn follow(gpa: std.mem.Allocator, m: *Model) !void {
             7 => .snap_drop,
             8 => .fill_images,
             9 => .done,
+            10 => .relocate,
             else => return error.BadFrame,
         };
         if (try r.int(u64) != step) return error.OutOfStep;
@@ -812,6 +910,13 @@ pub fn follow(gpa: std.mem.Allocator, m: *Model) !void {
             m.fill_seq = &.{};
         }
         switch (kind) {
+            .relocate => {
+                const from = try r.int(u64);
+                const to = try r.int(u64);
+                const len = try r.int(u64);
+                if (from > m.pool_cap or to > m.pool_cap or len > m.pool_cap - from or len > m.pool_cap - to) return error.BadView;
+                try m.copyExtent(@intCast(from), @intCast(to), @intCast(len));
+            },
             .fill_begin => {
                 slot = try r.int(u32);
                 const base = try r.int(u64);

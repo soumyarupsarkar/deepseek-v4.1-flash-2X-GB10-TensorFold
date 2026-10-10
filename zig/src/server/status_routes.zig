@@ -11,17 +11,45 @@ const Allocator = std.mem.Allocator;
 
 /// With keys on, health names nothing about the model.
 pub fn health(srv: *Server, conn: *Conn, a: Allocator) !void {
-    if (srv.keys) |k| if (k.enabled()) return conn.sendJson(200, "{\"status\": \"ok\"}");
+    var status: api.Status = .{};
+    srv.engine.status(&status, &.{});
+    const failed = status.failed or (if (status.diagnostics) |d| d.rdma_failed else false);
+    const code: u16 = if (failed) 503 else 200;
+    if (srv.keys) |k| if (k.enabled()) return conn.sendJson(code, if (failed) "{\"status\":\"failed\"}" else "{\"status\":\"ok\"}");
     const o = try json.newObject(a);
-    try o.put(a, "status", .{ .string = "ok" });
+    try o.put(a, "status", .{ .string = if (failed) "failed" else "ok" });
+    try o.put(a, "runtime_poisoned", .{ .bool = failed });
+    if (failed) try o.put(a, "failure", .{ .string = status.failure });
+    try o.put(a, "engine", .{ .string = srv.info.name });
+    try o.put(a, "max_model_len", try json.intValue(a, srv.info.context_window));
+    try o.put(a, "seed_mode", .{ .string = @tagName(srv.config.seed_mode) });
+    try o.put(a, "structured_outputs", .{ .bool = srv.info.structures });
+    if (srv.config.grammars) |compiler| try o.put(a, "grammar_cache_bytes", try json.intValue(a, compiler.cacheBytes()));
     try o.put(a, "model", .{ .string = srv.config.served_name });
     const ids = try a.alloc(Value, srv.config.model_ids.len);
     for (srv.config.model_ids, ids) |id, *slot| slot.* = .{ .string = id };
     try o.put(a, "model_ids", .{ .array = ids });
     try o.put(a, "max_batch_size", try json.intValue(a, srv.info.lanes));
-    var status: api.Status = .{};
-    srv.engine.status(&status, &.{});
     try o.put(a, "warming", .{ .bool = status.warming });
+    const scheduler = try json.newObject(a);
+    try scheduler.put(a, "running", try json.intValue(a, status.running));
+    try scheduler.put(a, "waiting", try json.intValue(a, status.waiting));
+    try scheduler.put(a, "generation_tokens_running", try json.intValue(a, status.generation_tokens));
+    try scheduler.put(a, "generation_tokens_total", try json.intValue(a, status.generation_tokens_total));
+    try o.put(a, "scheduler", .{ .object = scheduler });
+    // Only aggregate counters; request text and API key labels never enter health.
+    srv.metrics.mutex.lockUncancelable(srv.io);
+    const prompt = srv.metrics.prompt;
+    const generation = srv.metrics.generation;
+    const rounds = srv.metrics.rounds;
+    const requests = srv.metrics.latency.n;
+    srv.metrics.mutex.unlock(srv.io);
+    const completed = try json.newObject(a);
+    try completed.put(a, "requests", try json.intValue(a, requests));
+    try completed.put(a, "prompt_tokens", try json.intValue(a, prompt));
+    try completed.put(a, "generation_tokens", try json.intValue(a, generation));
+    try completed.put(a, "decode_rounds", try json.intValue(a, rounds));
+    try o.put(a, "completed", .{ .object = completed });
     const memory = try json.newObject(a);
     if (srv.engine.memory(std.mem.indexOf(u8, conn.path, "reset_peak=1") != null)) |mem| {
         try memory.put(a, "active", try json.intValue(a, mem.active));
@@ -29,8 +57,18 @@ pub fn health(srv: *Server, conn: *Conn, a: Allocator) !void {
         try memory.put(a, "peak", try json.intValue(a, mem.peak));
     }
     try o.put(a, "memory", .{ .object = memory });
+    if (status.diagnostics) |d| try o.put(a, "native", try nativeDiagnostics(a, d));
     try o.put(a, "live", try live.snapshot(a, srv.engine));
-    routes.sendValue(conn, a, 200, .{ .object = o });
+    routes.sendValue(conn, a, code, .{ .object = o });
+}
+
+pub fn nativeDiagnostics(a: Allocator, d: api.Diagnostics) Allocator.Error!Value {
+    const o = try json.newObject(a);
+    inline for (@typeInfo(@TypeOf(d)).@"struct".field_names) |name| {
+        const value = @field(d, name);
+        try o.put(a, name, if (@TypeOf(value) == bool) .{ .bool = value } else try json.intValue(a, value));
+    }
+    return .{ .object = o };
 }
 
 pub fn models(srv: *Server, conn: *Conn, a: Allocator) !void {
@@ -42,6 +80,7 @@ pub fn models(srv: *Server, conn: *Conn, a: Allocator) !void {
         try m.put(a, "object", .{ .string = "model" });
         try m.put(a, "created", try json.intValue(a, created));
         try m.put(a, "owned_by", .{ .string = "tensorfold" });
+        try m.put(a, "max_model_len", try json.intValue(a, srv.modelWindow(id)));
         slot.* = .{ .object = m };
     }
     const o = try json.newObject(a);
@@ -120,4 +159,13 @@ test "stats snapshot exposes counters and omits unknown memory" {
     for ([_][]const u8{ "running", "waiting", "generation_tokens_running", "prompt_tokens_total", "generation_tokens_total", "mtp_drafted_total", "mtp_accepted_total", "decode_rounds_total", "memory" }) |key|
         try std.testing.expect(object.contains(key));
     try std.testing.expectEqual(@as(usize, 0), object.get("memory").?.object.count());
+}
+
+test "native diagnostics expose measured allocation and compaction facts" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const v = try nativeDiagnostics(arena.allocator(), .{ .pool_tokens = 8650752, .context_tokens = 1048576, .stream_slots = 32, .compactions = 2, .drm_used_bytes = 1024, .rdma_failed = true });
+    try std.testing.expectEqualStrings("8650752", v.get("pool_tokens").?.int);
+    try std.testing.expectEqualStrings("2", v.get("compactions").?.int);
+    try std.testing.expect(v.get("rdma_failed").?.bool);
 }

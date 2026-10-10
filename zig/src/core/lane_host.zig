@@ -28,6 +28,7 @@ pub const LaneHost = struct {
     admitted: std.ArrayList(*Job) = .empty,
     cancels: std.ArrayList(Id) = .empty,
     closing: bool = false,
+    failure: ?[]const u8 = null, // static error name; immutable after the first failure
     thread: ?std.Thread = null,
     decoded: std.ArrayList(Mark) = .empty, // tokens a round landed, for the 2 s decode rate
     prefill_rate: f64 = 0,
@@ -36,6 +37,7 @@ pub const LaneHost = struct {
     /// A Metal engine's keepalive target, set by the family that owns the queue; null keeps the ticker off.
     keepalive_target: ?api.keepalive.Target = null,
     live_generated: u64 = 0,
+    total_generated: u64 = 0, // guarded by mutex; does not reset when a job finishes
     lone: ?api.Lone = null, // the backend's driver for a lone greedy stream; null: every stream in the lane core
     lone_job: ?*Job = null, // the job that driver holds now
     cache: ?*pc.Store = null, // kept prompt states (engine thread only); the backend restores and saves them
@@ -167,6 +169,9 @@ pub const LaneHost = struct {
         const n = @min(stream_tokens.len, h.live_tokens.items.len);
         @memcpy(stream_tokens[0..n], h.live_tokens.items[0..n]);
         out.* = .{
+            .failed = h.failure != null,
+            .failure = h.failure orelse "",
+            .diagnostics = if (h.core.backend.vtable.diagnostics) |read| read(h.core.backend.ptr) else null,
             .running = @intCast(h.admitted.items.len),
             .waiting = @intCast(h.queued.items.len),
             .decode_tokens_per_second = @as(f64, @floatFromInt(tokens)) / 2.0,
@@ -174,6 +179,7 @@ pub const LaneHost = struct {
             .preemptions = 0,
             .streams = n,
             .generation_tokens = h.live_generated,
+            .generation_tokens_total = h.total_generated,
         };
     }
 
@@ -235,6 +241,7 @@ pub const LaneHost = struct {
         const now = std.Io.Clock.awake.now(h.io).toNanoseconds();
         h.mutex.lockUncancelable(h.io);
         defer h.mutex.unlock(h.io);
+        h.total_generated += n;
         var keep: usize = 0;
         for (h.decoded.items) |m| {
             if (m.at < now - window_ns) continue;
@@ -284,7 +291,7 @@ pub const LaneHost = struct {
     /// Prefills the next queued request into a free lane; false when none waits or no lane is free.
     fn admitOne(h: *LaneHost) bool {
         h.lock();
-        if (h.queued.items.len == 0 or h.admitted.items.len >= h.info_.lanes) {
+        if (h.closing or h.queued.items.len == 0 or h.admitted.items.len >= h.info_.lanes) {
             h.unlock();
             return false;
         }
@@ -319,6 +326,7 @@ pub const LaneHost = struct {
             .max_new = r.max_tokens,
             .eos = r.eos,
             .sampling = r.sampling,
+            .logit_gate = r.logit_gate,
             .drafts = r.drafts,
             .proposer = job.proposer.proposer(),
             .stop_check = if (r.stop) |s| .{ .ptr = s.ctx, .check = s.check } else null,
@@ -341,6 +349,7 @@ pub const LaneHost = struct {
         h.core.addStream(&job.stream) catch |e| {
             if (e == error.Cancelled) return h.cancel(job);
             if (e == error.ContextFull and h.core.activeCount() > 0) return h.requeue(job);
+            if (h.info_.fail_closed and !requestFailure(e)) h.poison(@errorName(e));
             return h.drop(job, h.words(e));
         };
         h.prefilled(job, began);
@@ -397,6 +406,7 @@ pub const LaneHost = struct {
         const paused = lone.run(lone.ctx, &job.stream, .{ .ctx = h, .committed = Hooks.committed, .yield = Hooks.yield });
         h.lone_job = null;
         const handed = paused catch |e| {
+            if (h.info_.fail_closed and !requestFailure(e)) h.poison(@errorName(e));
             if (!job.prefill_sent) emit(job, .{ .prefilled = 0 });
             h.remove(job);
             h.finish(job, if (e == error.Cancelled) .cancelled else .failed, if (e == error.Cancelled) "" else h.words(e));
@@ -499,6 +509,7 @@ pub const LaneHost = struct {
             }
             h.unlock();
             h.core.step() catch |e| {
+                if (h.info_.fail_closed) h.poison(@errorName(e));
                 h.failAll(@errorName(e));
                 continue;
             };
@@ -512,6 +523,24 @@ pub const LaneHost = struct {
                 } else i += 1;
             }
         }
+    }
+
+    fn poison(h: *LaneHost, message: []const u8) void {
+        h.lock();
+        defer h.unlock();
+        if (h.failure == null) h.failure = message;
+        h.closing = true;
+        h.wake.broadcast(h.io);
+    }
+
+    /// These admission failures happen before shared rank state changes, or are
+    /// explicitly synchronized by the backend. All other failed native prefills
+    /// require a paired restart instead of accepting work on an uncertain runtime.
+    fn requestFailure(e: anyerror) bool {
+        return switch (e) {
+            error.Cancelled, error.ContextFull, error.PromptTooLong, error.NoFreeSlot, error.BadImage, error.NoVision, error.NoGrammarToken, error.GrammarRejectedToken => true,
+            else => false,
+        };
     }
 
     /// A failed round ends every stream it held, with the backend's error.
@@ -535,6 +564,54 @@ pub const LaneHost = struct {
         h.takeCancels();
     }
 };
+
+test "a failed synchronized prefill rejects new work until both ranks restart" {
+    const a = std.testing.allocator;
+    var cfg = try lanes.Config.init(a, .{ .exact_width = 8, .gpu_tokens = true, .hidden_rows = true }, 8, 7);
+    defer cfg.deinit(a);
+    var target: lanes.fake.Fake = .{ .gpa = a };
+    defer target.deinit();
+    var backend = target.backend();
+    var vt = backend.vtable.*;
+    vt.prefill = struct {
+        fn call(_: *anyopaque, _: *lanes.Stream) anyerror!void {
+            return error.PeerDown;
+        }
+    }.call;
+    backend.vtable = &vt;
+    var clock: lanes.fake.FixedClock = .{};
+    var core = lanes.Engine.init(a, &cfg, backend, clock.clock());
+    defer core.deinit();
+    var host = LaneHost.init(a, std.testing.io, &core, .{ .lanes = 2, .fail_closed = true });
+    try host.start();
+    defer host.stop();
+    const Box = struct {
+        done: std.atomic.Value(bool) = .init(false),
+        failed: bool = false,
+        fn event(ptr: *anyopaque, _: Id, e: *const Event) void {
+            const self: *@This() = @ptrCast(@alignCast(ptr));
+            if (e.* == .finished) {
+                self.failed = e.finished.reason == .failed;
+                self.done.store(true, .release);
+            }
+        }
+    };
+    var box: Box = .{};
+    const request: Request = .{ .prompt = &.{ 1, 2, 3 }, .max_tokens = 8 };
+    const engine = host.engine();
+    try engine.submit(1, &request, .{ .ctx = &box, .event = Box.event });
+    var waited: usize = 0;
+    while (!box.done.load(.acquire)) : (waited += 1) {
+        if (waited >= 2000) return error.TestTimedOut;
+        try std.Io.sleep(std.testing.io, .fromMilliseconds(1), .awake);
+    }
+    try std.testing.expect(box.failed);
+    var status: Status = .{};
+    engine.status(&status, &.{});
+    try std.testing.expect(status.failed);
+    try std.testing.expectEqualStrings("PeerDown", status.failure);
+    try std.testing.expectError(error.Closed, engine.submit(2, &request, .{ .ctx = &box, .event = Box.event }));
+}
 
 test "a lane host serves the core's own tokens, in order, and cancels between rounds" {
     const gpa = std.testing.allocator;
@@ -640,4 +717,6 @@ test "a lane host serves the core's own tokens, in order, and cancels between ro
     try std.testing.expectEqual(@as(usize, 0), target.lanes.count());
 }
 
-test { _ = @import("lane_host_test.zig"); }
+test {
+    _ = @import("lane_host_test.zig");
+}

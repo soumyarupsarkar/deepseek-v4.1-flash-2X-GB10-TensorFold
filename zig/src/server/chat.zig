@@ -157,7 +157,7 @@ pub fn prepare(srv: *Server, cx: *Cx, input: Input, gone: anytype) Failure!Prepa
     const rendered = try prompt_mod.prepare(srv, cx, input, thinking, effort);
     if (gone.check()) return error.Cancelled;
     if (rendered.ids.len == 0) return cx.refuse("rendered prompt is empty");
-    const window: i64 = srv.info.context_window;
+    const window: i64 = srv.requestWindow(f);
     const n: i64 = @intCast(rendered.ids.len);
     if (window > 0) {
         const room = window - n;
@@ -198,7 +198,7 @@ pub fn prepare(srv: *Server, cx: *Cx, input: Input, gone: anytype) Failure!Prepa
             request.think_end = srv.think_close_end;
         }
     }
-    return .{ .input = input, .request = request, .prompt_len = rendered.ids.len, .received = received, .thinking = thinking, .effort = effort, .sampled = sampling != null, .drafts = drafts, .stops = stops_opt, .preparing = preparing };
+    return .{ .input = input, .request = request, .prompt_len = rendered.ids.len, .received = received, .thinking = thinking, .effort = effort, .sampled = sampling != null, .drafts = request.drafts, .stops = stops_opt, .preparing = preparing };
 }
 
 /// Submit a prepared request and collect its reply; ``sink`` hears the stream (null: not streamed).
@@ -224,6 +224,14 @@ pub fn generate(srv: *Server, cx: *Cx, prepared: Prepared, sink: ?Sink, gone: an
     }
     if (gone.check()) return error.Cancelled;
     var stop_hook: StopHook = .{ .srv = srv, .stops = .{ .strings = stops_opt.strings } };
+    var grammar_state: ?@import("xgrammar.zig").Matcher = null;
+    defer if (grammar_state) |*matcher| matcher.deinit();
+    if (request.structure) |spec| if (srv.config.grammars) |compiler| {
+        var problem: [1024]u8 = @splat(0);
+        grammar_state = compiler.matcher(spec, &problem) catch return cx.fail(.request, "invalid output grammar: {s}", .{std.mem.sliceTo(&problem, 0)});
+        request.logit_gate = grammar_state.?.gate();
+        request.drafts = false;
+    };
     if (stops_opt.strings.len > 0) request.stop = .{ .ctx = &stop_hook, .check = StopHook.check };
     var box: Mailbox = .{ .io = io, .gpa = srv.gpa };
     defer box.deinit();
@@ -237,7 +245,7 @@ pub fn generate(srv: *Server, cx: *Cx, prepared: Prepared, sink: ?Sink, gone: an
     };
     release(srv, preparing); // a background request waits only while a foreground one prepares
     preparing = false;
-    var gen: Generation = .{ .srv = srv, .a = a, .box = &box, .id = id, .reply_id = input.id, .sink = sink, .thinking = thinking or reply_text.isChannel(srv.markers), .stops = .{ .strings = stops_opt.strings }, .ignore_eos = stops_opt.ignore_eos, .max_tokens = request.max_tokens, .tools = input.tools, .token_ids = input.token_ids };
+    var gen: Generation = .{ .srv = srv, .a = a, .box = &box, .id = id, .reply_id = input.id, .sink = sink, .thinking = thinking or reply_text.isChannel(srv.markers), .stops = .{ .strings = stops_opt.strings }, .ignore_eos = stops_opt.ignore_eos, .max_tokens = request.max_tokens, .tools = input.tools, .token_ids = input.token_ids, .sampling_seed = if (request.sampling) |s| s.seed else null };
     defer srv.noteRequest(prepared.prompt_len, gen.collected.items.len, box.stats.drafted, box.stats.accepted, box.stats.rounds, received, gen.first_ns, gen.last_ns, box.stats.prefill_seconds);
     errdefer if (!gen.engine_done) gen.cancel(); // the engine writes to the mailbox until it says finished
     const result: Failure!Reply = blk: {
@@ -316,6 +324,7 @@ const Generation = struct {
     calls: ?tool_stream.Streamer = null,
     collected: std.ArrayList(u32) = .empty,
     token_ids: bool = false, // the request asked for its ids back (Input.token_ids)
+    sampling_seed: ?u64 = null,
     visible: reply_text.Incremental = .{},
     hidden: std.ArrayList(u8) = .empty, // reused for the answer without its call blocks
     streamed: Shown = .{}, // what content streamed, kept apart from the decode buffer that grows under slices
@@ -512,6 +521,7 @@ const Generation = struct {
         try runtime.put(a, "engine", .{ .string = g.srv.info.name });
         try runtime.put(a, "tokens_per_second", .{ .float = if (decode_s > 0) @as(f64, @floatFromInt(decode_tokens)) / decode_s else 0 });
         try runtime.put(a, "seconds", .{ .float = @max(0, total) });
+        try runtime.put(a, "decode_seconds", .{ .float = decode_s });
         try runtime.put(a, "prefill_seconds", if (m.stats.prefill_seconds) |p| .{ .float = p } else .null);
         const widths = try a.alloc(Value, m.widths.len);
         for (m.widths, widths) |w, *slot| slot.* = try json.intValue(a, w);
@@ -521,6 +531,8 @@ const Generation = struct {
         try runtime.put(a, "prefill_raised", .{ .array = raised });
         try runtime.put(a, "time_to_first_token", if (g.first_ns) |t| .{ .float = seconds(t - received) } else .null);
         try runtime.put(a, "sampling", .{ .string = if (exact) "exact" else "greedy" });
+        // Decimal text preserves every seed bit in JavaScript clients.
+        try runtime.put(a, "sampling_seed", if (g.sampling_seed) |seed| .{ .string = try std.fmt.allocPrint(a, "{d}", .{seed}) } else .null);
         try runtime.put(a, "drafts", .{ .bool = drafts });
         const sha = tokenSha(g.collected.items);
         try runtime.put(a, "token_sha", .{ .string = try a.dupe(u8, &sha) });

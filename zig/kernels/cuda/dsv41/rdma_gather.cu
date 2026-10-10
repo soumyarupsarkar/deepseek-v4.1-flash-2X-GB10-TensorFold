@@ -29,6 +29,18 @@ __device__ __forceinline__ uint64_t now_ns() {
     return t;
 }
 
+// An aborted or timed-out gather must never become a successful draw from
+// partially received data. Trap this CUDA context; the host closes admission
+// and the paired controller restarts both ranks. The deadline also bounds a
+// silent peer that remains connected but stops advancing its sequence.
+constexpr uint64_t GATHER_TIMEOUT_NS = 120000000000ull;
+__device__ __forceinline__ void check_wait(const uint64_t* abort_word, uint64_t began) {
+    if (load_sys(abort_word) || now_ns() - began > GATHER_TIMEOUT_NS) {
+        store_sys(const_cast<uint64_t*>(abort_word), 1);
+        asm volatile("trap;" ::: "memory");
+    }
+}
+
 __device__ __forceinline__ void store_relaxed_sys(uint64_t* p, uint64_t v) {
     asm volatile("st.relaxed.sys.global.u64 [%0], %1;" ::"l"(p), "l"(v) : "memory");
 }
@@ -60,11 +72,12 @@ extern "C" __global__ void __launch_bounds__(STAGE_THREADS) dsv41_rdma_stage(con
     pdl_enter(pdl);                              // before anything reads the partial or this gather's sequence
     const uint64_t t0 = now_ns();
     if (threadIdx.x == 0) {
+        check_wait(abort_word, t0);
         const uint64_t q = *seq + 1;
         const int slot = (int)(q % slots);
         if (q > (uint64_t)slots)
             for (uint32_t i = 1; load_sys(sent + slot) + slots < q; ++i)
-                if ((i & 1023) == 0 && load_sys(abort_word)) break;
+                if ((i & 1023) == 0) check_wait(abort_word, t0);
         s_seq = q;
         // fence_mode 1: the size is written before this block's release below, so the publish needs no second fence
         if (fence_mode && blockIdx.x == 0) store_relaxed_sys(sizes + slot, (uint64_t)n4 * 16);
@@ -126,11 +139,13 @@ extern "C" __global__ void __launch_bounds__(COLLECT_THREADS) dsv41_rdma_collect
         int world, int slots, uint64_t max_bytes, uint64_t* probe, const uint64_t* abort_word, int skip_own, int unroll,
         int pdl) {
     pdl_enter(pdl);                              // the staging kernel's sequence and own slice are written
+    const uint64_t began = now_ns();
+    if (threadIdx.x == 0) check_wait(abort_word, began);
     const uint64_t q = *seq;
     const int slot = (int)(q % slots);
     if (threadIdx.x < world && threadIdx.x != rank)
         for (uint32_t i = 1; load_sys(flags + (size_t)slot * world + threadIdx.x) < q; ++i)
-            if ((i & 1023) == 0 && load_sys(abort_word)) break;
+            if ((i & 1023) == 0) check_wait(abort_word, began);
     __syncthreads();
     const uint64_t t2 = now_ns();
     for (int p = 0; p < world; ++p) {
@@ -186,11 +201,13 @@ extern "C" __global__ void __launch_bounds__(COLLECT_THREADS) dsv41_rdma_collect
         const char* recv_ring, const uint64_t* flags, const uint64_t* seq, int rank, int world, int slots,
         uint64_t max_bytes, uint64_t* probe, const uint64_t* abort_word, int pdl) {
     pdl_enter(pdl);                              // the staging kernel's sequence and own slice are written
+    const uint64_t began = now_ns();
+    if (threadIdx.x == 0) check_wait(abort_word, began);
     const uint64_t q = *seq;
     const int slot = (int)(q % slots);
     if (threadIdx.x < world && threadIdx.x != rank)
         for (uint32_t i = 1; load_sys(flags + (size_t)slot * world + threadIdx.x) < q; ++i)
-            if ((i & 1023) == 0 && load_sys(abort_word)) break;
+            if ((i & 1023) == 0) check_wait(abort_word, began);
     __syncthreads();
     const uint64_t t2 = now_ns();
     const int stride = gridDim.x * blockDim.x;
@@ -225,4 +242,3 @@ extern "C" __global__ void __launch_bounds__(COLLECT_THREADS) dsv41_rdma_collect
         }
     }
 }
-

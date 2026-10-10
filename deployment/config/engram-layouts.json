@@ -1,0 +1,12 @@
+{
+  "engram-layer-01.safetensors": {
+    "bytes": 101377628616,
+    "header": "{\"__metadata__\":{\"format\":\"pt\"},\"layers.1.engram.embed.scale\":{\"dtype\":\"F8_E8M0\",\"shape\":[384006168,8],\"data_offsets\":[0,3072049344]},\"layers.1.engram.embed.weight\":{\"dtype\":\"F8_E4M3\",\"shape\":[384006168,256],\"data_offsets\":[3072049344,101377628352]}}      ",
+    "sha256": "9ecd9bc00c8c045104d639dfdd8d6de4fe0457ce05ad8885baab062d059b0c9e"
+  },
+  "engram-layer-14.safetensors": {
+    "bytes": 101380404312,
+    "header": "{\"__metadata__\":{\"format\":\"pt\"},\"layers.14.engram.embed.scale\":{\"dtype\":\"F8_E8M0\",\"shape\":[384016682,8],\"data_offsets\":[0,3072133456]},\"layers.14.engram.embed.weight\":{\"dtype\":\"F8_E4M3\",\"shape\":[384016682,256],\"data_offsets\":[3072133456,101380404048]}}    ",
+    "sha256": "0c33910e5a59c2787d1bc1891ca5961248e1db94e7919c562afbf4cedba2f5b2"
+  }
+}

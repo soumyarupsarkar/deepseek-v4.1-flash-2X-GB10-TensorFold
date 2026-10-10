@@ -58,6 +58,7 @@ pub const Arena = struct {
     at: usize = 0, // its next free byte
     used: usize = 0,
     reserved: usize = 0,
+    carveout: ?*cuda.carveout.Carveout = null, // model-owned, used only by takeCache
 
     const max_blocks = 1024;
     const block: usize = 256 << 20;
@@ -99,6 +100,13 @@ pub const Arena = struct {
         a.at = at + bytes;
         a.used += bytes;
         return a.blocks[a.cur.?].ptr + at;
+    }
+
+    /// Sparse compressed KV may use display-reserved memory; all hot scratch and
+    /// weights keep ordinary CUDA storage. The caller initializes the contents.
+    pub fn takeCache(a: *Arena, bytes: usize) !u64 {
+        if (a.carveout) |cv| if (cv.take(bytes)) |p| return p;
+        return a.take(bytes);
     }
 };
 
@@ -579,11 +587,11 @@ pub const Caches = struct {
             if (lay.comp_wkv == null) continue;
             const r: usize = lay.ratio;
             const rows = cap / r + 2;
-            cs.comp_codes[i] = try a.take(rows * c.head_dim / 2);
-            cs.comp_scales[i] = try a.take(rows * c.head_dim / 16);
+            cs.comp_codes[i] = try a.takeCache(rows * c.head_dim / 2);
+            cs.comp_scales[i] = try a.takeCache(rows * c.head_dim / 16);
             if (lay.idx_wk != null) {
-                cs.idx_codes[i] = try a.take(rows * c.index_head_dim / 2);
-                cs.idx_scales[i] = try a.take(rows * c.index_head_dim / 32);
+                cs.idx_codes[i] = try a.takeCache(rows * c.index_head_dim / 2);
+                cs.idx_scales[i] = try a.takeCache(rows * c.index_head_dim / 32);
             }
             if (r > 1) {
                 cs.raw_kv[i] = try a.take(slots * raw_rows * c.head_dim * 4);

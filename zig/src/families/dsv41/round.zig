@@ -419,9 +419,9 @@ pub const Round = struct {
     fn mark(rd: *Round, e: *const Engine, p: PhaseTimer.Phase) !void {
         if (rd.clk != 0 and rd.clk_marks and (rd.clk_ratio == null or rd.clk_ratio.? == rd.cur_ratio)) {
             const now = cuda.launch.count;
-            rd.launches[@intFromEnum(p)] += now -% rd.launch_mark;
+            rd.launches[@backingInt(p)] += now -% rd.launch_mark;
             rd.launch_mark = now;
-            try rd.clock(e, @intFromEnum(p));
+            try rd.clock(e, @backingInt(p));
         }
         if (rd.timer) |t| try t.mark(e.s, p);
     }
@@ -843,12 +843,22 @@ const Carry = struct {
 pub const Graphs = struct {
     gpa: std.mem.Allocator,
     map: std.AutoHashMapUnmanaged(Key, Entry) = .empty,
+    policy: @import("graph_policy.zig").Policy = .{ .ceiling = 1048576 },
+    captured: std.atomic.Value(u64) = .init(0),
+    eager_fallbacks: std.atomic.Value(u64) = .init(0),
+    sealed: bool = false, // engine thread only
 
     pub const Key = struct { rows: u32, bucket: u64, stretch: u32 };
     const Entry = struct { exec: cuda.graph.Exec, start: Carry, end: Carry };
 
     pub fn init(gpa: std.mem.Allocator) Graphs {
         return .{ .gpa = gpa };
+    }
+
+    pub fn fromEnv(gpa: std.mem.Allocator, ceiling: usize) !Graphs {
+        const buckets = if (std.c.getenv("TF_DS_GRAPH_BUCKETS")) |v| std.mem.span(v) else null;
+        const limit = if (std.c.getenv("TF_DS_GRAPH_MAX_ENTRIES")) |v| try std.fmt.parseInt(usize, std.mem.span(v), 10) else 512;
+        return .{ .gpa = gpa, .policy = try @import("graph_policy.zig").Policy.parse(buckets, ceiling, limit) };
     }
 
     pub fn deinit(g: *Graphs) void {
@@ -860,7 +870,7 @@ pub const Graphs = struct {
 
     /// The captured stretches.
     pub fn count(g: *const Graphs) usize {
-        return g.map.count();
+        return @intCast(g.captured.load(.monotonic));
     }
 
     fn run(g: *Graphs, key: Key, e: *const Engine, rd: *Round, ch: *const Chunk, cs: *const Caches, rings: []const u64, cy: *Carry, li: usize, end: usize) !void {
@@ -872,6 +882,10 @@ pub const Graphs = struct {
             rd.has_cand = cy.has_cand;
             rd.has_cblk = cy.has_cblk;
             return;
+        }
+        if (g.sealed or g.map.count() >= g.policy.limit) {
+            _ = g.eager_fallbacks.fetchAdd(1, .monotonic);
+            return stretch(e, rd, ch, cs, rings, cy, li, end, null);
         }
         const start = cy.*;
         try cuda.graph.beginCapture(e.s, .thread_local);
@@ -887,6 +901,7 @@ pub const Graphs = struct {
         var exec = try graph.instantiate();
         errdefer exec.deinit();
         try g.map.put(g.gpa, key, .{ .exec = exec, .start = start, .end = cy.* });
+        g.captured.store(g.map.count(), .monotonic);
         try exec.launchOn(e.s);
     }
 };
@@ -906,7 +921,7 @@ pub fn forward(e: *const Engine, rd: *Round, ch: *const Chunk, cs: *const Caches
     defer tri.decode_rows = bound;
     var deepest: usize = 0;
     for (rows.pos) |p| deepest = @max(deepest, @as(usize, @intCast(p)) + 1);
-    rd.bucket = bucketFor(deepest, pool_cap);
+    rd.bucket = if (graphs) |g| g.policy.bucket(deepest, bucketFor(deepest, pool_cap)) else bucketFor(deepest, pool_cap);
     rd.has_cand = false;
     rd.has_cblk = false;
     rd.kk = 0;

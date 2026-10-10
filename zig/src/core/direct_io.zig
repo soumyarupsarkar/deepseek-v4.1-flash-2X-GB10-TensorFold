@@ -88,9 +88,12 @@ test "direct reads return the same bytes as buffered reads" {
     const gpa = std.testing.allocator;
     var f = try File.open("/proc/self/exe");
     defer f.close();
-    var plain = try File.open("/proc/self/exe");
+    // Flipping File.direct does not remove O_DIRECT from the descriptor. Open a
+    // genuinely buffered reference so unaligned requests work on ext4 as well.
+    const fd = std.c.open("/proc/self/exe", .{ .ACCMODE = .RDONLY, .CLOEXEC = true });
+    if (fd < 0) return error.FileNotFound;
+    var plain: File = .{ .fd = fd, .direct = false };
     defer plain.close();
-    plain.direct = false;
     const buf = try gpa.alignedAlloc(u8, .fromByteUnits(alignment), 1 << 20);
     defer gpa.free(buf);
     const want = try gpa.alloc(u8, 1 << 19);

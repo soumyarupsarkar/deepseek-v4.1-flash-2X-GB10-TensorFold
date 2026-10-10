@@ -34,8 +34,9 @@ pub const chunk_rows = 2048;
 pub const max_streams = draft.max_streams;
 /// The pool's streams when unset (--parallel 4).
 pub const max_streams_default = draft.default_streams;
-/// The RDMA ring's slot (the served 4.25 MiB: a 16-row round's logits half fits).
-pub const ring_bytes = 4456448;
+/// One rank's largest logits slice must fit, including a 48-row verification round.
+/// Keep the upstream per-16-row allowance, independent of the chosen stream count.
+pub const ring_bytes = 4456448 * (round.max_rows / 16);
 
 pub const Options = struct {
     model_dir: []const u8, // config.json
@@ -49,6 +50,7 @@ pub const Options = struct {
     engram_dir: ?[]const u8 = null, // the Engram tables (none: a checkpoint without Engram layers)
     token_map: ?[]const u8 = null, // the compressed token map (the lane's JSON cache)
     pool: usize = 1 << 18, // positions of the streams' shared plane (their extents together)
+    context: ?usize = null, // positions of one request; null preserves the original pool-sized window
     drafts: bool = true, // load the DSpark drafter
     rdma_devices: ?[]const u8 = null, // the decode gathers over RDMA on these devices (comma separated), else NCCL: TP2's
     // ring (rdma.zig), or at world 4 the 2D split's decode-size exchanges over its rings (ring2d.zig)
@@ -76,6 +78,7 @@ pub const Model = struct {
     streams: usize, // the pool's streams (Options.streams)
     round_ms: []const f64, // the lane core's round costs by rows (Options.round_ms, else draft.round_ms)
     pool_cap: usize,
+    context_cap: usize,
     cache_dir: std.Io.Dir,
     cache_file: std.Io.File,
     ix: rank_cache.Index,
@@ -92,6 +95,7 @@ pub const Model = struct {
     ex: exact.Exact,
     rope_buf: cuda.DeviceBuffer,
     arena: prompt.Arena,
+    carveout: ?cuda.carveout.Carveout = null,
     eng: prompt.Engine,
     ch: prompt.Chunk,
     caches: prompt.Caches,
@@ -163,6 +167,8 @@ pub const Model = struct {
         m.round_ms = o.round_ms orelse &draft.round_ms;
         if (m.round_ms.len == 0) return error.BadRoundMs;
         m.pool_cap = o.pool;
+        m.context_cap = o.context orelse o.pool;
+        if (m.pool_cap == 0 or m.context_cap == 0 or m.context_cap > m.pool_cap) return error.BadPool;
         m.fill_slot = 0;
         m.prof = false;
         m.timer = null;
@@ -235,9 +241,10 @@ pub const Model = struct {
         m.ex = try exact.Exact.load(d, cuda.kernels.dsv41_torch);
         errdefer m.ex.unload();
 
-        // the RoPE tables (the served build's bits: torch CPU pow and polar), every position of the pool
+        // Positions are local to a request, even when its KV extent starts far into the shared pool.
+        // RoPE and attention scratch therefore follow the request window, not all streams' storage.
         const half = c.rope_dim / 2;
-        const rope_rows = o.pool + round.max_rows + 1;
+        const rope_rows = m.context_cap + round.max_rows + 1;
         m.rope_buf = try cuda.DeviceBuffer.alloc(d, 4 * rope_rows * half * 4);
         errdefer m.rope_buf.free();
         {
@@ -246,7 +253,7 @@ pub const Model = struct {
             for ([_][]const u8{ "rope-plain-cos.f32", "rope-plain-sin.f32", "rope-compressed-cos.f32", "rope-compressed-sin.f32" }, 0..) |name, j| {
                 var f = try std.Io.Dir.cwd().openFile(io, try std.fs.path.join(a, &.{ o.kit_dir, name }), .{});
                 defer f.close(io);
-                if (try f.readPositionalAll(io, part, 0) != part.len) return error.ShortRopeTable; // a table of fewer rows than the pool
+                if (try f.readPositionalAll(io, part, 0) != part.len) return error.ShortRopeTable;
                 try m.rope_buf.upload(j * part.len, part);
             }
         }
@@ -256,6 +263,9 @@ pub const Model = struct {
 
         m.arena = try prompt.Arena.init(d, o.arena_bytes);
         errdefer m.arena.deinit();
+        m.carveout = try cuda.carveout.Carveout.fromEnv(d);
+        errdefer if (m.carveout) |*cv| cv.deinit();
+        if (m.carveout) |*cv| m.arena.carveout = cv;
         // world 4 (layer_main's setup): the 2D exchanges' buffers, and with rdma_devices their rings (whose infos go
         // round over NCCL world 4)
         errdefer if (m.rdma_rings) |*x| x.close(gpa);
@@ -275,7 +285,7 @@ pub const Model = struct {
         }
         m.eng = .{ .d = d, .s = m.stream, .t = .{ .set = &m.set, .stream = m.stream }, .blas = undefined, .comm = &m.comm, .pf = &m.pf, .lin = &m.lg, .ex = &m.exk, .ops = &m.ops, .exact = &m.ex, .c = c, .w = &m.w, .world = sp.world, .plain = rope, .compressed = rope_c, .ring = m.ring, .two = if (m.two) |*t| t else null };
         m.eng.round_rows = o.round_rows;
-        m.ch = try prompt.Chunk.init(&m.eng, &m.arena, chunk_rows, o.pool);
+        m.ch = try prompt.Chunk.init(&m.eng, &m.arena, chunk_rows, m.context_cap);
         m.caches = try prompt.Caches.init(&m.eng, &m.arena, o.pool, m.streams);
         m.blas = try cublas.Blas.open(m.stream, m.ch.blas_ws);
         errdefer m.blas.close();
@@ -286,9 +296,9 @@ pub const Model = struct {
             r.* = try m.arena.take(m.streams * m.eng.ringBytes());
             try d.check(d.api.cuMemsetD8Async(r.*, 0, m.streams * m.eng.ringBytes(), m.stream.handle), "cuMemsetD8Async");
         }
-        m.rd = try round.Round.init(&m.eng, &m.arena, a, o.pool);
+        m.rd = try round.Round.init(&m.eng, &m.arena, a, m.context_cap);
         m.amax = try m.arena.take(round.max_rows * 4);
-        if (o.graphs) m.graphs = round.Graphs.init(gpa);
+        if (o.graphs) m.graphs = try round.Graphs.fromEnv(gpa, m.context_cap);
         if (o.side) try m.rd.useSide(&m.eng);
         if (o.prefetch) try m.rd.usePrefetch(&m.eng);
         if (o.drafts) {
@@ -363,6 +373,7 @@ pub const Model = struct {
         if (m.rdma_rings) |*r| r.close(m.gpa);
         m.blas.close();
         m.arena.deinit();
+        if (m.carveout) |*cv| cv.deinit();
         m.rope_buf.free();
         m.ex.unload();
         m.ops.unload();
@@ -390,7 +401,8 @@ pub const Model = struct {
     /// connected, and started once both are (an all-gather as the barrier).
     pub fn openRing(gpa: std.mem.Allocator, d: *const cuda.Driver, k: rdma.Kernels, devices: []const []const u8, rank: u32, comm: *const comm_mod.Comm, stream: cuda.Stream) !*rdma.Ring {
         if (comm.world != 2) return error.NotTwoRanks;
-        const r = try rdma.Ring.create(gpa, d, k, devices, rank, 2, .{ .max_bytes = ring_bytes, .gid_index = 5 });
+        const gid = if (std.c.getenv("TF_RDMA_GID_INDEX") orelse std.c.getenv("NCCL_IB_GID_INDEX")) |v| try std.fmt.parseInt(u8, std.mem.span(v), 10) else 5;
+        const r = try rdma.Ring.create(gpa, d, k, devices, rank, 2, .{ .max_bytes = ring_bytes, .gid_index = gid });
         errdefer r.destroy(gpa);
         const per = @sizeOf(rdma.Info);
         const mine = [2]rdma.Info{ r.info(0), r.info(1) };
@@ -487,8 +499,19 @@ pub const Model = struct {
     }
 
     fn copySpan(m: *Model, plane: u64, from: usize, to: usize, n: usize, row: usize) !void {
+        if (from == to or n == 0) return;
         const d = m.ctx.d;
-        try d.check(d.api.cuMemcpyDtoDAsync_v2(plane + to * row, plane + from * row, n * row, m.stream.handle), "cuMemcpyDtoDAsync");
+        // CUDA memcpy does not permit overlapping source/destination regions.
+        // Issue nonoverlapping pieces in memmove order on the same stream.
+        const distance = if (from > to) from - to else to - from;
+        const chunk = @min(distance, 16384);
+        var copied: usize = 0;
+        while (copied < n) {
+            const count = @min(chunk, n - copied);
+            const offset = if (to < from) copied else n - copied - count;
+            try d.check(d.api.cuMemcpyDtoDAsync_v2(plane + (to + offset) * row, plane + (from + offset) * row, count * row, m.stream.handle), "cuMemcpyDtoDAsync");
+            copied += count;
+        }
     }
 
     fn copyState(m: *Model, live: u64, kept: u64, bytes: usize, save: bool) !void {
@@ -670,7 +693,7 @@ pub const Model = struct {
         const e = &m.eng;
         if (m.prof) try m.stream.synchronize(); // (the GPU idle, so the issue time shows whether the host keeps it fed)
         const t0 = m.now();
-        try round.forward(e, &m.rd, &m.ch, &m.caches, m.rings, if (m.eh) |*x| x else null, &.{}, rows, m.pool_cap, null, if (m.graphs) |*g| g else null);
+        try round.forward(e, &m.rd, &m.ch, &m.caches, m.rings, if (m.eh) |*x| x else null, &.{}, rows, m.context_cap, null, if (m.graphs) |*g| g else null);
         if (m.prof) {
             m.t_enqueue = m.now() - t0;
             try m.stream.synchronize();

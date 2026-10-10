@@ -29,12 +29,13 @@ const Engine = prompt.Engine;
 const Chunk = prompt.Chunk;
 
 /// MultiDecoder's stream slots in the served lane (--parallel 4): the pool's streams.
-pub const max_streams = 16; // the most streams any stream setting (Model.streams) gives the pool
+pub const max_streams = @import("extent_plan.zig").max_items; // resident slots, independent of pass size
+pub const max_pass_streams = 16; // preserve the upstream kernel/workspace bound; wider requests use several passes
 /// The served pool's streams when unset (--parallel 4); the four-node lane serves 16.
 pub const default_streams = 4;
 /// A pass's rows at most: every stream's block (four streams: 20). Past kernels.decode_rows() (16 rows: four streams) the MoE gate is a
 /// cuBLAS matmul with the plain routing and the attention one split (its pick list padded to 16 columns of -1).
-pub const max_rows = max_streams * 5; // every stream of the pool, a five-row block each
+pub const max_rows = max_pass_streams * 5;
 /// kernels.decode_rows(): the row-invariant decode kernels' rows at most.
 /// sparse_attn's pick list of a single-split call: padded with -1 to a multiple of 16 entries.
 const pick_pad = 16;
@@ -439,7 +440,7 @@ pub const Drafter = struct {
         const N = tokens.len;
         const n = dr.n;
         const R = N * n;
-        if (N == 0 or N > max_streams or R > max_rows or q0.len != N or slots.len != N) return notPorted(@src());
+        if (N == 0 or N > max_pass_streams or R > max_rows or q0.len != N or slots.len != N) return notPorted(@src());
         if (steps == 0 or steps > n) return error.BadDraftPass;
         // _body's index rows: ids [token, noise ...], positions q0 + j, window positions q0 - 1, ring bases
         var hv: [6 * max_rows]i64 = @splat(0);

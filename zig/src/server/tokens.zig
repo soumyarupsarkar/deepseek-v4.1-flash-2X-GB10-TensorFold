@@ -51,7 +51,8 @@ fn tokenize(srv: *Server, cx: *Cx, body: Value) errors.Refused!Value {
     }
     const o = try json.newObject(a);
     try o.put(a, "count", try json.intValue(a, ids.len));
-    try o.put(a, "max_model_len", if (srv.info.context_window > 0) try json.intValue(a, srv.info.context_window) else .null);
+    const window = srv.requestWindow(body);
+    try o.put(a, "max_model_len", if (window > 0) try json.intValue(a, window) else .null);
     const list = try a.alloc(Value, ids.len);
     for (ids, list) |t, *slot| slot.* = try json.intValue(a, t);
     try o.put(a, "tokens", .{ .array = list });

@@ -1,0 +1,14 @@
+{
+  "engram/engram-layer-01.safetensors": {
+    "bytes": 101377628616,
+    "sha256": "9ecd9bc00c8c045104d639dfdd8d6de4fe0457ce05ad8885baab062d059b0c9e"
+  },
+  "engram/engram-layer-14.safetensors": {
+    "bytes": 101380404312,
+    "sha256": "0c33910e5a59c2787d1bc1891ca5961248e1db94e7919c562afbf4cedba2f5b2"
+  },
+  "vision-extra/vision-routing-bias.safetensors": {
+    "bytes": 64944,
+    "sha256": "3af36227242af726f0642a191262c5d66f87b33ae38764c3e9c4ad439e3de819"
+  }
+}

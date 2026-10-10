@@ -1,4 +1,14 @@
-# TensorFold
+# deepseek-v4.1-flash-2X-GB10-TensorFold — native migration candidate
+
+This branch is undergoing hardware qualification. It is not the qualified
+deployment release. [MIGRATION.md](MIGRATION.md) lists the feature, capacity,
+performance, recovery and endurance gates and preserves the Python rollback
+reference. The inherited TensorFold documentation below describes the native
+engine; its general installation commands do not install this two-node recipe.
+
+Use `./cluster plan` to inspect the candidate's portable deployment plan.
+Native setup and rollback instructions will be finalized with measured
+qualification evidence before a release or production cutover.
 
 > **This is a fork of TensorFold 1.0.2** by Bertholomus AI, not the upstream project. It adds the `dsv41` family:
 > DeepSeek-V4.1-Flash (EXL3), with image input, on TensorFold 1.0's native Zig engine, tensor-parallel over two NVIDIA

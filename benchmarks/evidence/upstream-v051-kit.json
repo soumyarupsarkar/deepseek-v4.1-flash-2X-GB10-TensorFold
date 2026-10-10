@@ -1,0 +1,123 @@
+{
+  "all_c1_replies_reached_maximum": true,
+  "checks": {
+    "cold_prefill_zero_cached_tokens": true,
+    "exact_prefill_input_and_output_counts": true,
+    "expected_request_counts": true,
+    "no_allocator_or_graph_counter_growth": true,
+    "owned_pair_identity": true
+  },
+  "client_sha256": "83a4fbeb987032f906cf00d3f6c9dd2fad47dd675e75dd498c4c4188d63a6c0d",
+  "decode": [
+    {
+      "decode_output_tps": {
+        "max": 94.602,
+        "median": 94.46756182855839,
+        "min": 93.374,
+        "n": 3
+      },
+      "generated_tokens": [
+        384,
+        384,
+        384
+      ],
+      "identical_texts": true,
+      "max_tokens": 384,
+      "median_ttft_s": 0.17076242505572736,
+      "prompt": "code"
+    },
+    {
+      "decode_output_tps": {
+        "max": 59.172,
+        "median": 59.009868256109456,
+        "min": 58.268,
+        "n": 3
+      },
+      "generated_tokens": [
+        384,
+        384,
+        384
+      ],
+      "identical_texts": true,
+      "max_tokens": 384,
+      "median_ttft_s": 0.11980215599760413,
+      "prompt": "prose"
+    },
+    {
+      "decode_output_tps": {
+        "max": 138.709,
+        "median": 137.77209710225344,
+        "min": 137.684,
+        "n": 3
+      },
+      "generated_tokens": [
+        384,
+        384,
+        384
+      ],
+      "identical_texts": true,
+      "max_tokens": 384,
+      "median_ttft_s": 0.11341909901238978,
+      "prompt": "structured"
+    }
+  ],
+  "finished": "2026-10-08T10:07:06.068775+00:00",
+  "image_id": "sha256:928fc8e4416e4494de8e600ef81c3ed60393f3871959d77ae20965bc99d2e8ba",
+  "prefill": [
+    {
+      "input_over_ttft_tps": {
+        "max": 2001.9781919930952,
+        "median": 2000.4570074752132,
+        "min": 1978.1744025254466,
+        "n": 3
+      },
+      "input_tokens": 32768,
+      "ttft_s": {
+        "max": 16.564767979085445,
+        "median": 16.38025705004111,
+        "min": 16.36781066399999,
+        "n": 3
+      }
+    },
+    {
+      "input_over_ttft_tps": {
+        "max": 1839.2053599217522,
+        "median": 1837.4540831931604,
+        "min": 1835.1380463075973,
+        "n": 3
+      },
+      "input_tokens": 131072,
+      "ttft_s": {
+        "max": 71.4235096720513,
+        "median": 71.33348321402445,
+        "min": 71.26556003815494,
+        "n": 3
+      }
+    }
+  ],
+  "profile": "c32-keys-v051",
+  "scope": [
+    "Unchanged upstream client: set-b C1, T=0, per-prompt warm-up, maximum 384 output tokens, EOS allowed, three repetitions.",
+    "C1 has no cold-prefix claim; generated-token counts are retained for each repetition.",
+    "Cold prefill uses one output token, fresh time-seeded word inputs and input divided by first-content latency; weights and kernels were warm.",
+    "Wrapper checked zero prefill prefix hits and exact counters; raw operational receipts stay private.",
+    "No upstream-kit C4 burst or sustained run was repeated during this correctness update."
+  ],
+  "source_revision": "c068898375337c1f2a7bd222e5d1c342b0a83f9c",
+  "sources": [
+    {
+      "receipt": "kit-qualification.json",
+      "sha256": "a1dd5d92e5e68f731a9aa474b6349a12b2fbd3092502963bf4e12991ffefe75a"
+    },
+    {
+      "receipt": "kit-decode.json",
+      "sha256": "8590ad17ad800541f4d678718ffb4ae9179175e663797103735372b875b216b1"
+    },
+    {
+      "receipt": "kit-prefill.json",
+      "sha256": "1edb0d3584c873b409bf23a6ad44753ea0ef4b42799eff3ee9cb535f23447bac"
+    }
+  ],
+  "started": "2026-10-08T10:01:54.634744+00:00",
+  "status": "passed"
+}

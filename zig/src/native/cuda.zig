@@ -281,6 +281,12 @@ const Host = struct {
                     x.inner.vtable.release(x.inner.ptr, s);
                 }
             }.f,
+            .diagnostics = if (v.diagnostics != null) struct {
+                fn f(p: *anyopaque) lanes.backend.Diagnostics {
+                    const x: *Host = @ptrCast(@alignCast(p)); // counters only: no CUDA binding on HTTP threads
+                    return x.inner.vtable.diagnostics.?(x.inner.ptr);
+                }
+            }.f else null,
         };
         return .{ .ptr = h, .vtable = &h.vtable };
     }
@@ -350,6 +356,10 @@ fn openWith(comptime F: type, a: Allocator, gpa: Allocator, io: std.Io, o: api.O
         return null;
     };
     defer if (!opened) loaded.deinit(loaded.ctx);
+    if (@hasField(@TypeOf(loaded), "max_streams")) if (o.lanes > loaded.max_streams) {
+        problem.* = try std.fmt.allocPrint(a, "--parallel {d} exceeds the {d} resident stream slots; set TF_DS_STREAMS to the same capacity", .{ o.lanes, loaded.max_streams });
+        return null;
+    };
     const model = cuda.usage(false).device - held0;
     const after = try pool(a, io, &g.ctx, problem) orelse return null;
     const room = after.room(model);
@@ -372,12 +382,15 @@ fn openWith(comptime F: type, a: Allocator, gpa: Allocator, io: std.Io, o: api.O
         const want: u64 = @intFromFloat((o.prompt_cache_gib orelse 0.5) * gib);
         if (want > 0) {
             h.snap_vt = .{ .bytes = sn.bytes, .save = sn.save, .restore = sn.restore, .drop = sn.drop };
-            h.cache = api.prompt_cache.Store.init(gpa, .{ .ptr = sn.ptr, .vtable = &h.snap_vt }, .{}, want);
+            h.cache = api.prompt_cache.Store.init(gpa, .{ .ptr = sn.ptr, .vtable = &h.snap_vt }, .{
+                .max_entries = if (@hasDecl(F, "prompt_cache_states")) F.prompt_cache_states else 0,
+                .max_marks = if (@hasDecl(F, "prompt_cache_marks")) F.prompt_cache_marks else 0,
+            }, want);
         }
     };
     // the family cuts its own prompt grid from position 0, as `tensorfold run` does: prefill_step 0
     const vision: ?api.Vision = if (@hasField(@TypeOf(loaded), "vision")) loaded.vision else null;
-    try h.serve(io, loaded.facts, loaded.rows, .{ .lanes = streams, .context_window = @intCast(window), .startup = h.startup, .efforts = familyEfforts(F), .vision = vision }, .{ .ctx = loaded.ctx, .text = F.explain });
+    try h.serve(io, loaded.facts, loaded.rows, .{ .lanes = streams, .context_window = @intCast(window), .startup = h.startup, .efforts = familyEfforts(F), .vision = vision, .logit_constraints = if (@hasField(@TypeOf(loaded), "logit_constraints")) loaded.logit_constraints else false, .fail_closed = if (@hasField(@TypeOf(loaded), "fail_closed")) loaded.fail_closed else false }, .{ .ctx = loaded.ctx, .text = F.explain });
     opened = true;
     return .{ .engine = h.host.engine(), .close = Host.close, .ctx = h };
 }

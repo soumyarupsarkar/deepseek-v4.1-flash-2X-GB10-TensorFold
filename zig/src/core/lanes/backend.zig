@@ -28,6 +28,29 @@ pub const Alternative = struct { tokens: [4]u32, probs: [4]f64 };
 /// A window's results: each row's drawn token and the held drafts the forward verified (host drafts echo back).
 pub const Verified = struct { sampled: []u32, drafts: []u32 };
 
+/// Optional, allocation-free counters safe to read from HTTP threads. These are
+/// engine facts, not estimates inferred from a deployment's settings.
+pub const Diagnostics = struct {
+    pool_tokens: u64 = 0,
+    context_tokens: u64 = 0,
+    stream_slots: u32 = 0,
+    active_streams: u64 = 0,
+    prefilling_streams: u64 = 0,
+    prefill_tokens: u64 = 0,
+    verify_rounds: u64 = 0,
+    draft_passes: u64 = 0,
+    retained_states: u64 = 0,
+    snapshot_bytes: u64 = 0,
+    compactions: u64 = 0,
+    relocated_tokens: u64 = 0,
+    round_graphs: u64 = 0,
+    graph_limit: u64 = 0,
+    graph_eager_fallbacks: u64 = 0,
+    drm_reserved_bytes: u64 = 0,
+    drm_used_bytes: u64 = 0,
+    rdma_failed: bool = false,
+};
+
 /// Absorb a stream's kept rows into its draft head and hold `depth` drafts for its next round.
 pub const DraftRequest = struct {
     stream: *Stream,
@@ -71,6 +94,7 @@ pub const Backend = struct {
         alternatives: ?*const fn (ptr: *anyopaque, s: *Stream, out: []Alternative) anyerror!usize = null,
         /// The stream left the rounds: free its caches and held drafts.
         release: *const fn (ptr: *anyopaque, s: *Stream) void,
+        diagnostics: ?*const fn (ptr: *anyopaque) Diagnostics = null,
     };
 
     pub fn prefill(b: Backend, s: *Stream) !void {

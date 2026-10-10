@@ -15,3 +15,7 @@ venv/
 .zig-toolchain
 .zig-cache/
 zig-out/
+
+# Per-installation configuration, ownership journals and operational receipts.
+/deployment/local.json
+/deployment/.local/

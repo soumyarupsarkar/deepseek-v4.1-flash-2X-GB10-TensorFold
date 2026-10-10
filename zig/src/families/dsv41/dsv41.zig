@@ -94,4 +94,5 @@ test {
     refAll(sampling);
     refAll(model);
     refAll(lanes);
+    refAll(@import("extent_plan.zig"));
 }

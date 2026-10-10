@@ -147,6 +147,7 @@ pub const Ring = struct {
     proxy: ?std.Thread = null,
     running: std.atomic.Value(bool) = .init(false),
     failed: std.atomic.Value(bool) = .init(false),
+    reason_ready: std.atomic.Value(bool) = .init(false),
     why: [128]u8 = @splat(0),
 
     // the metadata block: flags [slots][world], doorbell, sizes [slots], sent [slots], abort word
@@ -306,6 +307,7 @@ pub const Ring = struct {
 
     pub fn failure(r: *const Ring) ?[]const u8 {
         if (!r.failed.load(.acquire)) return null;
+        if (!r.reason_ready.load(.acquire)) return "RDMA transport failed";
         return std.mem.sliceTo(&r.why, 0);
     }
 
@@ -313,6 +315,7 @@ pub const Ring = struct {
         if (!r.failed.swap(true, .acq_rel)) {
             const n = @min(why.len, r.why.len - 1);
             @memcpy(r.why[0..n], why[0..n]);
+            r.reason_ready.store(true, .release);
         }
         @atomicStore(u64, r.abortWord(), 1, .release);
     }

@@ -46,6 +46,12 @@ pub const Rules = struct {
     min_gap: u32 = 256,
     /// Shorter prompts keep nothing: below it a mark's extra prompt call costs more than a later turn's reuse saves.
     min_prompt: u32 = 4096,
+    /// Zero preserves the upstream budget-only limit. A count bound also limits
+    /// the host copies of very long prompt keys and history.
+    max_entries: usize = 0,
+    /// Recent planned marks to retain, zero for all. A family can additionally
+    /// keep the final complete chunk before its replay boundary.
+    max_marks: usize = 0,
 };
 
 pub const Entry = struct {
@@ -244,6 +250,11 @@ pub const Store = struct {
             if (std.mem.indexOfScalar(u32, out.items, at) == null) try out.append(a, at);
         }
         std.mem.sort(u32, out.items, {}, std.sort.asc(u32));
+        if (s.rules.max_marks > 0 and out.items.len > s.rules.max_marks) {
+            const n = s.rules.max_marks;
+            std.mem.copyForwards(u32, out.items[0..n], out.items[out.items.len - n ..]);
+            out.items.len = n;
+        }
         return out.toOwnedSlice(a);
     }
 
@@ -263,6 +274,10 @@ pub const Store = struct {
             s.counts.refused += 1;
             note("kept nothing at {d} tokens: {d} MiB passes the {d} MiB budget", .{ at, bytes >> 20, s.budget >> 20 });
             return false;
+        }
+        while (s.rules.max_entries > 0 and s.entries.items.len >= s.rules.max_entries) {
+            s.remove(s.victimBut(null, prompt).?);
+            s.counts.evicted += 1;
         }
         while (s.entries.items.len > 0) { // room: spare storage this save can take, else new storage inside the budget
             if (s.family.vtable.reuses) |f| if (f(s.family.ptr, at)) break;
@@ -329,7 +344,9 @@ pub const Store = struct {
         const read = s.family.vtable.read orelse return have;
         const m = im.best(prompt, starts, s.rules.planned, if (have) |x| x.at else 0) orelse return have;
         const bytes = s.family.vtable.bytes(s.family.ptr, m.at);
-        while (bytes <= s.budget and s.held + s.spare() + bytes > s.budget) {
+        while (bytes <= s.budget and (s.held + s.spare() + bytes > s.budget or
+            (s.rules.max_entries > 0 and s.entries.items.len >= s.rules.max_entries)))
+        {
             s.remove(s.victimBut(have, prompt) orelse return have);
             s.counts.evicted += 1;
         }

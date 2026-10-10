@@ -41,4 +41,7 @@ test {
     _ = @import("compact_test.zig");
     _ = @import("decisions.zig");
     _ = @import("decisions_test.zig");
+    _ = @import("seed_mode.zig");
+    _ = @import("model_windows.zig");
+    _ = @import("tool_grammar.zig");
 }

@@ -9,6 +9,30 @@ const Store = pc.Store;
 const Plan = pc.Plan;
 const Allocator = std.mem.Allocator;
 
+test "a count cap evicts old prompt keys even with unused byte budget" {
+    const a = std.testing.allocator;
+    var fake: Fake = .{ .gpa = a };
+    var store = Store.init(a, fake.snapshots(), .{ .min_prompt = 0, .max_entries = 4, .max_marks = 1, .min_gap = 1 }, 1 << 20);
+    defer store.deinit();
+    var prompt: [1024]u32 = undefined;
+    for (0..6) |i| {
+        @memset(&prompt, @intCast(i + 1));
+        fake.at = 128;
+        fake.sum = 128 * (i + 1);
+        try std.testing.expect(store.keep(&prompt, 128, null, &.{}));
+    }
+    try std.testing.expectEqual(@as(usize, 4), store.entries.items.len);
+    try std.testing.expectEqual(@as(usize, 4), fake.live);
+    try std.testing.expectEqual(@as(u64, 2), store.counts.evicted);
+    @memset(&prompt, 1);
+    try std.testing.expect(store.find(&prompt, &.{}) == null);
+    @memset(&prompt, 6);
+    try std.testing.expect(store.find(&prompt, &.{}) != null);
+    const marks = try store.marks(a, &prompt, 0, 900, &.{ 200, 400, 700 }, &.{}, &.{});
+    defer a.free(marks);
+    try std.testing.expectEqualSlices(u32, &.{900}, marks);
+}
+
 /// Rank 1's bytes: it applies a request's drops before that request's keeps; drops made during a pass wait for the next request.
 const Peer = struct {
     held: u64 = 0,

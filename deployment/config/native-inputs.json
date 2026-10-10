@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "native_basis": "4e80f05ecba89a4e90d16375ade2eddbdc0a10c4",
+  "zig": {
+    "version": "0.17.0",
+    "url": "https://ziglang.org/download/0.17.0/zig-aarch64-linux-0.17.0.tar.xz",
+    "sha256": "9e8d11661d4ae3bd57702a3832781e23ad151dde5798e16a5ccd503f65234ff8"
+  },
+  "xgrammar": {
+    "repository": "https://github.com/mlc-ai/xgrammar.git",
+    "revision": "97787376faee5ed8466cfad57c99855e4ce2f6aa"
+  },
+  "kernel_kit": {
+    "repo": "bertholomus/DeepSeek-V4.1-Flash-TensorFold-TP2-2xGB10",
+    "revision": "789625a7081e91643cb61ceafd15f588850c511a",
+    "manifest_sha256": "0df6bbbd49c9f3419b83a2cfe978182fc664dc036e9979c900b599ff84b4f9f3",
+    "recipe_revision": "5e90ec9302149049e8f019ea035827cb24c206f8",
+    "manifest_equal": true,
+    "files": "native-kit-files.json",
+    "files_sha256": "a284600537e1af62f0eeedbbd5887f257364e8fdb6660589297748e4cd62774a"
+  },
+  "prepared_cache_producer": {
+    "repository": "https://github.com/soumyarupsarkar/deepseek-v4.1-flash-2X-GB10-TensorFold.git",
+    "revision": "32c4ebea7d0a81808aaa503d88ebe1a84612d0cf",
+    "weights_source_sha256": "73ccbe927d7ba8e04c82da61ea8cdfd592b52750e4f932a871cd5bd08614cc97",
+    "format": "TFDSRK01"
+  }
+}

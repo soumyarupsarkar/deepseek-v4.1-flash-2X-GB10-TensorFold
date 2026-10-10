@@ -8,6 +8,8 @@ pub const Id = u64;
 
 /// One request's sampling (Python's exact_sampling.Sampling); a request without one decodes greedily.
 pub const Sampling = lanes.Sampling;
+pub const LogitGate = lanes.stream.LogitGate;
+pub const Diagnostics = lanes.backend.Diagnostics;
 
 /// A prompt's reproducible seed (``seed_for``), for requests that name none.
 pub const seedFor = lanes.sampling.seedFor;
@@ -39,7 +41,7 @@ pub const CallGate = struct {
 
 /// response_format and the guided_* fields: every token keeps the reply inside this grammar.
 pub const Structure = struct {
-    kind: enum { json, json_schema, regex, choice, grammar },
+    kind: enum { json, json_schema, regex, choice, grammar, tools },
     /// The schema (JSON text), regex, choices (a JSON array) or EBNF; empty for any JSON object.
     text: []const u8 = "",
     /// With thinking on, the grammar starts after this token.
@@ -74,6 +76,7 @@ pub const Request = struct {
     /// Set only when ``Info`` says the engine enforces it.
     call: ?CallGate = null,
     structure: ?Structure = null,
+    logit_gate: ?LogitGate = null,
     /// Stop a short exact cycle while the think block is open.
     loop_guard: bool = false,
 };
@@ -127,6 +130,10 @@ pub const Info = struct {
     /// The engine observes loop_guard requests in its lane stream.
     loop_guard: bool = false,
     structures: bool = false,
+    /// Every sampled row passes through Request.logit_gate, including the first token.
+    logit_constraints: bool = false,
+    /// A rank-synchronized engine must restart both ranks after an uncertain round.
+    fail_closed: bool = false,
     /// Prompt rows a prefill chunk at most, for the server's chunk starts (0: the engine cuts prompts itself).
     prefill_step: u32 = 0,
     /// A line the server prints once at startup (the engine's memory plan); empty: none.
@@ -180,6 +187,9 @@ pub const MemorySource = struct {
 };
 
 pub const Status = struct {
+    failed: bool = false,
+    failure: []const u8 = "",
+    diagnostics: ?Diagnostics = null,
     /// Requests in prefill or decode, and those waiting for a lane.
     running: u32 = 0,
     waiting: u32 = 0,
@@ -192,6 +202,8 @@ pub const Status = struct {
     streams: usize = 0,
     /// Generated tokens held by live streams, excluding their prompts.
     generation_tokens: u64 = 0,
+    /// Committed output tokens delivered since engine start, including live jobs.
+    generation_tokens_total: u64 = 0,
 };
 
 pub const SubmitError = error{ Closed, Busy };

@@ -18,6 +18,9 @@ const prompt = @import("prompt.zig");
 const tool_specs = @import("tool_specs.zig");
 const chunk_plan = @import("chunk_plan.zig");
 const log = @import("log.zig");
+const seed_mode = @import("seed_mode.zig");
+const xgrammar = @import("xgrammar.zig");
+const tool_grammar = @import("tool_grammar.zig");
 const Value = json.Value;
 const Cx = errors.Cx;
 const Allocator = std.mem.Allocator;
@@ -29,6 +32,7 @@ pub const Config = struct {
     served_name: []const u8,
     /// The served name first, then aliases, without repeats.
     model_ids: []const []const u8,
+    model_contexts: []const @import("model_windows.zig").Entry = &.{},
     default_max_tokens: i64 = 4096,
     enable_thinking: bool = true,
     reasoning_effort: ?[]const u8 = null,
@@ -41,6 +45,9 @@ pub const Config = struct {
     default_sampling: ?Value = null,
     use_drafts: bool = true,
     seed_salt: i64 = 0,
+    seed_mode: seed_mode.Mode = .prompt,
+    grammars: ?*xgrammar.Compiler = null, // owned by main, outlives the server and its requests
+    tool_grammar_mode: tool_grammar.Mode = .required,
     /// TENSORFOLD_REQUEST_LOG: where chat and completion bodies are appended; null: nowhere.
     request_log: ?[]const u8 = null,
     /// Null keeps every reply identical to a server that has no compaction.
@@ -84,6 +91,10 @@ pub const Server = struct {
     pub fn init(gpa: Allocator, io: std.Io, engine: api.Engine, text: model_text.Text, config: Config, keys: ?*auth.Store) !*Server {
         const srv = try gpa.create(Server);
         srv.* = .{ .gpa = gpa, .io = io, .engine = engine, .info = engine.info(), .text = text, .config = config, .keys = keys, .metrics = .{ .gpa = gpa }, .store = .{ .gpa = gpa }, .arena = .init(gpa) };
+        if (config.grammars != null and srv.info.logit_constraints) {
+            srv.info.structures = true;
+            srv.info.call_gates = config.tool_grammar_mode != .off;
+        }
         if (config.keep_warm_s > 0) if (engine.keepaliveTarget()) |target| {
             srv.keepalive = api.keepalive.Keepalive.start(gpa, io, target, @as(i64, config.keep_warm_s) * std.time.ns_per_s) catch |e| blk: {
                 log.line("idle keepalive off: {s}", .{@errorName(e)});
@@ -135,7 +146,15 @@ pub const Server = struct {
         return null;
     }
 
-    /// ``_resolve_sampling``: omitted or null fields keep the defaults; an omitted seed is keyed to the prompt.
+    pub fn modelWindow(srv: *const Server, name: ?[]const u8) u32 {
+        return @import("model_windows.zig").window(srv.config.model_contexts, name, srv.info.context_window);
+    }
+
+    pub fn requestWindow(srv: *const Server, fields_: Value) u32 {
+        return srv.modelWindow(if (fields_.get("model")) |m| m.str() else null);
+    }
+
+    /// Omitted/null fields keep defaults. Explicit seeds override both configured seed modes.
     pub fn resolveSampling(srv: *Server, cx: *Cx, f: Value, temperature: f64, prompt_ids: []const u32) errors.Refused!?api.Sampling {
         _ = temperature; // the request's own temperature field decides, as in the Python server
         const options = try json.newObject(cx.a);
@@ -143,7 +162,10 @@ pub const Server = struct {
         try merge(options, cx, try fields.parseNumbers(cx, f));
         const temp = number(options.get("temperature")) orelse 0;
         if (temp <= 0) return null;
-        const seed: u64 = if (options.get("seed")) |s| seedBits(s) else api.seedFor(prompt_ids, srv.config.seed_salt);
+        const explicit: ?u64 = if (options.get("seed")) |s| (if (s == .null) null else seedBits(s)) else null;
+        var random_bytes: [8]u8 = @splat(0);
+        if (explicit == null and srv.config.seed_mode == .random) srv.io.random(&random_bytes);
+        const seed = seed_mode.choose(explicit, prompt_ids, srv.config.seed_salt, srv.config.seed_mode, std.mem.readInt(u64, &random_bytes, .little));
         return .{
             .seed = seed,
             .temperature = @floatCast(temp),
@@ -156,6 +178,21 @@ pub const Server = struct {
     /// The call gate and grammar a request asks for, or its refusal when the engine cannot enforce them.
     pub fn checkFeatures(srv: *Server, cx: *Cx, f: Value, has_tools: bool, thinking: bool, prompt_ids: []const u32, tools: []const Value, request: *api.Request) errors.Refused!void {
         _ = prompt_ids;
+        if (srv.info.logit_constraints) if (srv.config.grammars) |compiler| {
+            const after = if (thinking) srv.text.tokenId(srv.markers.close) else null;
+            const regular = try grammar.spec(cx, f);
+            const calls = try tool_grammar.spec(cx, f, tools, srv.config.tool_grammar_mode, after);
+            if (regular != null and calls != null) return cx.refuse("response_format and guided output cannot be combined with tool-call constraints in one request");
+            if (regular) |s| request.structure = .{ .kind = s.kind, .text = s.text, .after = after };
+            if (calls) |s| request.structure = s;
+            if (request.structure) |s| {
+                var problem: [1024]u8 = @splat(0);
+                var matcher = compiler.matcher(s, &problem) catch return cx.fail(.request, "invalid output grammar: {s}", .{std.mem.sliceTo(&problem, 0)});
+                matcher.deinit(); // validate before SSE opens; generation owns a fresh state
+                request.drafts = false;
+            }
+            return;
+        };
         const required = if (f.get("tool_call_required")) |r| r.truthy() else false;
         if (has_tools and required) {
             const form = try srv.callForm(cx);

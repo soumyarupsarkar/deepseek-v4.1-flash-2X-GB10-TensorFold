@@ -97,9 +97,9 @@ pub fn run(srv: *Server, cx: *Cx, input: chat.Input, sink: ?chat.Sink, gone: any
 pub fn prepare(srv: *Server, cx: *Cx, input: chat.Input, gone: anytype) chat.Failure!Ready {
     const at = srv.config.compact_at orelse {
         const prepared = try chat.prepare(srv, cx, input, gone);
-        return .{ .prepared = prepared, .stamp = .{ .window = srv.info.context_window, .used = prepared.prompt_len } };
+        return .{ .prepared = prepared, .stamp = .{ .window = srv.requestWindow(input.fields), .used = prepared.prompt_len } };
     };
-    const window: i64 = srv.info.context_window;
+    const window: i64 = srv.requestWindow(input.fields);
     if (input.messages != .array or window <= 0) {
         const prepared = try chat.prepare(srv, cx, input, gone);
         return .{ .prepared = prepared, .stamp = .{ .window = window, .used = prepared.prompt_len } };
@@ -139,7 +139,7 @@ fn rebuild(srv: *Server, cx: *Cx, input: chat.Input, gone: anytype, at: CompactA
     }
     const skip: usize = if (hash_ok) slot.?.covered else if (marker) |i| i + 1 else 0;
     const prefix = prefixLen(msgs);
-    var tail = try keptStart(srv, a, msgs, keepTokens(srv.info.context_window, srv.config.compact_keep), marker);
+    var tail = try keptStart(srv, a, msgs, keepTokens(srv.requestWindow(input.fields), srv.config.compact_keep), marker);
     if (tail < prefix) tail = prefix;
     const split_at = splitIndex(msgs, prefix, tail, marker);
     const middle_to = split_at orelse tail;
@@ -171,7 +171,7 @@ fn rebuild(srv: *Server, cx: *Cx, input: chat.Input, gone: anytype, at: CompactA
             return .{
                 .prepared = prepared,
                 .stamp = .{
-                    .window = srv.info.context_window,
+                    .window = srv.requestWindow(input.fields),
                     .used = prepared.prompt_len,
                     .compacted = true,
                     .messages_compacted = countBetween(msgs, prefix, tail, marker),
@@ -195,7 +195,7 @@ fn rebuild(srv: *Server, cx: *Cx, input: chat.Input, gone: anytype, at: CompactA
         }
     }
     const prepared = try chat.prepare(srv, cx, input, gone);
-    return .{ .prepared = prepared, .stamp = .{ .window = srv.info.context_window, .used = prepared.prompt_len } };
+    return .{ .prepared = prepared, .stamp = .{ .window = srv.requestWindow(input.fields), .used = prepared.prompt_len } };
 }
 
 pub fn keptStart(srv: *Server, a: Allocator, msgs: []const Value, keep: usize, marker: ?usize) chat.Failure!usize {
