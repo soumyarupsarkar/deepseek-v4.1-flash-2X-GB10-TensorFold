@@ -112,6 +112,19 @@ includes prefill and admission. Steady decode requires a sufficiently long
 sampled interval with all requested streams decoding and none queued. A short
 or unobserved steady interval is null, not a guessed rate.
 
+`scripts/compare_native.py` checks two completed benchmark receipts for exact
+case and prompt-hash agreement, completed output budgets, and actual cold-cache
+behavior. It emits aggregate timing fields, image/receipt digests and an output
+hash-match count, without private launch configuration or response text:
+
+```bash
+python3 -B scripts/compare_native.py /path/to/python-receipt.json /path/to/native-receipt.json --output /path/to/new-comparison.json
+```
+
+Missing steady measurements stay missing, including when only one repetition
+has a usable interval. Review the individual repetitions and timing spread;
+the comparison does not decide whether a deployment should be cut over.
+
 `qualify_*.py` files also contain the retained Python fixture implementations.
 Invoke the `native_*.py` adapters above for native serving; a historical Python
 receipt or an unchanged fixture is not itself native qualification.
