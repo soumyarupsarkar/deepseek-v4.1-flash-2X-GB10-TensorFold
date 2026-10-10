@@ -33,13 +33,18 @@ endurance run remain pending. The corrected image's six-minute requested soak
 completed 256 requests without eager graph fallbacks; it is not endurance
 qualification.
 
-The earlier image's [20-wave primary comparison](native-primary-comparison-20261010.json)
-is complete. Its observed end-to-end medians include a 6.2% C1-code gain and a 7.7%
-C32 regression. The [eight-wave temperature-1 comparison](native-sampled-comparison-20261010.json)
-is also complete: C1 code is roughly even, C16 is faster, and C32's apparent
-end-to-end gain is affected by a noisy Python reference. C4's steady-decode
-regression and native C1 variability need follow-up; deeper-context measurements
-remain pending. See the caveats in
+The corrected image's [20-wave primary comparison](native-primary-comparison-20261010-r2.json)
+is complete. C1-code end-to-end throughput is 4.9% lower, C16 is 12.4% higher,
+and C32 is 9.2% lower than the Python reference. All repetitions are retained;
+174 of 178 reported token hashes and full-text digests match. Native C1-code
+variability, C4's 10.5% steady-decode regression and C32's drafting costs need
+follow-up. The corrected image's temperature-1 and deep-context suites are running.
+
+The earlier image's [primary comparison](native-primary-comparison-20261010.json)
+and [temperature-1 comparison](native-sampled-comparison-20261010.json) remain
+historical evidence, not qualification of the corrected image. Its earlier
+C1-code gain was not reproduced by the corrected image's two primary repetitions.
+See the caveats in
 [MIGRATION.md](../MIGRATION.md) and the predeclared
 [benefit policy](native-benefit-policy-20261010.json). These results do not
 establish an overall throughput advantage or production qualification.

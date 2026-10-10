@@ -18,8 +18,9 @@ The completed functional checks below belong to corrected runtime source
 `4d48d4ec5f3db83a361c2228088d72e27f487d62` and image
 `sha256:83752d9d3bc7da632fd195332963501e9ca5208a8e2fcf409e781e985049aafd`.
 Later documentation commits do not change which runtime produced those results.
-The performance tables remain explicitly labeled results from the earlier image;
-the corrected image's matched measurements are running.
+The corrected image's primary matched comparison is complete. Its temperature-1
+and deep-context suites are running. Earlier-image measurements remain explicitly
+labeled as historical results.
 
 The rollback source is this fork's `32c4ebea7d0a81808aaa503d88ebe1a84612d0cf`,
 documented and published in `29c1a04ecd75ea56ba85502279aa39b0bf6705f8`.
@@ -107,49 +108,63 @@ has completed the exact 614k failure case, the adjacent/odd context checks and a
 20 functional/capacity clients. Matched performance checks are running. Preparation
 and functional qualification do not establish production acceptance.
 
-## Primary matched measurements on the earlier image
+## Primary matched measurements on the corrected image
 
-The primary and temperature-1 comparisons in this section were produced by
-runtime `80b399cd023d3a88ad69501c8261143ea622328b` and image
-`sha256:5835a26f281d1dd2ddd868648a5ac6048d6924e02ca0d1a5a1cd1324949cbb6d`,
-which subsequently failed the 614k prefill. They do not qualify the corrected
-image; its complete matched suites are running against the same Python receipts.
-
-The [complete primary comparison](release/native-primary-comparison-20261010.json)
+The [complete primary comparison](release/native-primary-comparison-20261010-r2.json)
 contains 20 scored waves and 178 requests, with two repetitions per workload.
-Actual prompt hashes, output budgets and zero cached tokens match. These are
-observed test medians on the pinned images, not a completed benefit decision:
+It compares corrected runtime `4d48d4ec` / image `83752d9d` against the same
+qualified Python reference. Actual prompt hashes, output budgets and zero cached
+tokens match. These observed medians do not establish a passing benefit gate:
 
 | Workload, temperature 0 | Prompt / reply tokens per request | Python end-to-end tok/s | Native end-to-end tok/s | Change |
 | --- | --- | ---: | ---: | ---: |
-| C1 code | 43 / 384 | 89.88 | 95.41 | +6.2% |
-| C4 mixed | 1,024 / 256 | 95.58 | 90.98 | −4.8% |
-| C16 mixed | 1,024 / 256 | 117.37 | 132.10 | +12.6% |
-| C32 mixed | 1,024 / 256 | 153.22 | 141.38 | −7.7% |
+| C1 code | 43 / 384 | 89.88 | 85.44 | −4.9% |
+| C1 prose | 23 / 384 | 57.50 | 55.54 | −3.4% |
+| C4 mixed | 1,024 / 256 | 95.58 | 86.90 | −9.1% |
+| C16 mixed | 1,024 / 256 | 117.37 | 131.90 | +12.4% |
+| C32 mixed | 1,024 / 256 | 153.22 | 139.09 | −9.2% |
 
 The full comparison retains every workload and repetition. Reported token
-hashes matched for 174 of 178 requests. The four differences are the two C1
-prose replies and the two 128k replies; their rate differences do not isolate
-runtime speed on identical generated output. C1 code, C4 and C32 also matched
-full text digests. C16's Python end-to-end repetitions differed by 16.4%, so its
-median needs that variability context.
+hashes and full-text digests matched for 174 of 178 requests. The four differences
+are the two C1 prose replies and the two 128k replies; their rate differences do
+not isolate runtime speed on identical generated output. C16's Python end-to-end
+repetitions differed by 16.4%, so its median needs that variability context.
 
-C4's eligible steady-decode median fell 11.1%, with only about three seconds
-of eligible interval per repetition and no native graph captures in either
-wave. A longer-reply ordinary/default diagnostic is prepared to investigate it;
-it has not run. A missing native steady interval at 32k stays null. The separate
-deep-context suite uses longer replies to make those measurements more useful.
+C1-code native repetitions were 91.89 and 78.98 end-to-end tok/s. Both generated
+identical output, and both content-span decode and the sampled steady rate slowed
+in the second run. More head-host paging occurred around that request, but the
+coarse observations do not establish the sole cause. Both repetitions remain in
+the comparison; there is no supported C1-code speedup claim.
+
+C4's eligible steady-decode median fell 10.5%, with only three to four seconds
+of eligible interval per repetition. C32 steady decode fell 7.5%, and its
+end-to-end regression is close to the declared 10% guard. No native graph captures
+occurred in these waves. A longer-reply ordinary/default diagnostic at C4 and C32
+is prepared to investigate drafting costs; it has not run. A missing native steady
+interval at 32k stays null. The separate deep-context suite uses longer replies
+to make those measurements more useful. The first 32k primary wave captured three
+graphs, with that cost included in timing.
 
 The [benefit policy](release/native-benefit-policy-20261010.json) was declared
-before native matched measurements. Deeper-context results,
-memory interpretation, and the remaining functional/recovery/endurance gates
-are still required. Engine-specific cache eviction occurs outside scored timing:
+before native matched measurements. Temperature-1 and deeper-context results,
+memory interpretation, and recovery/endurance gates are still required.
+Engine-specific cache eviction occurs outside scored timing:
 the Python client inserted 32 prefixes, and the native client inserted 64
 fixtures to displace its retained states. Every scored request reports zero
 cached tokens. Client changes adapt native counters and record post-response
 drain outside stream timings; native graph-capture cost remains included.
 
-## Temperature-1 matched measurements
+## Historical measurements on the earlier image
+
+The [earlier primary comparison](release/native-primary-comparison-20261010.json)
+and the temperature-1 results below were produced by runtime
+`80b399cd023d3a88ad69501c8261143ea622328b` and image
+`sha256:5835a26f281d1dd2ddd868648a5ac6048d6924e02ca0d1a5a1cd1324949cbb6d`,
+which subsequently failed the 614k prefill. They do not qualify the corrected
+image. In particular, the earlier primary C1-code gain was not reproduced by
+the corrected image's two repetitions above.
+
+### Temperature-1 matched measurements on the earlier image
 
 The [sampled comparison](release/native-sampled-comparison-20261010.json)
 contains eight scored waves and 100 requests, with two repetitions per workload
