@@ -191,7 +191,12 @@ pub fn prepare(srv: *Server, cx: *Cx, input: Input, gone: anytype) Failure!Prepa
     if (thinking) {
         const budget_field = f.get("thinking_budget");
         const budget: i64 = if (budget_field != null and budget_field.?.truthy()) budget_field.?.int64() orelse 0 else srv.config.thinking_budget;
-        if (srv.think_close.len > 0) request.loop_guard = srv.config.loop_guard;
+        const guard_field = f.field("loop_guard");
+        const guard_on = if (guard_field) |v| v == .bool and v.bool else srv.config.loop_guard;
+        // Preserve the recipe's per-request opt-in/out. Explicit reasoning
+        // budgets and constrained output keep their own closing rules.
+        if (srv.think_close.len > 0 and budget <= 0 and request.structure == null)
+            request.loop_guard = guard_on;
         if ((budget > 0 or request.loop_guard) and srv.think_close.len > 0) {
             if (budget > 0) request.think_budget = @intCast(@min(budget, std.math.maxInt(u32)));
             request.think_close = srv.think_close;

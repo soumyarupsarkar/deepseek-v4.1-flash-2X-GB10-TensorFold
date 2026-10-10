@@ -12,6 +12,7 @@ const Conn = @import("http_conn.zig").Conn;
 
 /// Bytes as tokens; every prompt renders as "prompt" (6 tokens).
 const TestText = struct {
+    thinking_tokens: bool = false,
     fn text(t: *@This()) model_text.Text {
         return .{ .ctx = t, .vtable = &.{ .encode = encode, .decode = decode, .token_id = tokenId, .token_string = tokenString, .vocab_size = vocabSize, .eos_ids = eosIds, .render = render, .template_source = templateSource } };
     }
@@ -28,7 +29,9 @@ const TestText = struct {
         return decoded;
     }
 
-    fn tokenId(_: *anyopaque, _: []const u8) ?u32 {
+    fn tokenId(ctx: *anyopaque, token: []const u8) ?u32 {
+        const self: *TestText = @ptrCast(@alignCast(ctx));
+        if (self.thinking_tokens and std.mem.eql(u8, token, "</think>")) return 300;
         return null;
     }
 
@@ -218,4 +221,50 @@ test "a reply labels a greedy request greedy and a sampled one exact" {
     const sampled = try send(.chat, "{\"model\":\"test-model\",\"messages\":[{\"role\":\"user\",\"content\":\"x\"}],\"max_tokens\":2,\"temperature\":0.7,\"seed\":1}");
     try std.testing.expectEqual(.exact, sampled.label.?);
     try std.testing.expectEqual(@as(i64, 0), sampled.preparing);
+}
+
+test "per-request reasoning guards preserve defaults and exclude budgets, grammars and non-thinking" {
+    const chat = @import("chat.zig");
+    const Gone = struct {
+        pub fn check(_: @This()) bool {
+            return false;
+        }
+    };
+    var text: TestText = .{ .thinking_tokens = true };
+    var engine: HiEngine = .{};
+    const srv = try server.Server.init(std.testing.allocator, std.testing.io, engine.engine(), text.text(), .{
+        .served_name = "m", .model_ids = &.{"m"}, .enable_thinking = true,
+    }, null);
+    defer srv.deinit();
+    // The fake engine allows inspecting grammar requests without executing one.
+    srv.info.structures = true;
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const a = arena.allocator();
+    const cases = [_]struct { body: []const u8, default: bool, expected: bool, budget: u32 = 0 }{
+        .{ .body = "{}", .default = false, .expected = false },
+        .{ .body = "{}", .default = true, .expected = true },
+        .{ .body = "{\"loop_guard\":true}", .default = false, .expected = true },
+        .{ .body = "{\"loop_guard\":false}", .default = true, .expected = false },
+        .{ .body = "{\"loop_guard\":null}", .default = true, .expected = true },
+        .{ .body = "{\"loop_guard\":\"true\"}", .default = true, .expected = false },
+        .{ .body = "{\"loop_guard\":1}", .default = true, .expected = false },
+        .{ .body = "{\"loop_guard\":true,\"thinking_budget\":1}", .default = false, .expected = false, .budget = 1 },
+        .{ .body = "{\"loop_guard\":false,\"thinking_budget\":1}", .default = true, .expected = false, .budget = 1 },
+        .{ .body = "{\"loop_guard\":true,\"response_format\":{\"type\":\"json_object\"}}", .default = false, .expected = false },
+        .{ .body = "{\"loop_guard\":true,\"enable_thinking\":false}", .default = false, .expected = false },
+    };
+    for (cases) |case| {
+        srv.config.loop_guard = case.default;
+        var cx: errors.Cx = .{ .a = a };
+        const prepared = try chat.prepare(srv, &cx, .{
+            .fields = (try json.parse(a, case.body)).ok,
+            .messages = (try json.parse(a, "[{\"role\":\"user\",\"content\":\"x\"}]")).ok,
+            .max_tokens = 2,
+        }, Gone{});
+        defer chat.release(srv, prepared.preparing);
+        try std.testing.expectEqual(case.expected, prepared.request.loop_guard);
+        try std.testing.expectEqual(case.budget, prepared.request.think_budget);
+        try std.testing.expectEqual(case.expected or case.budget > 0, prepared.request.think_end != null);
+    }
 }
