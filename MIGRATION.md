@@ -70,7 +70,7 @@ each with 261,120 prompt tokens and 1,024 reply tokens. Both waves observed C32
 decoding, and every fixed seed produced exactly the same token IDs across the
 two waves. The fixture uses an identical primed prefix, with separate resident
 stream extents; it establishes capacity and replay, not cold-prefill throughput
-for 32 distinct documents. The longest recorded cleanup drain was about 108 ms.
+for 32 distinct documents. The longest recorded cleanup drain was about 213 ms.
 
 One parity attempt failed a client assumption: the final SSE response had ended
 before the scheduler removed its request. The runtime remained healthy, had no
