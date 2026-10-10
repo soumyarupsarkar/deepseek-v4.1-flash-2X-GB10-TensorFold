@@ -8,9 +8,10 @@ import time
 
 SOURCE=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(SOURCE/'deployment/scripts'))
-from configuration import load, read
+from configuration import load, read, profile
 from runtime import Pair, atomic, now
 from cli import check_host
+from engine_health import ready, busy
 
 
 def main():
@@ -49,7 +50,7 @@ with p.lock():
                 raise RuntimeError('Interruption injection failed: '+result.stderr[-2000:])
         else:
             health=pair.get('/health')
-            if not health.get('ok') or health.get('requests_running') or health.get('busy'):
+            if not ready(health, profile()) or busy(health):
                 raise RuntimeError('An idle healthy pair is required before killing its owned worker')
             expected=read(pair.state/'launch.json')
             rows={h:pair.containers(h) for h in ('head','worker')}

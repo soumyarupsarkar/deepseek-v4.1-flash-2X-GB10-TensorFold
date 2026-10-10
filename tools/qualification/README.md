@@ -21,6 +21,7 @@ python3 -B tools/qualification/native_features.py structured --record native-str
 python3 -B tools/qualification/native_features.py sampling --record native-sampling-01
 python3 -B tools/qualification/native_features.py aliases --record native-aliases-01
 python3 -B tools/qualification/native_features.py protocols --record native-protocols-01
+python3 -B tools/qualification/native_image_formats.py --record native-image-formats-01
 ```
 
 The baseline checks arithmetic, drafted/ordinary greedy parity, two synthetic
@@ -30,6 +31,9 @@ thinking budgets, mixed traffic and invalid schemas. Sampling tests cover
 fresh seeds, explicit zero, returned-seed replay, streaming and concurrency.
 Alias tests check the four exact context limits and over-limit refusals.
 Protocol tests cover Chat, Responses and Anthropic Messages.
+The image-format client uses generated colored squares to exercise JPEG and
+WebP through all three APIs and requires a malformed image to return HTTP 400.
+It needs no client-side image libraries; the encoded fixtures are included.
 
 ## Capacity, replay and compaction
 
@@ -70,6 +74,28 @@ restoration tests. A six-minute soak does not establish day-long stability.
 The migration's separately scheduled 24-hour run must use a new unit/record,
 stop on faults, include quiet windows and retain bounded evidence. Never
 restart a user-stopped endurance unit as a shortcut.
+
+`native_endurance.py` implements the new run. It requires an explicit gate
+manifest before sending traffic: `status: "passed"`, an exact `source` Git
+revision and `image` digest, the complete `passed` set (`features`, `parity`,
+`retention`, `compaction`, `capacity`, `million`, `recovery`, `matched-benefit`),
+and preserved `receipts` with `path` and `sha256`. Build that manifest only
+after reviewing the actual results. It is an evidence binding, not a substitute
+for those tests or their interpretation.
+
+```bash
+python3 -B tools/qualification/native_endurance.py --record native-endurance-01 --gates /path/to/private/passed-gates.json --hours 24
+```
+
+Schedule it in a new bounded service when unattended execution is needed. The
+harness mixes 32 synthetic requests, strict output, tools and images; checks
+fixed-seed replay; rotates deep-context waves; and takes hourly quiet samples.
+Its append-only evidence is capped at 64 MiB and excludes reply text. Exceeding
+the cap fails the run while preserving earlier records. On a fault it attempts
+to stop the original owned pair; it refuses to stop a replacement launch.
+Interruption remains interruption, not a passing endurance result. The
+`cycle_requests` count covers ordinary mixed cycles and their replay canaries;
+deep waves, eviction fixtures and initial/final canaries are recorded separately.
 
 ## Performance
 
