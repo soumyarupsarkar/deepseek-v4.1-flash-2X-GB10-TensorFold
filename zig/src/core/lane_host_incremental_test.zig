@@ -27,7 +27,6 @@ const Box = struct {
                 if (b.other_prefilled) |other| b.finished_before_other = !other.load(.acquire);
                 b.done.store(true, .release);
             },
-            else => {},
         }
     }
 
