@@ -695,6 +695,10 @@
       "sha256": "b5df0c57d826817d0d81d92fe1ac43a6b0fbf6f75c329ab856344326b68fcd88"
     },
     {
+      "path": "src/tensorfold/families/deepseek_v41/cuda/host_memory.py",
+      "sha256": "60e37e556e2458d9425c84a2361f6328064332967b39284d1c9a8c268e1470e7"
+    },
+    {
       "path": "src/tensorfold/families/deepseek_v41/cuda/kernels.py",
       "sha256": "f770b0ada46ab9b8a0d802a6c56d756c877ca64f0e7a3b5878beb140b74f6388"
     },
@@ -716,7 +720,7 @@
     },
     {
       "path": "src/tensorfold/families/deepseek_v41/cuda/multi.py",
-      "sha256": "ef3d08b2ac78e683cffaf5a557cb4fcfd2bdb4b1606e5e493ac357528dcf5be8"
+      "sha256": "958368d673c9ec66f4ed0d5ac988da66a06b8cd7be7a0b353b0309a6fef87c18"
     },
     {
       "path": "src/tensorfold/families/deepseek_v41/cuda/occupancy.py",
@@ -1917,7 +1921,7 @@
     "90b68e063a0b8bba59aaf13340ef16619e751195"
   ],
   "schema": 2,
-  "scope": "Current engine and benchmark-client fingerprints, based on the original qualified build plus the listed selective updates and documented local adaptations. Baseline build identifiers are historical provenance, not public ancestors or a qualification claim for these updated bytes. See deployment/UPSTREAM-V051.md for the preceding validation and deployment/MEMORY.md for the compaction candidate and its pending hardware/endurance gates.",
+  "scope": "Current engine and benchmark-client fingerprints, based on the original qualified build plus the listed selective updates and documented local adaptations. Baseline build identifiers are historical provenance, not public ancestors or a qualification claim for these updated bytes. See deployment/UPSTREAM-V051.md for the preceding validation and deployment/MEMORY.md for the compaction and native-heap pressure candidates and their pending endurance gates.",
   "selective_port": "808eb4a1090ca7b79173cc2c799de16da5f923e3",
   "upstream": "https://github.com/bertholomus/TensorFold",
   "upstream_base": "d5d7bb389ddf4325c1edf4a15dd1c23727040ea1",

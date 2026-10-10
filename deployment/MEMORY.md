@@ -68,6 +68,10 @@ Each normal watchdog cycle records, on both machines:
 - A scalar-only view of the head API's allocation, KV, retained-prefix,
   concurrency and scheduler counters. This API does not expose the worker's
   PyTorch allocator counters; the worker's host/process counters are separate.
+- An optional numeric native-heap snapshot from each instrumented rank,
+  including its age, error counts and before/after measurements for the latest
+  pressure trim. Missing reports are normal for older builds. Invalid reports
+  are marked without copying their contents.
 
 Once per minute, or when available memory falls within 1 GiB of the shutdown
 floor, the collector also attempts proportional-set-size details for up to four
@@ -98,6 +102,41 @@ the last successful head-health sample and its age when available, and up to
 twelve recent watchdog observations before normal paired stop/restoration.
 History-write failures cannot suppress that shutdown. The monitor does not
 automatically restart a faulted pair.
+
+## Native-heap pressure experiment
+
+A later instrumented run reproduced a head-memory-floor shutdown after about
+2 hours 49 minutes. The head inference process's anonymous-plus-swap footprint
+grew by about 2.13 GiB while the measured GPU reservation stayed flat. Both ranks
+stopped normally and host restoration passed. This locates the measured growth
+in the rank process, but does not yet distinguish live native allocations from
+freed pages retained by an allocator. The failed run is not an endurance pass.
+
+The candidate profile enables `TF_DS_HOST_MEMORY_STATS=1` and
+`TF_DS_HOST_TRIM_GIB=3.5`. A CPU-only daemon on each rank samples glibc
+`mallinfo2`, process anonymous/swap counters and host `MemAvailable` every five
+seconds. Below the trim threshold it calls `malloc_trim(0)` and records before
+and after counters. It does not collect Python garbage, call CUDA, resize KV
+storage or free live allocations. The 2 GiB paired watchdog remains unchanged.
+The [glibc allocator statistics](https://sourceware.org/glibc/manual/latest/html_node/Statistics-of-Malloc.html)
+describe native arenas and free/in-use space; they do not account for all memory
+in a process. Trimming can cost CPU time, and its return value does not quantify
+reclaimed bytes. Concurrent allocations make available-memory deltas approximate.
+
+Each rank atomically replaces one private, bounded numeric report at
+`/tmp/tensorfold-host-memory.json`. The host watchdog accepts only known numeric
+fields from a regular file up to 8 KiB; the usual bounded rings preserve the
+observations. No request data, environment or command-line arguments enter this
+report. Sampling/write failures are counted without exposing exception messages
+and cannot disable the paired watchdog. This change has no persistent host
+setting. Full-model reclaim and fresh endurance validation remain outstanding.
+
+For rollback, stop the pair, set `TF_DS_HOST_TRIM_GIB` to `0` in the selected
+profile, commit and rebuild/restart through the normal controller. Keeping
+`TF_DS_HOST_MEMORY_STATS=1` retains measurement alone; setting both options to
+`0` disables the daemon. Alternatively select the previous pinned source and
+matching image using [ROLLBACK.md](ROLLBACK.md). Do not lower the watchdog floor
+to compensate for an ineffective trim.
 
 ## Investigation and recovery
 

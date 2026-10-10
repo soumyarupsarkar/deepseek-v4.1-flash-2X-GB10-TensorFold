@@ -439,6 +439,8 @@ class MultiDecoder:
         self.kv_compactions = self.kv_compacted_rows = 0
         self.kv_compacted_streams = self.kv_compacted_prefills = self.kv_compaction_evictions = 0
         self._publish_occupancy()
+        from .host_memory import start as start_host_memory
+        self._host_memory = start_host_memory()
 
     def warm(self, buckets=None) -> None:
         """Capture the configured round widths and drafter counts before serving.

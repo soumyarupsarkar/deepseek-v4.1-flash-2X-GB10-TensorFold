@@ -5,7 +5,10 @@ is required. RSS sums include shared mappings and are not physical-memory totals
 """
 import argparse
 import json
+import math
+import os
 from pathlib import Path
+import stat
 import time
 
 
@@ -15,6 +18,43 @@ MEM_FIELDS = ('MemTotal', 'MemAvailable', 'MemFree', 'Buffers', 'Cached',
 STATUS_FIELDS = ('VmRSS', 'RssAnon', 'RssFile', 'RssShmem', 'VmSwap', 'VmPTE', 'VmHWM')
 CGROUP_FIELDS = ('anon', 'file', 'kernel', 'kernel_stack', 'pagetables', 'sock',
                  'shmem', 'file_mapped', 'slab_reclaimable', 'slab_unreclaimable')
+HEAP_FIELDS = {'glibc_' + key for key in ('arena', 'ordblks', 'smblks', 'hblks', 'hblkhd',
+               'usmblks', 'fsmblks', 'uordblks', 'fordblks', 'keepcost')}
+HEAP_FIELDS |= {'MemAvailable', 'RssAnon', 'VmSwap', 'VmRSS'}
+HEAP_COUNTERS = {'schema', 'pid', 'threshold_bytes', 'interval_seconds', 'samples',
+                 'errors', 'write_errors', 'trim_calls', 'trim_releases', 'sample_unix_ns',
+                 'last_trim_unix_ns', 'last_trim_return', 'last_trim_seconds'}
+
+
+def host_heap(path):
+    """Read only a bounded, numeric report in the owned rank's filesystem."""
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(fd, 'rb') as stream:
+        info = os.fstat(stream.fileno())
+        if not stat.S_ISREG(info.st_mode) or info.st_size > 8192:
+            raise ValueError('Invalid host-heap snapshot file')
+        data = stream.read(8193)
+    if len(data) > 8192:
+        raise ValueError('Host-heap snapshot exceeds its bound')
+    value = json.loads(data)
+    if not isinstance(value, dict) or not {'schema', 'sample_unix_ns'} <= value.keys():
+        raise ValueError('Invalid host-heap snapshot schema')
+    def numeric(v):
+        return type(v) in (int, float) and math.isfinite(v) and 0 <= v <= 2**64
+    for key, item in value.items():
+        if key in HEAP_COUNTERS:
+            valid = numeric(item)
+        elif key in ('current', 'last_trim_before', 'last_trim_after'):
+            valid = (isinstance(item, dict) and item.keys() == HEAP_FIELDS
+                     and all(numeric(n) for n in item.values()))
+        else:
+            valid = False
+        if not valid:
+            raise ValueError('Invalid host-heap snapshot field')
+    if value['schema'] != 1:
+        raise ValueError('Unsupported host-heap snapshot')
+    value['age_seconds'] = max(0.0, (time.time_ns() - value['sample_unix_ns']) / 1e9)
+    return value
 
 
 def key_values(path, *, colon=False):
@@ -106,6 +146,12 @@ def collect(init_pid=0, *, detail=False, warning_bytes=3*2**30,
                 continue
         result['process_details'] = details
     if init_pid:
+        try:
+            result['host_heap'] = host_heap(proc/str(init_pid)/'root/tmp/tensorfold-host-memory.json')
+        except FileNotFoundError:
+            pass  # Older or uninstrumented ranks do not create this optional report.
+        except (OSError, ValueError, OverflowError):
+            result['errors'].append('host_heap_snapshot_invalid')
         try:
             line = next(row for row in (proc/str(init_pid)/'cgroup').read_text().splitlines()
                         if row.startswith('0::'))
