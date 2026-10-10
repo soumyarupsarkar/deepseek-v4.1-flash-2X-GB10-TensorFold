@@ -115,6 +115,11 @@ def precompile(pair):
                     '--memory','8g','--memory-swap','8g','--pids-limit','512',
                     '--entrypoint','/opt/tensorfold/bin/tf-cuda-test',image,command,timeout=300)
                 results[command]=dict(returncode=result.returncode,output=result.stdout+result.stderr)
+            result=pair.docker(host,'run','--rm','--gpus','all','--network','none',
+                '--memory','8g','--memory-swap','8g','--pids-limit','512',
+                '-v',pair.config[host]['data_root']+'/native-kit:/kit:ro',
+                '--entrypoint','/opt/tensorfold/bin/tf-dsv41-router-check',image,'/kit/aot',timeout=300)
+            results['router_widths']=dict(returncode=result.returncode,output=result.stdout+result.stderr)
             receipt['hosts'][host]=results
             atomic(pair.state/'precompile.json',receipt)
         check_caches(pair,image)

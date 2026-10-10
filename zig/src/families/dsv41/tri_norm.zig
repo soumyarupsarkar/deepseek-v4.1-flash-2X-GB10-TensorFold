@@ -124,9 +124,22 @@ pub fn rowmmGate(t: Tri, x: u64, xs: usize, w: u64, out: u64, rows: usize, k: us
         try rowmm2(t, x, xs, w, out, rows, k, n);
         return 0;
     }
-    const args = [_]aot.Arg{ p("X", "*bf16", x), aot.int("xs", @intCast(xs)), p("W", "*fp16", w), p("S", "*fp32", out), aot.int("rows", @intCast(rows)) };
-    const consts = [_]aot.Const{ ci("K", k), ci("N", n), ci("BN", tile.bn), ci("BK", 256), ci("CPG", tile.cpg), ci("RB", rows), t.pdlConst() };
-    try t.run("_rowmm_parts", .{ tri.cdiv(n, tile.bn), u(kc / tile.cpg), 1 }, &args, &consts);
+    // The captured kit has RB specializations through 16, even when a backbone
+    // verification round has more rows. Each output row is independent: launch
+    // contiguous slices with the original tiling and K-reduction order. Merely
+    // clamping RB would leave the remaining rows' router logits unwritten.
+    var start: usize = 0;
+    while (start < rows) {
+        const count = @min(decode_rows, rows - start);
+        const part_tile = rpTile(count);
+        const args = [_]aot.Arg{
+            p("X", "*bf16", x + start * xs * 2),       aot.int("xs", @intCast(xs)),      p("W", "*fp16", w),
+            p("S", "*fp32", out + start * kc * n * 4), aot.int("rows", @intCast(count)),
+        };
+        const consts = [_]aot.Const{ ci("K", k), ci("N", n), ci("BN", part_tile.bn), ci("BK", 256), ci("CPG", part_tile.cpg), ci("RB", count), t.pdlConst() };
+        try t.run("_rowmm_parts", .{ tri.cdiv(n, part_tile.bn), u(kc / part_tile.cpg), 1 }, &args, &consts);
+        start += count;
+    }
     return kc;
 }
 
@@ -225,6 +238,33 @@ test "rowmm_gate launches _rowmm_parts as recorded" {
             try std.testing.expectEqual(c.dim("S", 1), kc);
         }
     }.call);
+}
+
+test "wide verification router covers every row with captured 1-16-row variants" {
+    const old_bound = tri.decode_rows;
+    tri.decode_rows = 48;
+    defer tri.decode_rows = old_bound;
+    const x: u64 = 0x100000;
+    const out: u64 = 0x200000;
+    const xs: usize = 5120;
+    const n: usize = 384;
+    for (17..49) |rows| {
+        var log: tri.Log = .{ .gpa = std.testing.allocator };
+        defer log.deinit();
+        const kc = try rowmmGate(.{ .log = &log }, x, xs, 0x300000, out, rows, xs, n);
+        try std.testing.expectEqual(@as(usize, 20), kc);
+        var covered: usize = 0;
+        for (log.items.items) |item| {
+            try std.testing.expectEqualStrings("_rowmm_parts", item.name);
+            const count: usize = @intCast(item.args[4].value.i32);
+            try std.testing.expect(count > 0 and count <= 16);
+            try std.testing.expectEqual(x + covered * xs * 2, item.args[0].value.ptr.addr);
+            try std.testing.expectEqual(out + covered * kc * n * 4, item.args[3].value.ptr.addr);
+            try std.testing.expectEqual(@as(i64, @intCast(count)), item.consts[5].int.?);
+            covered += count;
+        }
+        try std.testing.expectEqual(rows, covered);
+    }
 }
 
 /// route() on a recorded case: rowmm_gate's chunk sums S [R, KC, NE] or plain logits L [R, NE].
