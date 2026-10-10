@@ -8,7 +8,8 @@ import re
 import threading
 import time
 
-from common import ROOT, atomic, now
+from common import ROOT, API_BASE, atomic, now
+from benchmark import wait_idle
 from cluster import get, memory
 from qualify import post, text, vision
 from qualify_pool import prompt_ids
@@ -153,7 +154,8 @@ def main():
                 assert all(r['token_ids_sha256'] == reference[r['case_index']] for r in results), (
                     'fixed-seed token IDs changed between identical full-context waves', cycle)
                 item['replay_parity_passed'] = True
-            h=get('/health');assert h['ok'] and not h['requests_running']
+            h, drain = wait_idle(API_BASE)
+            item['post_response_drain'] = drain
             item['health_after']=h
             atomic(path,record)
             print('cycle',cycle,'passed',round(time.monotonic()-started),'seconds; memory',h.get('memory'),flush=True)
@@ -164,7 +166,8 @@ def main():
             record['compactions_exercised'] = after-before
         record['vision_after']=vision((240,20,20))
         assert 'red' in text(record['vision_after']).lower()
-        record.update(status='passed',health_after=get('/health'))
+        health, drain = wait_idle(API_BASE)
+        record.update(status='passed',health_after=health,final_post_response_drain=drain)
     except (KeyboardInterrupt, SystemExit) as exc:
         record.update(status='interrupted',error=type(exc).__name__+': '+str(exc))
         raise

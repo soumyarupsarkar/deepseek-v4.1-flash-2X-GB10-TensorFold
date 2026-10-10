@@ -5,7 +5,8 @@ import json
 import re
 import time
 
-from common import ROOT, atomic, now
+from common import ROOT, API_BASE, atomic, now
+from benchmark import wait_idle
 from cluster import get, memory
 from qualify import chat, post, vision, text, structured
 
@@ -39,8 +40,8 @@ def main():
                 results=[f.result() for f in futures]
             assert isinstance(json.loads(text(results[-2])),dict)
             assert ('red' if cycle%2==0 else 'blue') in text(results[-1]).lower()
-            h=get('/health');assert h['ok'] and not h['requests_running']
-            record['cycles'].append(dict(cycle=cycle,time=now(),health=h,
+            h, drain = wait_idle(API_BASE)
+            record['cycles'].append(dict(cycle=cycle,time=now(),health=h,post_response_drain=drain,
                 requests=[dict(seconds=r['seconds'],usage=r['response'].get('usage'),
                                tensorfold=r['response'].get('tensorfold')) for r in results]))
             record['memory'].append(dict(time=now(),available_gib={h:memory(h)['MemAvailable']/2**30 for h in ('head','worker')}))
@@ -49,7 +50,8 @@ def main():
             cycle+=1
             time.sleep(5)
         record['structured_after']=structured()
-        record.update(status='passed',health_after=get('/health'))
+        health, drain = wait_idle(API_BASE)
+        record.update(status='passed',health_after=health,final_post_response_drain=drain)
     except BaseException as exc:
         record.update(status='failed',error=type(exc).__name__+': '+str(exc),response_body=getattr(exc,'response_body',None))
         raise

@@ -12,7 +12,8 @@ import random
 import re
 import time
 
-from common import ROOT, atomic, now
+from common import ROOT, API_BASE, atomic, now
+from benchmark import wait_idle
 from cluster import get, memory
 from qualify import post, chat, text
 
@@ -119,8 +120,7 @@ def main():
             assert json.loads(text(record['small'][1])).get('status') == 'ok'
         record['canary'] = chat('Reply with HEALTHY.')
         assert 'HEALTHY' in text(record['canary'])
-        record['health_after'] = get('/health')
-        assert record['health_after']['ok'] and not record['health_after']['requests_running']
+        record['health_after'], record['post_response_drain'] = wait_idle(API_BASE)
         record['status'] = 'passed'
     except BaseException as exc:
         record.update(status='failed', error=type(exc).__name__+': '+str(exc),

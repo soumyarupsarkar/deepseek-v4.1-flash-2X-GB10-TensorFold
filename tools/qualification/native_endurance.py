@@ -22,7 +22,8 @@ def compact_result(result):
                 usage={k: usage[k] for k in ('prompt_tokens', 'completion_tokens', 'total_tokens') if k in usage},
                 token_sha=tf.get('token_sha'),
                 sampling_seed=tf.get('sampling_seed'),
-                cached=tf.get('cached'), drafts=tf.get('drafts'))
+                cached=usage.get('prompt_tokens_details', {}).get('cached_tokens', tf.get('cached')),
+                drafts=tf.get('drafts'))
 
 
 def append(path, value):
@@ -54,11 +55,11 @@ def main():
         raise ValueError('Invalid record name or duration')
     sys.path.insert(0, str(SOURCE / 'tools/qualification'))
     import common
-    from cluster import get, memory
+    from cluster import memory
     from configuration import profile, read, STATE
     from engine_health import ready
     from memory_watch import health_sample
-    from benchmark import wave
+    from benchmark import wave, wait_idle
     from qualify import post, text, vision
 
     gates = json.loads(a.gates.read_text())
@@ -97,12 +98,13 @@ def main():
     signal.signal(signal.SIGINT, stop_signal)
 
     def sample():
-        health = get('/health')
+        health, drain = wait_idle(common.API_BASE)
         if not ready(health, profile()) or health['scheduler']['running'] or health['scheduler']['waiting']:
             raise RuntimeError('Endurance pair is unhealthy or did not become idle')
         rss = next(int(line.split()[1]) * 1024 for line in Path('/proc/self/status').read_text().splitlines()
                    if line.startswith('VmRSS:'))
         return dict(time=common.now(), health=health_sample(health), client_rss_bytes=rss,
+                    post_response_drain_seconds=drain['seconds'],
                     available_bytes={host: memory(host)['MemAvailable'] for host in ('head', 'worker')})
 
     def canary():

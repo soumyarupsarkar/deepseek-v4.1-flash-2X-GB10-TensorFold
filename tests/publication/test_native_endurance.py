@@ -46,11 +46,13 @@ class NativeEndurance(unittest.TestCase):
 
     def test_evidence_omits_response_text_and_token_ids(self):
         result = dict(seconds=1.5, response=dict(choices=[dict(message=dict(content='synthetic output'))],
-                      usage=dict(prompt_tokens=5, completion_tokens=2, total_tokens=7),
+                      usage=dict(prompt_tokens=5, completion_tokens=2, total_tokens=7,
+                                 prompt_tokens_details=dict(cached_tokens=3)),
                       tensorfold=dict(token_sha='abc', token_ids=[1, 2], sampling_seed='0', drafts=True)))
         compact = endurance.compact_result(result)
         self.assertEqual(compact['usage']['total_tokens'], 7)
         self.assertEqual(compact['token_sha'], 'abc')
+        self.assertEqual(compact['cached'], 3)
         self.assertNotIn('choices', compact)
         self.assertNotIn('token_ids', compact)
         self.assertNotIn('synthetic output', json.dumps(compact))
