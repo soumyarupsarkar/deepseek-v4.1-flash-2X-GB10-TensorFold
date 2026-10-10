@@ -42,6 +42,7 @@ These workloads are more expensive and belong on the isolated pair:
 ```bash
 python3 -B tools/qualification/native_parity.py --record native-parity-greedy-01
 python3 -B tools/qualification/native_parity.py --temperature 1 --record native-parity-sampled-01
+python3 -B tools/qualification/native_constraints.py --record native-constraints-01
 python3 -B tools/qualification/native_retention.py --record native-retention-01
 python3 -B tools/qualification/native_qualification.py pool --streams 32 --prompt-tokens 2048 --reply-tokens 1024 --check-solo --record native-pool-01
 python3 -B tools/qualification/native_qualification.py memory --streams 32 --rounds 2 --initial-tokens 261120 --growth 0 --reply-tokens 1024 --shared-prefix --identical --require-concurrency --require-replay-parity --record native-c32-full-01
@@ -53,6 +54,10 @@ The parity client compares ordinary and drafted token hashes at C4/8/16/24/32,
 with matching prompt hashes and explicit seeds. A mode labeled drafted must
 actually exercise drafting. Retention tests cold, replayed and extended
 prefixes, including the retained-state bound.
+The constrained C32 client uses distinct per-request schemas and required tool
+calls, checks every result, and requires all 32 requests to overlap in decoding.
+It verifies grammar isolation and masked ordinary decoding, not drafted strict
+output: constrained requests intentionally disable drafting.
 
 The full C32 test primes one identical document and creates independent active
 session state. It does not claim 32 cold independent document prefills. The
