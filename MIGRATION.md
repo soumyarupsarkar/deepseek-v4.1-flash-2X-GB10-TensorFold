@@ -3,10 +3,10 @@
 The native candidate is **not qualified for production**. The image that passed
 the feature and capacity checks below later failed the 614k deep-context test.
 Both ranks stopped and both hosts passed restoration checks. The corrected
-image has passed preparation, the exact cold 614k regression request and three
-adjacent/odd context checks, and is repeating the rest of live qualification.
-Matched performance, an independent cold compaction reference, recovery and a
-new 24-hour endurance run remain open. The published Python
+image has passed preparation, the exact cold 614k regression request, three
+adjacent/odd context checks and both live compaction checks, including independent
+cold references. Renewed capacity, matched performance, recovery and a new
+24-hour endurance run remain open. The published Python
 deployment remains the qualified fallback and is stopped during this work.
 
 ## Exact inputs and evidence
@@ -15,7 +15,8 @@ The native engine starts at Bertholomus's
 [`4e80f05`](https://github.com/bertholomus/TensorFold/commit/4e80f05ecba89a4e90d16375ade2eddbdc0a10c4),
 with the v0.6.1 recipe and kernel builders at
 [`5e90ec9`](https://github.com/bertholomus/deepseek-v4.1-tensorfold-tp2-2xgb10/tree/5e90ec9302149049e8f019ea035827cb24c206f8).
-The hardware results below belong to the failed candidate's runtime source
+The historical feature and performance tables below belong to the failed
+candidate's runtime source
 `80b399cd023d3a88ad69501c8261143ea622328b` and image
 `sha256:5835a26f281d1dd2ddd868648a5ac6048d6924e02ca0d1a5a1cd1324949cbb6d`.
 Later documentation and qualification-client commits do not change which
@@ -55,13 +56,21 @@ round budget**. C32 capacity uses retained copies of the same synthetic document
 it does not measure simultaneous cold prefill of 32 different long documents.
 Correctness-test wall times are not matched performance results.
 
-Partial-prefill compaction remains provisional. A populated partial prefill
-was observed relocating and its continued reply matched the client's solo
-comparison, but that comparison did not require zero cached tokens. Acceptance
-requires reproducing the saved post-relocation reply prefix from an independent
-cold request. The failed launch has ended, so the new image must repeat the
-relocation and independent cold comparison together. The public client now
-evicts retained checkpoints and requires zero cached tokens for that comparison.
+## Compaction on the corrected image
+
+The previous image's partial-prefill comparison did not require zero cached
+tokens. The [renewed compaction checks](release/native-compaction-20261010.json)
+now pass on source `4d48d4ec5f3db83a361c2228088d72e27f487d62`. A populated
+262,144-token prefill relocated before its first reply token. After replacing
+the retained checkpoints, all nine surviving reply prefixes matched independent
+solo references, each reporting zero cached tokens.
+
+The decoder check also passed on that image. Eight live survivors relocated.
+For the selected survivor, the client collected 549 nonempty output chunks in
+total, exceeding the 421 generated tokens recorded at the relocation checkpoint.
+The witness includes at least 64 tokens generated after the checkpoint, and the
+observed reply prefix matched solo execution. These are correctness checks;
+capacity, performance, recovery and endurance remain separate qualification gates.
 
 ## 614k failure and correction
 
@@ -94,7 +103,8 @@ Its fresh build passed 293 CPU/server tests and the native grammar test. Both
 hosts passed seven GPU checks and full comparison of 143,770 cache entries
 (106,107,109,192 bytes per rank), with zero mismatches. The renewed live suite
 has completed the exact 614k failure case and the adjacent/odd context checks.
-It is repeating feature, capacity, cold compaction and matched performance checks.
+Both renewed compaction checks have also passed. Remaining capacity and matched
+performance checks are running.
 Preparation is not serving or production qualification.
 
 ## Primary matched measurements (partial qualification)
@@ -198,15 +208,16 @@ a known format/loader revision, not proof of which commit wrote an imported file
 
 ## Remaining cutover gates
 
-1. Complete renewed selected-image feature/capacity checks, including
-   the independent cold partial-prefill compaction comparison.
+1. Complete the remaining admission, full-window C32, million-token and mixed-load
+   checks on the corrected image.
 2. Finish matched synthetic throughput, latency and memory comparisons against
    the Python reference, including temperature-1 sampling and deep context.
    Require a measured benefit without unexplained material regressions; investigate
    noisy or marginal results before selecting a production profile.
 3. Recheck paired failure, interrupted startup, host restoration and controlled
    reboot recovery on the selected runtime/image. Earlier-image lifecycle checks
-   are insufficient.
+   are insufficient. Rehearse returning to the qualified Python deployment and
+   then the same native image, verifying host restoration at both stops.
 4. Complete a **new bounded 24-hour** synthetic qualification with quiet memory
    windows, mixed serving and deep-context checks. Preserve failed or interrupted
    receipts. The previously user-stopped endurance process stays stopped.

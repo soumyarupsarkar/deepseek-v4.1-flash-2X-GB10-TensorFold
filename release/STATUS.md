@@ -19,12 +19,16 @@ including a 986,895-token cold prompt. Renewed feature, capacity and performance
 qualification is running. The failed deep suite completed
 six of ten waves and must not be presented as a passing comparison.
 
-The [functional evidence snapshot](native-functional-20261010.json) binds those
-results to runtime source `80b399cd023d3a88ad69501c8261143ea622328b` and its exact
-image. Partial-prefill compaction still needs an independent cold reference.
-Matched performance and memory acceptance, selected-image recovery (including
-a controlled reboot), and a new bounded 24-hour endurance run remain pending.
-The six-minute mixed soak is not endurance qualification.
+The earlier [functional evidence snapshot](native-functional-20261010.json)
+records the previous-image results at runtime source
+`80b399cd023d3a88ad69501c8261143ea622328b` and its exact image.
+The corrected image has also passed the [renewed compaction checks](native-compaction-20261010.json):
+a populated 262k prefill relocated, and all nine surviving reply prefixes matched
+independent zero-cache references. Decoder continuation after relocation passed
+as well. Remaining selected-image capacity checks, matched performance and memory
+acceptance, recovery (including a controlled reboot and Python rollback rehearsal),
+and a new bounded 24-hour endurance run remain pending. The previous image's
+six-minute mixed soak is not endurance qualification.
 
 The [20-wave primary comparison](native-primary-comparison-20261010.json) is
 complete. Its observed end-to-end medians include a 6.2% C1-code gain and a 7.7%
