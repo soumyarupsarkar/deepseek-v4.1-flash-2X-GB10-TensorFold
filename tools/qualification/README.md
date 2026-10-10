@@ -43,6 +43,7 @@ These workloads are more expensive and belong on the isolated pair:
 python3 -B tools/qualification/native_parity.py --record native-parity-greedy-01
 python3 -B tools/qualification/native_parity.py --temperature 1 --record native-parity-sampled-01
 python3 -B tools/qualification/native_constraints.py --record native-constraints-01
+python3 -B tools/qualification/native_constraints.py --temperature 1 --record native-constraints-sampled-01
 python3 -B tools/qualification/native_retention.py --record native-retention-01
 python3 -B tools/qualification/native_qualification.py pool --streams 32 --prompt-tokens 2048 --reply-tokens 1024 --check-solo --record native-pool-01
 python3 -B tools/qualification/native_qualification.py memory --streams 32 --rounds 2 --initial-tokens 261120 --growth 0 --reply-tokens 1024 --shared-prefix --identical --require-concurrency --require-replay-parity --record native-c32-full-01

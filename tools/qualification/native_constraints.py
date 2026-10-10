@@ -18,6 +18,7 @@ from qualify import post, text
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--record', required=True)
+    parser.add_argument('--temperature', type=float, choices=(0, 1), default=0)
     args = parser.parse_args()
     if not args.record.replace('-', '').isalnum():
         raise ValueError('Use a simple unique record name')
@@ -30,7 +31,8 @@ def main():
     health = get('/health')
     if not ready(health, config) or busy(health):
         raise RuntimeError('Require an idle healthy candidate')
-    record = dict(started=common.now(), status='running', launch=read(STATE / 'launch.json'), waves=[])
+    record = dict(started=common.now(), status='running', launch=read(STATE / 'launch.json'),
+                  temperature=args.temperature, waves=[])
     common.atomic(path, record)
 
     def request(index, mode):
@@ -38,7 +40,8 @@ def main():
         schema = dict(type='object', properties=dict(values=dict(type='array', minItems=128,
             maxItems=128, items={'const': index})), required=['values'], additionalProperties=False)
         body = dict(messages=[dict(role='user', content=f'Report an array of 128 copies of the number {index}.')],
-                    temperature=0, max_tokens=1024, chat_template_kwargs={'enable_thinking': False})
+                    temperature=args.temperature, seed=96000+index, max_tokens=1024,
+                    chat_template_kwargs={'enable_thinking': False})
         if mode == 'schema':
             body['response_format'] = dict(type='json_schema', json_schema=dict(name='values', strict=True, schema=schema))
         else:
