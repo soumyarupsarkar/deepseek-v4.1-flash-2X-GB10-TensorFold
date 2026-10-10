@@ -4,8 +4,9 @@ The native candidate is **not qualified for production**. The corrected image
 has passed all 20 functional and capacity checks, including full-window C32,
 cold million-token retrieval, independent cold compaction references and a short
 mixed-load soak. The original 614k failure and three adjacent/odd context cases
-also pass. Matched performance and memory acceptance, recovery, rollback rehearsal
-and a new 24-hour endurance run remain open. The published Python deployment
+also pass. The measured-benefit review accepts faster deep prefill with the
+documented short-workload costs below. Recovery, rollback rehearsal and a new
+24-hour endurance run remain open. The published Python deployment
 remains the qualified fallback and is stopped during this work.
 
 ## Exact inputs and evidence
@@ -19,8 +20,9 @@ The completed functional checks below belong to corrected runtime source
 `sha256:83752d9d3bc7da632fd195332963501e9ca5208a8e2fcf409e781e985049aafd`.
 Later documentation commits do not change which runtime produced those results.
 All three corrected-image matched measurement suites are complete: 20 primary,
-eight temperature-1 and ten deep-context waves. Performance and memory acceptance
-remain pending the follow-up below. Earlier-image measurements remain explicitly
+eight temperature-1 and ten deep-context waves. Four further C32 repetitions are
+also complete; the benefit decision and its tradeoffs appear below.
+Earlier-image measurements remain explicitly
 labeled as historical results.
 
 The rollback source is this fork's `32c4ebea7d0a81808aaa503d88ebe1a84612d0cf`,
@@ -116,7 +118,8 @@ The [complete primary comparison](release/native-primary-comparison-20261010-r2.
 contains 20 scored waves and 178 requests, with two repetitions per workload.
 It compares corrected runtime `4d48d4ec` / image `83752d9d` against the same
 qualified Python reference. Actual prompt hashes, output budgets and zero cached
-tokens match. These observed medians do not establish a passing benefit gate:
+tokens match. These original two-run medians remain intact alongside the later
+confirmation measurements:
 
 | Workload, temperature 0 | Prompt / reply tokens per request | Python end-to-end tok/s | Native end-to-end tok/s | Change |
 | --- | --- | ---: | ---: | ---: |
@@ -142,7 +145,7 @@ C4's eligible steady-decode median fell 10.5%, with only three to four seconds
 of eligible interval per repetition. C32 steady decode fell 7.5%, and its
 end-to-end regression is close to the declared 10% guard. No native graph captures
 occurred in these waves. The longer-reply ordinary/default diagnostic below
-investigates drafting costs; four further matched C32 repetitions are running.
+investigates drafting costs; the four further matched C32 repetitions are complete.
 A missing native steady interval at 32k stays null. The separate deep-context
 suite uses longer replies
 to make those measurements more useful. The first 32k primary wave captured three
@@ -150,7 +153,7 @@ graphs, with that cost included in timing.
 
 The [benefit policy](release/native-benefit-policy-20261010.json) was declared
 before native matched measurements. The completed deep-context and memory review
-appears below; C32 confirmation and recovery/endurance gates remain open.
+appears below; the accepted benefit does not establish recovery or endurance.
 Engine-specific cache eviction occurs outside scored timing:
 the Python client inserted 32 prefixes, and the native client inserted 64
 fixtures to displace its retained states. Every scored request reports zero
@@ -209,12 +212,17 @@ medians; the JSON preserves both repetitions and all measured intervals.
 | 614,400 | 436.25 | 345.61 | 88.98 | 90.09 |
 | 1,048,576 | 875.16 | 670.41 | 89.45 | 88.84 |
 
+The [comparison figure](release/figures/native-deep-context-20261010.svg)
+shows medians and observed min–max whiskers, not confidence intervals. A
+[PNG](release/figures/native-deep-context-20261010.png) and the
+[plotting script](scripts/plot_native_context.py) accompany the complete JSON.
+
 First-token latency falls 13.7–23.4% from 128k through one million tokens.
 Corresponding end-to-end output rates improve 13.3–30.1%, chiefly through faster
 prefill. Deep steady-decode median changes range from −2.0% to +4.6%. The original
-benefit policy includes these long-context C1-code cases; acceptance still needs
-the C32 follow-up and the remaining stability gates. The short-context results
-above remain part of that decision.
+benefit policy includes these long-context C1-code cases. They supply the accepted
+benefit after the C32 follow-up, with the short-context costs above retained in
+the decision. Recovery and endurance remain separate gates.
 
 **All ten generated replies differ between the Python and native engines.**
 Within each engine, both repetitions have matching full-text and reported token
@@ -281,12 +289,41 @@ potential optimization. This experiment does not isolate that table as the sole
 cause of the Python/native difference. Drafting still helps C4 on this longer
 workload; the earlier short C4 comparison against Python remains unchanged.
 
-The original matched C32 regression is close to the declared guard. A fixed
-follow-up of **four additional native C32 temperature-0 waves**, with the original
-1,024/256-token workload, standard warm-up and full prefix eviction, is running.
-Its review will retain the original two native repetitions and the same two-run
-Python reference. It is additional candidate evidence, not a fresh balanced
-six-versus-six comparison. The original benefit policy remains unchanged.
+## C32 confirmation and measured-benefit decision
+
+The [four additional C32 measurements](release/native-c32-confirmation-20261010.json)
+use the original temperature-0, 1,024/256-token workload, standard warm-up and full
+prefix eviction. The count was fixed before execution. All four completed, reached
+C32 and reported zero cached tokens and zero scored graph captures. All 192 replies
+across the six native repetitions match both Python repetitions in full-text
+SHA256 and reported token hashes.
+
+| Measurement set | Repetitions | End-to-end tok/s | Steady decode tok/s | Per-wave p95 latency median (s) |
+| --- | ---: | ---: | ---: | ---: |
+| Original Python reference | 2 | 153.22 | 274.52 | 53.47 |
+| Original native | 2 | 139.09 | 253.90 | 58.87 |
+| Additional native | 4 | 141.74 | 259.90 | 57.79 |
+| All native, pooled | 6 | 141.18 | 258.44 | 58.01 |
+
+All individual values remain in the JSON. The native pooled end-to-end and steady
+medians are **7.9% and 5.9% lower**, within the unchanged 10% regression guard.
+Their relative ranges are 3.16% and 3.17%. The separate four-run medians are 7.5%
+and 5.3% lower. The original results have not been replaced. The Python reference
+still has two runs; this is not a fresh balanced six-versus-six comparison.
+
+Pooled p95 latency is 8.5% higher, while median first-token latency is 8.3% lower.
+The original two-run p95 regression of 10.1% remains documented. Follow-up memory
+observations include 43 watchdog samples, at least ten per wave, no probe or host
+sample errors and zero observed OOM-counter deltas. Coarse GPU observations report
+no thermal-slowdown flags; they cannot exclude variation between samples.
+
+The [manual benefit review](release/native-benefit-review-20261010.json) accepts
+the substantial cold long-context C1 gain under the original policy, with these
+C32 costs and the earlier C4 regression disclosed. It claims neither a short-C1
+speedup nor a reduction in physical memory requirements. The noisy temperature-1
+Python C32 result is not the basis for acceptance. No capacity, draft budget or
+feature was reduced for this decision. Paired recovery, rollback and a new 24-hour
+endurance run must still pass before production cutover.
 
 ## Historical measurements on the earlier image
 
@@ -332,19 +369,14 @@ a known format/loader revision, not proof of which commit wrote an imported file
 
 ## Remaining cutover gates
 
-1. Finish the four predeclared C32 confirmation measurements and review them
-   alongside the completed primary, temperature-1, deep-context and memory
-   comparisons against the Python reference.
-   Require a measured benefit without unexplained material regressions; investigate
-   noisy or marginal results before selecting a production profile.
-2. Recheck paired failure, interrupted startup, host restoration and controlled
+1. Recheck paired failure, interrupted startup, host restoration and controlled
    reboot recovery on the selected runtime/image. Earlier-image lifecycle checks
    are insufficient. Rehearse returning to the qualified Python deployment and
    then the same native image, verifying host restoration at both stops.
-3. Complete a **new bounded 24-hour** synthetic qualification with quiet memory
+2. Complete a **new bounded 24-hour** synthetic qualification with quiet memory
    windows, mixed serving and deep-context checks. Preserve failed or interrupted
    receipts. The previously user-stopped endurance process stays stopped.
-4. Finish source, attribution, setup/rollback and sanitized-evidence review, then
+3. Finish source, attribution, setup/rollback and sanitized-evidence review, then
    cut over only if every gate passes. Otherwise restore the qualified Python
    deployment and document the concrete blockers.
 

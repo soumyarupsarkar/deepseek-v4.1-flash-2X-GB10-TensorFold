@@ -40,12 +40,12 @@ def main():
     matplotlib.use('Agg')
     import matplotlib.pyplot as plt
     plt.rcParams.update({'font.family': 'DejaVu Sans', 'font.size': 10, 'svg.fonttype': 'none'})
-    figure, axes = plt.subplots(1, 2, figsize=(12, 4.7), sharex=True)
+    figure, axes = plt.subplots(1, 2, figsize=(12, 5), sharex=True)
     panels = [('sampled_steady_decode_tps', 'Steady decode', 'Output tokens / second'),
               ('ttft_s_p50', 'Time to first token', 'Seconds (log scale)')]
     for axis, (metric, title, ylabel) in zip(axes, panels):
         for label, title_label, color in [('reference', 'Python reference', '#3268b2'),
-                                          ('candidate', 'Native candidate', '#d46a25')]:
+                                          ('candidate', 'Native Zig engine', '#d46a25')]:
             medians, low, high = [], [], []
             for row in rows:
                 values = [item['metrics'][metric] for item in row[label]]
@@ -69,13 +69,18 @@ def main():
     axes[0].legend(frameon=False)
     budget = rows[0]['case']['reply_tokens']
     temperature = rows[0]['case']['temperature']
+    matches, requests = record.get('matching_output_hashes'), record.get('matched_requests')
+    output_note = (f'Reported token hashes match for {matches}/{requests} replies; decode uses fixed output budgets.'
+                   if type(matches) is int and type(requests) is int
+                   else 'Matched prompts and output budgets; generated replies may differ between engines.')
     figure.suptitle('Independent cold requests at fixed context lengths', x=.08, ha='left', fontweight='bold')
     figure.text(.08, .025,
         f'One stream · synthetic prompts · {budget:,} output tokens (EOS ignored) · temperature {temperature:g} · '
         f'{next(iter(counts))} runs per point\n'
-        'Lines: median. Whiskers: observed min–max, not a confidence interval. Graph capture remains in measured time.',
+        'Lines: median. Whiskers: observed min–max, not a confidence interval. Graph capture remains in measured time.\n'
+        + output_note,
         fontsize=9, color='#555555')
-    figure.tight_layout(rect=(.03, .13, .99, .93))
+    figure.tight_layout(rect=(.03, .18, .99, .93))
     figure.savefig(outputs[0], metadata={'Date': None, 'Creator': 'TensorFold matched comparison'})
     figure.savefig(outputs[1], dpi=160, metadata={'Software': 'TensorFold matched comparison'})
     plt.close(figure)
