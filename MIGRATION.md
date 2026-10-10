@@ -82,6 +82,10 @@ other than the native PNG path. No Python model engine or PyTorch tensor loop
 is used for native inference. Fresh rank-cache preparation has a CPU-only native
 command; existing rank caches remain read-only and require an independent
 comparison of every prepared tensor with the intended Keys checkpoint.
+The legacy `prepared_cache_producer` metadata names a known format/loader
+revision. It does not establish which commit originally wrote an imported file;
+compatibility comes from immutable asset checks and the complete native tensor
+comparison.
 
 ## Required gates
 
