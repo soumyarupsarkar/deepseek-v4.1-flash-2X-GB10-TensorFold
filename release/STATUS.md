@@ -14,8 +14,9 @@ view. Both ranks stopped and host restoration passed. The correction preserves
 the context and memory budgets. Its [fresh preparation](native-alignment-followup-20261010.json)
 passed 293 CPU/server tests, grammar and both hosts' GPU/cache checks. The exact
 cold 614k request now completes with all 1,024 output tokens; its output differs
-from the Python reference. Adjacent/odd context checks and the rest of renewed
-live qualification are running. The failed deep suite completed
+from the Python reference. Three adjacent/odd context checks also passed,
+including a 986,895-token cold prompt. Renewed feature, capacity and performance
+qualification is running. The failed deep suite completed
 six of ten waves and must not be presented as a passing comparison.
 
 The [functional evidence snapshot](native-functional-20261010.json) binds those
