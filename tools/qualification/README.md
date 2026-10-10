@@ -134,8 +134,11 @@ or unobserved steady interval is null, not a guessed rate.
 
 `scripts/compare_native.py` checks two completed benchmark receipts for exact
 case and prompt-hash agreement, completed output budgets, and actual cold-cache
-behavior. It emits aggregate timing fields, image/receipt digests and an output
-hash-match count, without private launch configuration or response text:
+behavior. Every declared scored case must have a completed wave, and each wave
+must contain every stream index exactly once. Matching subsets of incomplete
+suites cannot establish a complete comparison. It emits aggregate timing fields,
+image/receipt digests and an output hash-match count, without private launch
+configuration or response text:
 
 ```bash
 python3 -B scripts/compare_native.py /path/to/python-receipt.json /path/to/native-receipt.json --output /path/to/new-comparison.json
