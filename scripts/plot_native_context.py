@@ -69,9 +69,9 @@ def main():
     axes[0].legend(frameon=False)
     budget = rows[0]['case']['reply_tokens']
     temperature = rows[0]['case']['temperature']
-    figure.suptitle('One session across increasing context lengths', x=.08, ha='left', fontweight='bold')
+    figure.suptitle('Independent cold requests at fixed context lengths', x=.08, ha='left', fontweight='bold')
     figure.text(.08, .025,
-        f'Cold synthetic prompts · {budget:,} output tokens · temperature {temperature:g} · '
+        f'One stream · synthetic prompts · {budget:,} output tokens (EOS ignored) · temperature {temperature:g} · '
         f'{next(iter(counts))} runs per point\n'
         'Lines: median. Whiskers: observed min–max, not a confidence interval. Graph capture remains in measured time.',
         fontsize=9, color='#555555')

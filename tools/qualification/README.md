@@ -154,6 +154,20 @@ Missing steady measurements stay missing, including when only one repetition
 has a usable interval. Review the individual repetitions and timing spread;
 the comparison does not decide whether a deployment should be cut over.
 
+`scripts/plot_native_context.py` plots a complete matched C1 context series.
+Each point represents independent cold requests at a fixed prompt-plus-output
+length. The benchmark generates the full output budget with EOS ignored.
+Whiskers show the observed minimum and maximum across repetitions; they are
+not confidence intervals. Preserve the aggregate JSON with the figure and
+review output-hash differences alongside the timing results.
+
+Run the plotter in an environment with Matplotlib, such as the pinned recipe
+container:
+
+```bash
+python3 -B scripts/plot_native_context.py /path/to/new-comparison.json --output-prefix /path/to/new-context-figure
+```
+
 `qualify_*.py` files also contain the retained Python fixture implementations.
 Invoke the `native_*.py` adapters above for native serving; a historical Python
 receipt or an unchanged fixture is not itself native qualification.
