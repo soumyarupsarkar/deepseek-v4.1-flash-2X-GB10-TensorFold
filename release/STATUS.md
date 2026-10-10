@@ -5,7 +5,39 @@ The portable controller has paired hardware evidence for **verified existing-ass
 reuse and a fresh image build**. Fresh model acquisition is a separate gate.
 There is no release tag associated with this qualification.
 
-## Current FP32 correctness update
+## Current October 9 selective update
+
+The selected engine source is `32c4ebea7d0a81808aaa503d88ebe1a84612d0cf`, image
+`sha256:973b52dedb5e9e9270fdcaa1840f4ff61076c08fadb3d97c1aea98bef6795834`
+on both ranks. It ports Bertholomus's replay-floor correction into the existing
+Python engine, adds request-order regressions, and improves watchdog fault
+attribution and finite memory qualification. The full native Zig migration is
+deferred. C32, the 8,650,752-token shared pool, million-token context, Keys,
+vision, strict outputs, random unseeded sampling and the host floor are retained.
+The 225-line dependency inventory matches the previous image.
+
+Eighty-four offline tests, 22 CUDA regressions per host and 42 cold request-order
+probes passed. All nine acceptance phases passed, including two C32 × 262,144
+session waves, cold native-million retrieval, 104 default/ordinary reply pairs
+and a six-minute mixed soak. Three matched busy/idle cycles stayed within the
+predeclared 256 MiB growth bound: live glibc allocations were essentially flat,
+with maximum rank anonymous-plus-swap growth of 18.15 MiB on the head and zero
+on the worker. See the [review and results](../deployment/UPSTREAM-V06.md),
+[correctness receipt](upstream-v06-correctness.json) and
+[acceptance receipt](upstream-v06-acceptance.json).
+
+The five-second acceptance observer had three health timeouts under load.
+The separate watchdog recorded no failed samples before the deliberate worker
+failure; its minimum observed availability was 2.348 GiB on the head and
+3.303 GiB on the worker. Normal stop/restoration, intentional idle worker-loss
+cleanup and the selected restart passed, followed by text/vision, LAN, image,
+read-only asset and monitor checks. The [lifecycle receipt](upstream-v06-lifecycle.json)
+separates the injected fault from natural observations and confirms the prior
+image is retained on both nodes. The stopped 24-hour run was not resumed. Original
+long-run memory-pressure attribution remains unresolved; no endurance or new
+throughput claim follows from these finite passes.
+
+## Historical October 8 FP32 correctness update
 
 The selected engine source is `c068898375337c1f2a7bd222e5d1c342b0a83f9c`, image
 `sha256:928fc8e4416e4494de8e600ef81c3ed60393f3871959d77ae20965bc99d2e8ba`
@@ -25,7 +57,7 @@ targeted HTTP tests passed, with one existing skip. See the
 
 The complete local suite and unchanged upstream C1/prefill measurements passed.
 Normal host restoration and the final restart of the same image passed, including
-feature, LAN and monitor checks. [Current lifecycle receipt](upstream-v051-lifecycle.json)
+feature, LAN and monitor checks. [FP32 update lifecycle receipt](upstream-v051-lifecycle.json)
 and [measurements](../benchmarks/README.md) record their scope. The previous image
 is present on both nodes and installation state is preserved; this update did
 not repeat previous-image fallback, worker-loss or reboot tests.

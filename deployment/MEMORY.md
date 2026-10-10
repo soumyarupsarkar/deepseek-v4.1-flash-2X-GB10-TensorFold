@@ -150,6 +150,15 @@ observations, unrelated inference and an exceeded predeclared growth budget.
 Passing means those finite observations stayed within the declared budget.
 Interrupted receipts are separate from failures and are never counted as passes.
 
+The October 9 [selective update](UPSTREAM-V06.md#matched-memory-observations)
+passed three repeated workload/120-second quiet cycles with matching resident
+states. Live glibc allocation was essentially flat on both ranks; maximum
+later-window anonymous-plus-swap growth was 18.15 MiB on the head and zero on
+the worker, within the predeclared 256 MiB bound. Each window contributed 23
+fresh observations, with comparisons using its final six-sample median. This
+finite result does not explain the earlier long-run failure or establish a
+plateau under continuing new-schema traffic.
+
 For rollback, stop the pair, set `TF_DS_HOST_TRIM_GIB` to `0` in the selected
 profile, commit and rebuild/restart through the normal controller. Keeping
 `TF_DS_HOST_MEMORY_STATS=1` retains measurement alone; setting both options to

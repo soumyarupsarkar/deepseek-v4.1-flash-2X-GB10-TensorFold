@@ -1,0 +1,189 @@
+{
+  "acceptance_wall_seconds": 3018.152,
+  "admission": {
+    "actual_holders": 8,
+    "fragmentation_observed": false,
+    "over_context_status": 400,
+    "queue_cancel_recovery": true,
+    "reserved_requests": 8
+  },
+  "endurance": {
+    "completed": false,
+    "previous_24_hour_attempt_resumed": false
+  },
+  "features": {
+    "explicit_seed_replay": true,
+    "keys_overlay": true,
+    "random_unseeded_sampling": true,
+    "streaming_constraints": true,
+    "strict_json_schema_tools": true,
+    "text": true,
+    "vision": true
+  },
+  "finished": "2026-10-10T03:46:40.944959+00:00",
+  "full_context": {
+    "allocated_pool_rows": 8716288,
+    "completed_responses": 64,
+    "peak_decoders": [
+      32,
+      32
+    ],
+    "prompt_tokens": 261120,
+    "reply_tokens": 1024,
+    "scope": "Independent populated session states from an identical primed document; not independent cold prefills",
+    "shared_pool_tokens": 8650752,
+    "streams_per_wave": 32,
+    "waves": 2
+  },
+  "image_id": "sha256:973b52dedb5e9e9270fdcaa1840f4ff61076c08fadb3d97c1aea98bef6795834",
+  "matched_memory": {
+    "comparison": {
+      "matched": true,
+      "maximum_growth_bytes": {
+        "head": {
+          "glibc_live_bytes": -4504.0,
+          "rank_anon_plus_swap_bytes": 19030016.0
+        },
+        "worker": {
+          "glibc_live_bytes": 2784.0,
+          "rank_anon_plus_swap_bytes": 0.0
+        }
+      },
+      "window_medians": [
+        {
+          "head": {
+            "available_bytes": 3789762560.0,
+            "glibc_live_bytes": 3915703112.0,
+            "rank_anon_plus_swap_bytes": 4279312384.0
+          },
+          "worker": {
+            "available_bytes": 4952696832.0,
+            "glibc_live_bytes": 3656828832.0,
+            "rank_anon_plus_swap_bytes": 3792637952.0
+          }
+        },
+        {
+          "head": {
+            "available_bytes": 3749670912.0,
+            "glibc_live_bytes": 3915698608.0,
+            "rank_anon_plus_swap_bytes": 4285134848.0
+          },
+          "worker": {
+            "available_bytes": 5016659968.0,
+            "glibc_live_bytes": 3656831616.0,
+            "rank_anon_plus_swap_bytes": 3792637952.0
+          }
+        },
+        {
+          "head": {
+            "available_bytes": 3737923584.0,
+            "glibc_live_bytes": 3915679440.0,
+            "rank_anon_plus_swap_bytes": 4298342400.0
+          },
+          "worker": {
+            "available_bytes": 4991260672.0,
+            "glibc_live_bytes": 3656819216.0,
+            "rank_anon_plus_swap_bytes": 3792637952.0
+          }
+        }
+      ],
+      "within_budget": true
+    },
+    "finished": "2026-10-10T03:58:24.707154+00:00",
+    "parameters": {
+      "cycles": 3,
+      "max_growth_mib": 256,
+      "quiet_seconds": 120,
+      "streams": 8,
+      "tools": 16
+    },
+    "samples_per_window": [
+      23,
+      23,
+      23
+    ],
+    "scope": "Finite repeat of the same schemas and normalized retained prefixes; not proof of leak-free operation",
+    "source_receipt_sha256": "634e7efa9f8a0b64297069e9f1c3e70f435e92e0e87fcb31c42a522b2c77cc04",
+    "started": "2026-10-10T03:46:42.416333+00:00"
+  },
+  "memory": {
+    "allocation_ooms": 0,
+    "allocation_retries": 0,
+    "graph_captures": 96,
+    "graphs_sealed": true,
+    "observer_errors": 3,
+    "sampled_minimum_available_gib": {
+      "head": 2.7057723999023438,
+      "worker": 3.3536911010742188
+    }
+  },
+  "mixed_soak": {
+    "cycles": 9,
+    "requested_seconds": 360,
+    "requests": 288
+  },
+  "native_million": {
+    "mixed_requests": 2,
+    "prompt_tokens": 1048320,
+    "reply_tokens": 256,
+    "retrieval_passed": true,
+    "retrieved_facts": 3,
+    "seconds": 903.003,
+    "total_tokens": 1048576
+  },
+  "parity": {
+    "concurrency": [
+      16,
+      24,
+      32,
+      32
+    ],
+    "matched_reply_pairs": 104,
+    "requests": 208,
+    "scope": "Default/ordinary server token-hash comparisons; explicit request seeds",
+    "waves": 8
+  },
+  "phases": [
+    {
+      "name": "baseline",
+      "returncode": 0
+    },
+    {
+      "name": "structured",
+      "returncode": 0
+    },
+    {
+      "name": "sampling",
+      "returncode": 0
+    },
+    {
+      "name": "ordinary-parity",
+      "returncode": 0
+    },
+    {
+      "name": "full-sessions",
+      "returncode": 0
+    },
+    {
+      "name": "million",
+      "returncode": 0
+    },
+    {
+      "name": "queue",
+      "returncode": 0
+    },
+    {
+      "name": "recovery",
+      "returncode": 0
+    },
+    {
+      "name": "soak",
+      "returncode": 0
+    }
+  ],
+  "privacy": "Synthetic workloads only; raw replies, host identifiers and private operational state omitted",
+  "source_receipt_sha256": "16d2a7fbb9f802917f0db0c8cbbbca359cefb109d3b2a583ae313e4849f7f5f8",
+  "source_revision": "32c4ebea7d0a81808aaa503d88ebe1a84612d0cf",
+  "started": "2026-10-10T02:56:22.041734+00:00",
+  "status": "passed"
+}

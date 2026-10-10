@@ -28,7 +28,7 @@ This work builds on the following projects and contributors:
 | Contributor | Contribution |
 |---|---|
 | [ashhart / TensorFold contributors](https://github.com/ashhart/TensorFold) | TensorFold framework, EXL3 foundation and inherited kernels |
-| [Bertholomus / Albert Lee](https://github.com/bertholomus/TensorFold/tree/deepseek-v41-tp2) | DeepSeek TP2 engine, vision/RDMA integration, benchmark kit, v0.5 kernel/memory improvements and v0.5.1 FP32/loop-guard fixes |
+| [Bertholomus / Albert Lee](https://github.com/bertholomus/TensorFold/tree/deepseek-v41-tp2) | DeepSeek TP2 engine, vision/RDMA integration, benchmark kit, v0.5 kernel/memory improvements, v0.5.1 FP32/loop-guard fixes and the native engine's replay-floor correction |
 | [Capicua25x](https://github.com/bertholomus/deepseek-v4.1-tensorfold-tp2-2xgb10/pull/9) | Novelty signal used by Bertholomus's optional reasoning-loop guard |
 | [Mia-AiLab](https://huggingface.co/Mia-AiLab/DeepSeek-V4.1-Flash-EXL3-2.9bpw) | EXL3 2.9-bpw checkpoint |
 | [drowzeys / Keys](https://huggingface.co/drowzeys/DeepSeek-V4.1-Flash-Abliterated-Cybersecurity-Unleashed) | Matching Keys attention overlay |
@@ -189,7 +189,7 @@ Session KV writes to NVMe are off. Prepared weights, compiled kernels and logs s
 
 ## Benchmarks
 
-Matched methods on the same two GB10s, with Mia 2.9-bpw + Keys, 1K prefill chunks, 32 slots and the shared pool above. Both builds reused verified assets. The earlier container inherited the TF32 override; the current build enforces FP32 arithmetic. Both measurements are from 2026-10-08 UTC.
+Matched methods on the same two GB10s, with Mia 2.9-bpw + Keys, 1K prefill chunks, 32 slots and the shared pool above. Both builds reused verified assets. The earlier container inherited the TF32 override; the later measured build enforces FP32 arithmetic. Both measurements are from 2026-10-08 UTC. The [October 9 selective update](deployment/UPSTREAM-V06.md) retains FP32 arithmetic and has separate qualification; these speed measurements were not repeated for it.
 
 | Workload | Previous TF32 build | FP32 update | Measurement |
 |---|---:|---:|---|

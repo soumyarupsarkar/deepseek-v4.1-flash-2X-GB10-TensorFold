@@ -1,0 +1,60 @@
+{
+  "final_checks": {
+    "active_slots": 32,
+    "allocation_ooms": 0,
+    "allocation_retries": 0,
+    "ethernet_mtu": 9000,
+    "host_floor_gib": 2,
+    "loop_guard_default": false,
+    "paired_monitor_active": true,
+    "per_request_tokens": 1048576,
+    "precision_override": "0",
+    "rdma_mtu": 4096,
+    "readonly_shared_assets_and_prepared_caches": true,
+    "replay_floor": true,
+    "sealed_graphs": 96,
+    "seed_mode": "random",
+    "selected_restart": true,
+    "shared_pool_tokens": 8650752,
+    "stopped_endurance_services_inactive": true,
+    "text_vision_smoke": true,
+    "worker_to_lan_api": true
+  },
+  "finished": "2026-10-10T04:01:36.452041+00:00",
+  "image_id": "sha256:973b52dedb5e9e9270fdcaa1840f4ff61076c08fadb3d97c1aea98bef6795834",
+  "intentional_worker_loss": {
+    "failure_kind": "rank-state",
+    "failure_stage": "worker:container",
+    "head_observation_current": true,
+    "paired_cleanup_and_host_restoration": true,
+    "seconds": 44.718,
+    "source_receipt_sha256": "b363d45c9ed7972a7b674cf5ca22d4b3b6ff18258f0e6af98e072771188358cd",
+    "worker_observation_age_seconds": 5.229,
+    "worker_observation_current": false
+  },
+  "normal_stop_and_host_restoration": true,
+  "previous_build": {
+    "fallback_exercised_during_this_update": false,
+    "image_id": "sha256:bb2195c47f06c9952491d8197411eb02a9f748808fa30679f4fa31f483aaf7f8",
+    "image_present_on_both_nodes": true,
+    "source_revision": "5ff2bd0db06b0efd5470512c8e30aa1c65eea348"
+  },
+  "privacy": "Only allowlisted counts, booleans, versions and memory totals; private identities, host state and raw traffic omitted",
+  "scope": "Normal stop/restoration, intentional idle worker loss, paired cleanup, restart and finite qualification. No reboot, prior-image fallback or 24-hour endurance pass.",
+  "source_revision": "32c4ebea7d0a81808aaa503d88ebe1a84612d0cf",
+  "started": "2026-10-10T02:49:52.308842+00:00",
+  "status": "passed",
+  "watchdog": {
+    "failed_samples": 0,
+    "finished": "2026-10-10T03:58:20.969699+00:00",
+    "minimum_available_gib": {
+      "head": 2.348407745361328,
+      "worker": 3.3034095764160156
+    },
+    "optional_host_probe_errors": 0,
+    "samples": 772,
+    "scope": "Finite candidate checks before the deliberate worker failure; host samples about every five seconds",
+    "started": "2026-10-10T02:49:57.390159+00:00",
+    "trailing_partial_records_skipped": 0
+  }
+}

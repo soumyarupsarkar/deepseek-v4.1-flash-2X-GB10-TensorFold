@@ -2,6 +2,11 @@
 
 The bundle contains original two-GB10 measurements from 2026-10-07, portable-cutover measurements from 2026-10-08, and the later FP32 correctness update on 2026-10-08 (UTC). Both portable builds reused fully verified model/prepared assets. Current engine fingerprints and historical provenance are in [engine-source.json](../release/engine-source.json). Sanitized summaries retain ranges and source-receipt hashes. Private raw operational receipts, host inventories and logs are not bundled; their hashes are provenance references, not links to downloadable files.
 
+The [October 9 selective update](../deployment/UPSTREAM-V06.md) has separate
+correctness, capacity, memory and lifecycle evidence. The throughput tables here
+retain their October 8 source/image identity; speeds were not remeasured for that
+update, and acceptance timings are not substituted for matched benchmarks.
+
 ## Two distinct methods
 
 **Unchanged upstream kit:** [kit_bench.py](../tools/dsv41/kit_bench.py) uses published set-b prompts. C1 reports `(output tokens - 1) / first-to-last-content time`, allowing EOS with a 384-token maximum. All measured C1 replies reached that maximum. Three repetitions follow per-prompt warm-up, so these are not cold-prefix claims. Cold prefill uses fresh time-seeded word inputs, one output token, and input tokens divided by first-content latency; a wrapper verified zero prefix hits. Model weights and compiled kernels were warm. Burst timing includes complete waves. Sustained timing estimates window tokens from clipped response decode spans, rather than counting each token event at the window boundary.
@@ -10,7 +15,7 @@ The bundle contains original two-GB10 measurements from 2026-10-07, portable-cut
 
 The local benchmark client differs from its original deployment version only in imports and receipt paths. Its calculation method is retained. The unchanged upstream kit is separately source-pinned. Neither method is an application-quality evaluation, and the prompt named `structured` is a counting task, not grammar-constrained JSON.
 
-## Current FP32 correctness update
+## October 8 FP32 correctness update
 
 Source `c068898375337c1f2a7bd222e5d1c342b0a83f9c`, local image ID
 `sha256:928fc8e4416e4494de8e600ef81c3ed60393f3871959d77ae20965bc99d2e8ba`,
