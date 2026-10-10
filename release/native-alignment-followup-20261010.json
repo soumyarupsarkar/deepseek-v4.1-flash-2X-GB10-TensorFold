@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-10T17:07:12.710839+00:00",
+  "status": "correction-prepared-live-qualification-in-progress",
+  "failed_runtime": {
+    "source": "80b399cd023d3a88ad69501c8261143ea622328b",
+    "image": "sha256:5835a26f281d1dd2ddd868648a5ac6048d6924e02ca0d1a5a1cd1324949cbb6d",
+    "suite_status": "failed",
+    "declared_waves": 10,
+    "completed_waves": 6,
+    "failed_case": {
+      "cache": "cold",
+      "mode": "default",
+      "prompt_class": "code",
+      "prompt_tokens": 613376,
+      "rep": 0,
+      "reply_tokens": 1024,
+      "seed": 42000,
+      "streams": 1,
+      "temperature": 0
+    },
+    "error": "MissingTritonVariant",
+    "kernel": "_index_score_rows",
+    "required_visibility_alignment_bytes": 16,
+    "old_row_stride": 27,
+    "second_block_visibility_remainder_bytes": 8,
+    "paired_shutdown": "both ranks stopped",
+    "host_restoration": "passed on both hosts",
+    "receipt_sha256": "73a2d8acd6c27c28c3b60fd22c13b53497146017debeab3949d6910a6771b4e4",
+    "restoration_log_sha256": "c00285d7c98e007f6267422a9186a4ec52e9ccad472f530a22044de049e64938"
+  },
+  "correction": {
+    "commit": "727a5ef7db48c3e42e7b04da800b31f07b0f8b0f",
+    "behavior": "Round multi-block index strides down to an even number of rows; preserve single odd blocks.",
+    "repaired_614k_blocks": [
+      26,
+      26,
+      26,
+      26,
+      24
+    ],
+    "cpu_regressions_reproduced": 2,
+    "cpu_regressions_after_fix": "passed",
+    "context_tokens": 1048576,
+    "shared_pool_tokens": 8650752,
+    "index_scratch_elements": 16777216,
+    "cpu_review_sha256": "c2a22c509f25644dda40a0ea448ea969e22d350cb6690cc976afed62ab9c1e33"
+  },
+  "prepared_runtime": {
+    "source": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+    "image": "sha256:83752d9d3bc7da632fd195332963501e9ca5208a8e2fcf409e781e985049aafd",
+    "build_steps": 90,
+    "fresh_cpu_server_tests_passed": 293,
+    "native_grammar_test": "passed",
+    "gpu_checks_per_host": 7,
+    "gpu_checks": "passed on both hosts",
+    "cache_entries_compared_per_host": 143770,
+    "cache_bytes_compared_per_host": 106107109192,
+    "cache_mismatches": 0,
+    "host_restoration": "passed on both hosts",
+    "preparation_receipt_sha256": "ff661984b21e8b55cf819fac0cbdedcb03b54621c3d5c1ab1761d1dd56b3397e"
+  },
+  "remaining_gates": [
+    "Exact 614k GPU replay and adjacent/odd boundaries",
+    "Renewed finite feature, capacity, parity and independent cold compaction checks",
+    "Matched performance and memory acceptance",
+    "Selected-image paired and reboot recovery",
+    "New bounded 24-hour endurance",
+    "Final publication review and conditional cutover"
+  ],
+  "evidence_scope": "Synthetic fixtures and build/preparation evidence only. Earlier-image performance stays labeled with its actual runtime. No production acceptance or full deep-context comparison is claimed."
+}

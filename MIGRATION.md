@@ -2,9 +2,9 @@
 
 The native candidate is **not qualified for production**. The image that passed
 the feature and capacity checks below later failed the 614k deep-context test.
-Both ranks stopped and both hosts passed restoration checks. The alignment fix
-passes CPU regression tests; a new image and renewed hardware qualification are
-required. Matched performance, an independent cold compaction reference,
+Both ranks stopped and both hosts passed restoration checks. The corrected
+image has passed preparation and is repeating live qualification. Matched
+performance, an independent cold compaction reference,
 recovery and a new 24-hour endurance run remain open. The published Python
 deployment remains the qualified fallback and is stopped during this work.
 
@@ -79,6 +79,17 @@ sizes. This preserves the configured request limit, shared KV pool and scratch
 budget. The actual failing GPU request and full qualification must still pass
 on the corrected image. Six completed waves out of ten do not constitute a
 passing deep-context suite or a complete comparison graph.
+
+The [alignment follow-up evidence](release/native-alignment-followup-20261010.json)
+binds the new preparation to source
+`4d48d4ec5f3db83a361c2228088d72e27f487d62` and image
+`sha256:83752d9d3bc7da632fd195332963501e9ca5208a8e2fcf409e781e985049aafd`.
+Its fresh build passed 293 CPU/server tests and the native grammar test. Both
+hosts passed seven GPU checks and full comparison of 143,770 cache entries
+(106,107,109,192 bytes per rank), with zero mismatches. The renewed live suite
+starts with the exact 614k failure case and adjacent/odd context sizes, then
+repeats feature, capacity, cold compaction and matched performance checks.
+Preparation is not serving or production qualification.
 
 ## Primary matched measurements (partial qualification)
 
@@ -181,8 +192,8 @@ a known format/loader revision, not proof of which commit wrote an imported file
 
 ## Remaining cutover gates
 
-1. Build the alignment correction, reproduce the formerly failing 614k request
-   successfully, and repeat selected-image feature/capacity checks, including
+1. Reproduce the formerly failing 614k request successfully on the prepared
+   correction, and repeat selected-image feature/capacity checks, including
    the independent cold partial-prefill compaction comparison.
 2. Finish matched synthetic throughput, latency and memory comparisons against
    the Python reference, including temperature-1 sampling and deep context.
