@@ -23,6 +23,9 @@ def compare(reference, candidate):
         if receipt.get('status') != 'passed' or not receipt.get('rows'):
             raise ValueError('Require two complete, passing benchmark receipts')
     def indexed(receipt):
+        if any(type(row['case'].get('rep')) is not int or row['case']['rep'] < 0
+               for row in receipt['rows']):
+            raise ValueError('Every scored case requires a nonnegative integer rep')
         result = {canonical(row['case']): row for row in receipt['rows']}
         if len(result) != len(receipt['rows']):
             raise ValueError('Duplicate cases; use explicit repetition numbers')
@@ -59,6 +62,8 @@ def compare(reference, candidate):
                 native_graph_captures_during_wave=row.get('native_graph_captures_during_wave')))
     output = []
     for group in groups.values():
+        if len(group['reference']) < 2 or len(group['candidate']) < 2:
+            raise ValueError('Require at least two matched repetitions per workload')
         comparison = {}
         for metric in METRICS:
             values = {label: [row['metrics'][metric] for row in group[label]]

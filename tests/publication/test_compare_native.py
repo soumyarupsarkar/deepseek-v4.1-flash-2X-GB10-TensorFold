@@ -35,6 +35,22 @@ class NativeComparison(unittest.TestCase):
         self.assertIsNone(metric['candidate'])
         self.assertIsNone(metric['candidate_change_percent'])
 
+    def test_mislabeled_or_single_repetitions_cannot_be_reported_as_medians(self):
+        for mutation in ('single', 'repeat_alias', 'missing', 'boolean'):
+            reference, candidate = receipt('reference', 10), receipt('candidate', 20)
+            for value in (reference, candidate):
+                if mutation == 'single':
+                    value['rows'].pop()
+                else:
+                    for row in value['rows']:
+                        rep = row['case'].pop('rep')
+                        if mutation == 'repeat_alias':
+                            row['case']['repeat'] = rep
+                        elif mutation == 'boolean':
+                            row['case']['rep'] = bool(rep)
+            with self.subTest(mutation=mutation), self.assertRaises(ValueError):
+                comparison.compare(reference, candidate)
+
     def test_mismatched_inputs_budgets_or_cache_cannot_be_compared(self):
         for mutation in ('prompt', 'output', 'cache', 'missing', 'duplicate', 'failed'):
             candidate = receipt('candidate', 20)
