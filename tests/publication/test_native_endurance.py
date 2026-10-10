@@ -1,11 +1,12 @@
 """Fail closed on stale prerequisites; retain bounded evidence without prompts."""
+import copy
 import hashlib
 import importlib.util
 import json
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[2]
 SPEC = importlib.util.spec_from_file_location('native_endurance', ROOT / 'tools/qualification/native_endurance.py')
@@ -14,6 +15,73 @@ SPEC.loader.exec_module(endurance)
 
 
 class NativeEndurance(unittest.TestCase):
+    def ranks(self):
+        launch = dict(image='candidate-image', containers={'head': 'head-id', 'worker': 'worker-id'})
+        rows = {host: [dict(Id=ident, Image=launch['image'], RestartCount=0,
+                State=dict(Running=True, Paused=False, Restarting=False, StartedAt='2026-10-10T12:00:00Z'))]
+                for host, ident in launch['containers'].items()}
+        pair = Mock()
+        pair.containers.side_effect = lambda host: rows[host]
+        active = dict(launch, running=True)
+        return pair, launch, active, rows
+
+    def test_same_container_restart_invalidates_endurance(self):
+        pair, launch, active, rows = self.ranks()
+        epochs = endurance.rank_epochs(pair, launch)
+        endurance.validate_continuity(pair, launch, epochs, copy.deepcopy(launch), active)
+        # A manual restart can preserve the ID and automatic restart counter.
+        rows['worker'][0]['State']['StartedAt'] = '2026-10-10T13:00:00Z'
+        with self.assertRaisesRegex(RuntimeError, 'rank restarted'):
+            endurance.validate_continuity(pair, launch, epochs, launch, active)
+
+    def test_restart_counter_or_launch_change_invalidates_endurance(self):
+        for change in ('counter', 'launch', 'active', 'active-image', 'active-container'):
+            pair, launch, active, rows = self.ranks()
+            epochs = endurance.rank_epochs(pair, launch)
+            current = copy.deepcopy(launch)
+            if change == 'counter':
+                rows['head'][0]['RestartCount'] = 1
+            elif change == 'launch':
+                current['containers']['head'] = 'replacement'
+            elif change == 'active':
+                active['running'] = False
+            elif change == 'active-image':
+                active['image'] = 'replacement'
+            else:
+                active['containers'] = dict(active['containers'], head='replacement')
+            with self.subTest(change=change), self.assertRaises(RuntimeError):
+                endurance.validate_continuity(pair, launch, epochs, current, active)
+
+    def test_unhealthy_or_unidentifiable_ranks_are_rejected(self):
+        for change in ('absent', 'duplicate', 'id', 'image', 'stopped', 'paused', 'restarting',
+                       'missing-start', 'zero-start', 'missing-counter', 'boolean-counter'):
+            pair, launch, active, rows = self.ranks()
+            row = rows['head'][0]
+            if change == 'absent':
+                rows['head'].clear()
+            elif change == 'duplicate':
+                rows['head'].append(copy.deepcopy(row))
+            elif change == 'id':
+                row['Id'] = 'replacement'
+            elif change == 'image':
+                row['Image'] = 'replacement'
+            elif change == 'stopped':
+                row['State']['Running'] = False
+            elif change == 'paused':
+                row['State']['Paused'] = True
+            elif change == 'restarting':
+                row['State']['Restarting'] = True
+            elif change == 'missing-start':
+                del row['State']['StartedAt']
+            elif change == 'zero-start':
+                row['State']['StartedAt'] = '0001-01-01T00:00:00Z'
+            elif change == 'missing-counter':
+                del row['RestartCount']
+            else:
+                row['RestartCount'] = False
+            with self.subTest(change=change), self.assertRaises(RuntimeError):
+                endurance.rank_epochs(pair, launch)
+
     def test_exact_image_source_and_prerequisites_required(self):
         with tempfile.TemporaryDirectory() as directory:
             receipt = Path(directory) / 'receipt.json'

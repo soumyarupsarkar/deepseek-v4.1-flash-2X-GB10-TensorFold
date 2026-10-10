@@ -46,6 +46,36 @@ def validate_gates(gates, launch, source):
             raise RuntimeError('A prerequisite receipt changed')
 
 
+def rank_epochs(pair, launch):
+    """Bind endurance to running processes, including same-container restarts."""
+    pair.ownership()
+    epochs = {}
+    for host in ('head', 'worker'):
+        rows = pair.containers(host)
+        if len(rows) != 1:
+            raise RuntimeError(host + ': require one owned endurance rank')
+        row = rows[0]
+        state = row.get('State', {})
+        started = state.get('StartedAt')
+        restarts = row.get('RestartCount')
+        if (row.get('Id') != launch['containers'][host] or row.get('Image') != launch['image']
+                or state.get('Running') is not True or state.get('Paused') or state.get('Restarting')
+                or not isinstance(started, str) or not started or started.startswith('0001-')
+                or type(restarts) is not int or restarts < 0):
+            raise RuntimeError(host + ': endurance rank identity or running state differs')
+        epochs[host] = dict(container=row['Id'], image=row['Image'], started=started, restarts=restarts)
+    return epochs
+
+
+def validate_continuity(pair, expected_launch, expected_epochs, current_launch, active):
+    if (current_launch != expected_launch or active.get('running') is not True
+            or active.get('image') != expected_launch['image']
+            or active.get('containers') != expected_launch['containers']):
+        raise RuntimeError('Endurance launch changed or stopped; do not combine separate runs')
+    if rank_epochs(pair, expected_launch) != expected_epochs:
+        raise RuntimeError('An endurance rank restarted; do not combine separate runs')
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--record', required=True)
@@ -69,6 +99,8 @@ def main():
     validate_gates(gates, launch, source)
     if common.PAIR.config['api']['bind'] != '127.0.0.1':
         raise RuntimeError('Require an isolated loopback candidate')
+    epochs = rank_epochs(common.PAIR, launch)
+    validate_continuity(common.PAIR, launch, epochs, read(STATE / 'launch.json'), read(STATE / 'active.json'))
     directory = common.ROOT / 'endurance' / a.record
     directory.mkdir(parents=True, mode=0o700, exist_ok=False)
     evidence = directory / 'cycles.jsonl'
@@ -78,6 +110,7 @@ def main():
     deadline, next_quiet = started + a.hours * 3600, started + 3600
     record = dict(started=common.now(), status='running', hours=a.hours, source=source,
                   image=launch['image'], launch=launch, gates_sha256=hashlib.sha256(a.gates.read_bytes()).hexdigest(),
+                  rank_epochs=epochs,
                   script_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                   completed_cycles=0, deep_waves=0, quiet_windows=0, cycle_requests=0,
                   evidence_limit_bytes=MAX_EVIDENCE_BYTES, previous_run_resumed=False)
@@ -99,6 +132,7 @@ def main():
     signal.signal(signal.SIGINT, stop_signal)
 
     def sample():
+        validate_continuity(common.PAIR, launch, epochs, read(STATE / 'launch.json'), read(STATE / 'active.json'))
         health, drain = wait_idle(common.API_BASE)
         if not ready(health, profile()) or health['scheduler']['running'] or health['scheduler']['waiting']:
             raise RuntimeError('Endurance pair is unhealthy or did not become idle')
@@ -187,7 +221,7 @@ def main():
             save()
             print('cycle', cycle, 'passed; elapsed', round(record['elapsed_s']), 'seconds', flush=True)
             time.sleep(min(5, max(0, deadline - time.monotonic())))
-        append(evidence, dict(kind='final', sample=sample(), canary=canary()))
+        append(evidence, dict(kind='final', canary=canary(), sample=sample()))
         record['status'] = 'passed'
     except BaseException as exc:
         if not interrupted:

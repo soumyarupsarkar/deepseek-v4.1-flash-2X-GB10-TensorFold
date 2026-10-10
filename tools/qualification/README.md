@@ -113,6 +113,12 @@ fixed-seed replay; rotates deep-context waves; and takes hourly quiet samples.
 Its append-only evidence is capped at 64 MiB and excludes reply text. Exceeding
 the cap fails the run while preserving earlier records. On a fault it attempts
 to stop the original owned pair; it refuses to stop a replacement launch.
+Each idle sample verifies the original launch, rank IDs, images, container start
+times and restart counters. A replaced or restarted rank invalidates the run,
+including a manual Docker restart that keeps the same container ID. The final
+identity check follows the final canary request. These checks require a fresh
+run after recovery; they do not combine uptime across restarts.
+
 Interruption remains interruption, not a passing endurance result. The
 `cycle_requests` count covers ordinary mixed cycles and their replay canaries;
 deep waves, eviction fixtures and initial/final canaries are recorded separately.
