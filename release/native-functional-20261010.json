@@ -1,0 +1,584 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-10T14:43:20.891558+00:00",
+  "status": "partial-qualification-not-production-acceptance",
+  "runtime": {
+    "source": "80b399cd023d3a88ad69501c8261143ea622328b",
+    "image": "sha256:5835a26f281d1dd2ddd868648a5ac6048d6924e02ca0d1a5a1cd1324949cbb6d",
+    "context_tokens": 1048576,
+    "shared_pool_tokens": 8650752,
+    "stream_slots": 32,
+    "round_rows": 48,
+    "seed_mode": "random",
+    "api_exposure": "loopback during qualification"
+  },
+  "preparation": {
+    "cpu_server_tests_passed": 291,
+    "cpu_build_steps_passed": 90,
+    "preparation_summary_sha256": "52adeae957ba2fc458fcc1cb273ded8c179a8a45630263d5fed9867737668c1c"
+  },
+  "completed_client_runs": [
+    {
+      "name": "native4-baseline-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T13:07:38.575717+00:00",
+      "finished": "2026-10-10T13:07:52.961933+00:00",
+      "receipt_sha256": "ed8e63be35f5921c9989cd90f7d7e21743c99e2359ada90baa384958448353af",
+      "client": "tools/qualification/native_features.py",
+      "client_revision": "80b399cd023d3a88ad69501c8261143ea622328b",
+      "client_sha256": "5eb679a539b2a6e8eac5e96f63b182fcf1e3ef61ed22d24651cc06f778f4eee1"
+    },
+    {
+      "name": "native4-prefill-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T13:07:54.602179+00:00",
+      "finished": "2026-10-10T13:10:41.341332+00:00",
+      "receipt_sha256": "51285d634ac8c1bd68352e2ba5f430a7440e88881d316c0f3e902141c55035e5",
+      "client": "tools/qualification/native_prefill.py",
+      "client_revision": "80b399cd023d3a88ad69501c8261143ea622328b",
+      "client_sha256": "a15dc5ad63ba7944a85a166c461a4473951b82e2ed4d212aace758ab0e7f1800"
+    },
+    {
+      "name": "native4-structured-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T13:10:43.005815+00:00",
+      "finished": "2026-10-10T13:10:55.100840+00:00",
+      "receipt_sha256": "5a0d01eed128da482eef370b14712cc42125737b4333dbe1877df9b111b8ef18",
+      "client": "tools/qualification/native_features.py",
+      "client_revision": "80b399cd023d3a88ad69501c8261143ea622328b",
+      "client_sha256": "5eb679a539b2a6e8eac5e96f63b182fcf1e3ef61ed22d24651cc06f778f4eee1"
+    },
+    {
+      "name": "native4-sampling-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T13:10:56.723776+00:00",
+      "finished": "2026-10-10T13:11:02.796017+00:00",
+      "receipt_sha256": "2ac635f2063a5611a1ded737110957f0f7ebc3f372eff007dc7dc39d4970b2a5",
+      "client": "tools/qualification/native_features.py",
+      "client_revision": "80b399cd023d3a88ad69501c8261143ea622328b",
+      "client_sha256": "5eb679a539b2a6e8eac5e96f63b182fcf1e3ef61ed22d24651cc06f778f4eee1"
+    },
+    {
+      "name": "native4-aliases-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T13:11:04.425143+00:00",
+      "finished": "2026-10-10T13:11:05.078268+00:00",
+      "receipt_sha256": "44483db5c1d7db9d58f0c043d45c98791bb87a70636199afe151c17ba1fcd861",
+      "client": "tools/qualification/native_features.py",
+      "client_revision": "80b399cd023d3a88ad69501c8261143ea622328b",
+      "client_sha256": "5eb679a539b2a6e8eac5e96f63b182fcf1e3ef61ed22d24651cc06f778f4eee1"
+    },
+    {
+      "name": "native4-protocols-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T13:11:06.674381+00:00",
+      "finished": "2026-10-10T13:11:07.210572+00:00",
+      "receipt_sha256": "9d38a3a6cdbe1e1d8658d3f84d4563dc5fb4e02efa8fce9c5821c29a5f39e8ff",
+      "client": "tools/qualification/native_features.py",
+      "client_revision": "80b399cd023d3a88ad69501c8261143ea622328b",
+      "client_sha256": "5eb679a539b2a6e8eac5e96f63b182fcf1e3ef61ed22d24651cc06f778f4eee1"
+    },
+    {
+      "name": "native4-image-formats-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T13:11:08.817288+00:00",
+      "finished": "2026-10-10T13:11:14.468274+00:00",
+      "receipt_sha256": "2c416886b5e2e66eae000aa0d92ff6156c6ce8b02a1d45d5778db6eb88c8c7e9",
+      "client": "tools/qualification/native_image_formats.py",
+      "client_revision": "80b399cd023d3a88ad69501c8261143ea622328b",
+      "client_sha256": "e0a4252ac6f24d721c58a7b35e64734c3026d16220aec632ff1f73de445b1cdd"
+    },
+    {
+      "name": "native4-parity-greedy-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T13:11:16.052805+00:00",
+      "finished": "2026-10-10T13:16:07.404364+00:00",
+      "receipt_sha256": "9d1256ecc46cde79a358d90a1d9d568c3c635b0d0999e1a6cceb4f93a509a78a",
+      "client": "tools/qualification/native_parity.py",
+      "client_revision": "80b399cd023d3a88ad69501c8261143ea622328b",
+      "client_sha256": "22036e9831d97cac501459d2b10e135dccc79a05e062e9cd470e4943a4f1f3d1"
+    },
+    {
+      "name": "native4-parity-sampled-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T13:16:09.048972+00:00",
+      "finished": "2026-10-10T13:21:39.561649+00:00",
+      "receipt_sha256": "b9a3af10f0b0a1f984587145953189cb88c9bfeeb1a33278c56054fdec4de7f9",
+      "client": "tools/qualification/native_parity.py",
+      "client_revision": "80b399cd023d3a88ad69501c8261143ea622328b",
+      "client_sha256": "22036e9831d97cac501459d2b10e135dccc79a05e062e9cd470e4943a4f1f3d1"
+    },
+    {
+      "name": "native4-constraints-greedy-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T13:21:41.237202+00:00",
+      "finished": "2026-10-10T13:22:55.081896+00:00",
+      "receipt_sha256": "e3ce244385a7f38e9583133a0028f0eee1b7422748fb42222e3a3ea223e4751b",
+      "client": "tools/qualification/native_constraints.py",
+      "client_revision": "80b399cd023d3a88ad69501c8261143ea622328b",
+      "client_sha256": "b741dbcfe3dcbbeeafc09f07e1aa1c4f137455049fe146c895f2cd7e71d706d4"
+    },
+    {
+      "name": "native4-constraints-sampled-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T13:22:56.681721+00:00",
+      "finished": "2026-10-10T13:24:19.379699+00:00",
+      "receipt_sha256": "f45fe1bc57cec8bbd02c4d8e30d7a3c12c558e95660aef2079464653397c7942",
+      "client": "tools/qualification/native_constraints.py",
+      "client_revision": "80b399cd023d3a88ad69501c8261143ea622328b",
+      "client_sha256": "b741dbcfe3dcbbeeafc09f07e1aa1c4f137455049fe146c895f2cd7e71d706d4"
+    },
+    {
+      "name": "native4-retention-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T13:24:21.019068+00:00",
+      "finished": "2026-10-10T13:34:20.847927+00:00",
+      "receipt_sha256": "bce600f85e2ec82efe2c21f5573e320b447e88d7eaed5f3b8e3daa94646810fb",
+      "client": "tools/qualification/native_retention.py",
+      "client_revision": "80b399cd023d3a88ad69501c8261143ea622328b",
+      "client_sha256": "f05400fe1b9ac57fe33716ceec5626b84b82250c0aca33f86de3da81981ba8a9"
+    },
+    {
+      "name": "native4-partial-compaction-01",
+      "client_reported_status": "passed",
+      "acceptance": "independent-cold-reference-pending",
+      "started": "2026-10-10T13:34:23.105901+00:00",
+      "finished": "2026-10-10T13:38:14.187389+00:00",
+      "receipt_sha256": "4084de9797c9352ef56da533e47f33d6957ff2b6975af3e0902adb755aab9093",
+      "client": "tools/qualification/native_compaction.py",
+      "client_revision": "80b399cd023d3a88ad69501c8261143ea622328b",
+      "client_sha256": "1068f8317534c87cd62275df486df81a2543065b7cadd48471961fdc107fd968"
+    },
+    {
+      "name": "native4-decode-compaction-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T13:38:15.964912+00:00",
+      "finished": "2026-10-10T13:39:01.193008+00:00",
+      "receipt_sha256": "8234dae30c76f815e9f4e26029851e8e56d9a25f5d715313897cf19a37e07eb5",
+      "client": "tools/qualification/native_decode_compaction.py",
+      "client_revision": "add05400b966fe250bc81c7cdc01f7d957711482",
+      "client_sha256": "3edce28717b2c97fd742daa3e05f882a6ed4f34be8f27d93572190bef4f74a41"
+    },
+    {
+      "name": "native4-pool-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T13:39:02.836973+00:00",
+      "finished": "2026-10-10T13:42:32.825061+00:00",
+      "receipt_sha256": "5becf4c2b587e7123813a86ba3725c1a1dc70008cfea26d8fe5c022c63dc426b",
+      "client": "tools/qualification/native_qualification.py",
+      "client_revision": "80b399cd023d3a88ad69501c8261143ea622328b",
+      "client_sha256": "4a0fa3da90e56ac88e5e944c5b595f524425ee87a044bac69d1394c543753069"
+    },
+    {
+      "name": "native4-recovery-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T13:42:34.517289+00:00",
+      "finished": "2026-10-10T13:43:21.333494+00:00",
+      "receipt_sha256": "6ebbe1e4c4c71ec3e090fa26f97d13923a2d85bdcc6550a30e182ffb398a11f6",
+      "client": "tools/qualification/native_qualification.py",
+      "client_revision": "80b399cd023d3a88ad69501c8261143ea622328b",
+      "client_sha256": "4a0fa3da90e56ac88e5e944c5b595f524425ee87a044bac69d1394c543753069"
+    },
+    {
+      "name": "native4-pool-queue-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T13:43:23.236224+00:00",
+      "finished": "2026-10-10T13:43:44.660848+00:00",
+      "receipt_sha256": "7a7b6aca5cfdadb9de3513e9fdbc6dbdaf0f1c694493a695fa47ced1c5602ffe",
+      "client": "tools/qualification/native_qualification.py",
+      "client_revision": "80b399cd023d3a88ad69501c8261143ea622328b",
+      "client_sha256": "4a0fa3da90e56ac88e5e944c5b595f524425ee87a044bac69d1394c543753069"
+    },
+    {
+      "name": "native4-c32-full-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T13:43:46.321223+00:00",
+      "finished": "2026-10-10T13:52:19.492329+00:00",
+      "receipt_sha256": "ffaf3af77f055507c84936cd33a155afd028e0eb639003636cc31eaeed87df63",
+      "client": "tools/qualification/native_qualification.py",
+      "client_revision": "80b399cd023d3a88ad69501c8261143ea622328b",
+      "client_sha256": "4a0fa3da90e56ac88e5e944c5b595f524425ee87a044bac69d1394c543753069"
+    },
+    {
+      "name": "native4-million-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T13:52:21.567439+00:00",
+      "finished": "2026-10-10T14:04:05.788944+00:00",
+      "receipt_sha256": "0f53fcfa920c4ffb15c6ed8051d5e10afb184296db1b6732b57f23a4bf444ba2",
+      "client": "tools/qualification/native_context.py",
+      "client_revision": "80b399cd023d3a88ad69501c8261143ea622328b",
+      "client_sha256": "80c2f61c720f40b1772e1917f7f70c0887c7927ba6e7fcacdfb3ca54f1350fb5"
+    },
+    {
+      "name": "native4-short-soak-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T14:04:07.494808+00:00",
+      "finished": "2026-10-10T14:10:30.186915+00:00",
+      "receipt_sha256": "e09171c1ee41b2d525a8d57391253348bcf15937a803e96b4a146fbbe8cbffe7",
+      "client": "tools/qualification/native_qualification.py",
+      "client_revision": "80b399cd023d3a88ad69501c8261143ea622328b",
+      "client_sha256": "4a0fa3da90e56ac88e5e944c5b595f524425ee87a044bac69d1394c543753069"
+    }
+  ],
+  "incremental_prefill": {
+    "long_prompt_tokens": 262144,
+    "short_requests": 5,
+    "short_requests_wall_seconds": 8.180349094094709,
+    "latency_limit_seconds": 30.0,
+    "long_still_prefilling_at_small_finish": true,
+    "image_long_still_prefilling_at_blue_finish": true,
+    "parity": [
+      {
+        "stage": "interleaved-long-vs-cached-solo",
+        "compared_output_tokens": 256,
+        "exact_token_ids_equal": true,
+        "output_token_ids_sha256_u32le": "ec4bfce20489c8105b11df00c9fbacf118268a3375383658764de69988abced1",
+        "prompt_tokens": 262144,
+        "interleaved_cached_tokens": 0,
+        "solo_cached_tokens": 260096
+      },
+      {
+        "stage": "sampled-short-interleaved-vs-solo",
+        "compared_output_tokens": 96,
+        "exact_token_ids_equal": true,
+        "output_token_ids_sha256_u32le": "2a3ca3ceb88a8f3eebe510d2a2d0805e04ff2db125be4e29dab90daf99c65868",
+        "prompt_tokens": 23,
+        "interleaved_cached_tokens": 0,
+        "solo_cached_tokens": 0
+      },
+      {
+        "stage": "image-switch-and-solo-parity",
+        "compared_output_tokens": 2,
+        "exact_token_ids_equal": true,
+        "output_token_ids_sha256_u32le": "48195d154969fe47e742ec1daf7a02b3f609280a9bc369614aeb56e06178a349",
+        "prompt_tokens": 12202,
+        "interleaved_cached_tokens": 0,
+        "solo_cached_tokens": 0
+      }
+    ],
+    "cancellations": [
+      {
+        "stage": "cancel-partially-filled-text",
+        "drain_seconds": 1.0259647548664361,
+        "before_active_streams": 1,
+        "after_active_streams": 0,
+        "after_requests_running": 0,
+        "rdma_failed": false
+      },
+      {
+        "stage": "cancel-partially-filled-image",
+        "drain_seconds": 1.001972704892978,
+        "before_active_streams": 1,
+        "after_active_streams": 0,
+        "after_requests_running": 0,
+        "rdma_failed": false
+      }
+    ]
+  },
+  "ordinary_drafted_parity": [
+    {
+      "temperature": 0,
+      "prompt_tokens": 1024,
+      "reply_tokens": 256,
+      "rows": [
+        {
+          "streams": 4,
+          "matched_reported_token_hashes": true,
+          "requested_decode_concurrency_observed_in_both": true,
+          "requests_with_drafts": 4,
+          "minimum_drafted_tokens_per_request": 212,
+          "cache_hits": 0
+        },
+        {
+          "streams": 8,
+          "matched_reported_token_hashes": true,
+          "requested_decode_concurrency_observed_in_both": true,
+          "requests_with_drafts": 8,
+          "minimum_drafted_tokens_per_request": 234,
+          "cache_hits": 0
+        },
+        {
+          "streams": 16,
+          "matched_reported_token_hashes": true,
+          "requested_decode_concurrency_observed_in_both": true,
+          "requests_with_drafts": 16,
+          "minimum_drafted_tokens_per_request": 176,
+          "cache_hits": 0
+        },
+        {
+          "streams": 24,
+          "matched_reported_token_hashes": true,
+          "requested_decode_concurrency_observed_in_both": true,
+          "requests_with_drafts": 24,
+          "minimum_drafted_tokens_per_request": 137,
+          "cache_hits": 0
+        },
+        {
+          "streams": 32,
+          "matched_reported_token_hashes": true,
+          "requested_decode_concurrency_observed_in_both": true,
+          "requests_with_drafts": 32,
+          "minimum_drafted_tokens_per_request": 82,
+          "cache_hits": 0
+        }
+      ],
+      "hash_scope": "Reported 12-hex server token hashes; these fixtures did not return full token-ID arrays."
+    },
+    {
+      "temperature": 1,
+      "prompt_tokens": 1024,
+      "reply_tokens": 256,
+      "rows": [
+        {
+          "streams": 4,
+          "matched_reported_token_hashes": true,
+          "requested_decode_concurrency_observed_in_both": true,
+          "requests_with_drafts": 4,
+          "minimum_drafted_tokens_per_request": 218,
+          "cache_hits": 0
+        },
+        {
+          "streams": 8,
+          "matched_reported_token_hashes": true,
+          "requested_decode_concurrency_observed_in_both": true,
+          "requests_with_drafts": 8,
+          "minimum_drafted_tokens_per_request": 245,
+          "cache_hits": 0
+        },
+        {
+          "streams": 16,
+          "matched_reported_token_hashes": true,
+          "requested_decode_concurrency_observed_in_both": true,
+          "requests_with_drafts": 16,
+          "minimum_drafted_tokens_per_request": 178,
+          "cache_hits": 0
+        },
+        {
+          "streams": 24,
+          "matched_reported_token_hashes": true,
+          "requested_decode_concurrency_observed_in_both": true,
+          "requests_with_drafts": 24,
+          "minimum_drafted_tokens_per_request": 131,
+          "cache_hits": 0
+        },
+        {
+          "streams": 32,
+          "matched_reported_token_hashes": true,
+          "requested_decode_concurrency_observed_in_both": true,
+          "requests_with_drafts": 32,
+          "minimum_drafted_tokens_per_request": 83,
+          "cache_hits": 0
+        }
+      ],
+      "hash_scope": "Reported 12-hex server token hashes; these fixtures did not return full token-ID arrays."
+    }
+  ],
+  "strict_output_waves": [
+    {
+      "name": "native4-constraints-greedy-01",
+      "temperature": 0.0,
+      "receipt_sha256": "e3ce244385a7f38e9583133a0028f0eee1b7422748fb42222e3a3ea223e4751b",
+      "waves": [
+        {
+          "mode": "schema",
+          "requests": 32,
+          "peak_decoding": 32
+        },
+        {
+          "mode": "tools",
+          "requests": 32,
+          "peak_decoding": 32
+        }
+      ]
+    },
+    {
+      "name": "native4-constraints-sampled-01",
+      "temperature": 1.0,
+      "receipt_sha256": "f45fe1bc57cec8bbd02c4d8e30d7a3c12c558e95660aef2079464653397c7942",
+      "waves": [
+        {
+          "mode": "schema",
+          "requests": 32,
+          "peak_decoding": 32
+        },
+        {
+          "mode": "tools",
+          "requests": 32,
+          "peak_decoding": 32
+        }
+      ]
+    }
+  ],
+  "retention": {
+    "distinct_histories": 32,
+    "prefix_tokens": 16384,
+    "stages": [
+      {
+        "name": "32-distinct-cold-prefixes",
+        "requests": 32,
+        "minimum_cached_tokens": 0,
+        "maximum_cached_tokens": 0,
+        "retained_states": 64,
+        "snapshot_bytes": 427819008
+      },
+      {
+        "name": "32-sequential-replays",
+        "requests": 32,
+        "minimum_cached_tokens": 14336,
+        "maximum_cached_tokens": 14336,
+        "retained_states": 64,
+        "snapshot_bytes": 427819008
+      },
+      {
+        "name": "32-sequential-extensions",
+        "requests": 32,
+        "minimum_cached_tokens": 14336,
+        "maximum_cached_tokens": 14336,
+        "retained_states": 64,
+        "snapshot_bytes": 427819008
+      },
+      {
+        "name": "32-extended-replays",
+        "requests": 32,
+        "minimum_cached_tokens": 16384,
+        "maximum_cached_tokens": 16384,
+        "retained_states": 64,
+        "snapshot_bytes": 427819008
+      }
+    ]
+  },
+  "decoder_compaction": {
+    "moved_survivors": 8,
+    "selected_survivors": [
+      1
+    ],
+    "reservation_tokens": 526336,
+    "checkpoint_generated_tokens": 423,
+    "required_nonempty_chunks_each": 551,
+    "minimum_post_checkpoint_tokens_each": 64,
+    "continued": [
+      {
+        "characters": 2170,
+        "chunks": 551,
+        "index": 1,
+        "seconds": 31.930267879040912,
+        "text_sha256": "18059226c0a21212ef3ee0239291f3a1a16577c1fa3088b3df836fae6703b391"
+      }
+    ],
+    "solo_comparisons": [
+      {
+        "characters": 2170,
+        "chunks": 551,
+        "index": 1,
+        "prefix_equal": true,
+        "seconds": 12.421336975879967,
+        "text_sha256": "18059226c0a21212ef3ee0239291f3a1a16577c1fa3088b3df836fae6703b391"
+      }
+    ]
+  },
+  "partial_prefill_compaction": {
+    "status": "independent-cold-reference-pending",
+    "observation": "A populated partial prefill relocated; the initial solo comparison did not require zero cached tokens.",
+    "required": "Compare its saved post-relocation reply prefix against an independent cold reference on the unchanged launch."
+  },
+  "full_context_c32": {
+    "prompt_tokens_each": 261120,
+    "reply_tokens_each": 1024,
+    "independent_active_sessions": 32,
+    "waves": [
+      {
+        "cycle": 0,
+        "requests": 32,
+        "peak_decoding": 32,
+        "cached_tokens_min": 260096,
+        "cached_tokens_max": 260096,
+        "per_session_token_hashes_sha256": "c7d5182e9ea9b9e503cecd66960a19ddabcd84d1fca637c8bca378ec513dbbe1"
+      },
+      {
+        "cycle": 1,
+        "requests": 32,
+        "peak_decoding": 32,
+        "cached_tokens_min": 260096,
+        "cached_tokens_max": 260096,
+        "per_session_token_hashes_sha256": "c7d5182e9ea9b9e503cecd66960a19ddabcd84d1fca637c8bca378ec513dbbe1"
+      }
+    ],
+    "full_token_id_replay_matches": 32,
+    "fixture_scope": "One identical primed document with separate resident session states; not 32 independent cold document prefills."
+  },
+  "million_token_request": {
+    "usage": {
+      "completion_tokens": 256,
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "prompt_tokens": 1048320,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 1048576
+    },
+    "retrieval_passphrases_correct": 3,
+    "small_request_seconds": {
+      "arithmetic": 0.957,
+      "json_object": 2.534
+    },
+    "small_group_completion_observed_within_seconds": 5.02,
+    "small_finished_during_long_prefill": true,
+    "latency_limit_seconds": 30
+  },
+  "short_soak": {
+    "requested_duration_seconds": 360,
+    "started": "2026-10-10T14:04:07.494808+00:00",
+    "finished": "2026-10-10T14:10:30.186915+00:00",
+    "cycles": 8,
+    "requests": 256,
+    "concurrency_requested": 32,
+    "host_available_gib": {
+      "head": {
+        "minimum": 2.753246307373047,
+        "median": 2.802276611328125
+      },
+      "worker": {
+        "minimum": 2.5777854919433594,
+        "median": 2.5946712493896484
+      }
+    },
+    "snapshot_bytes_max": 427819008,
+    "graphs_after": 222,
+    "graph_limit": 512,
+    "graph_eager_fallbacks_after": 0
+  },
+  "remaining_gates": [
+    "Independent cold partial-prefill compaction reference",
+    "Completed matched throughput, latency and memory comparison and measured-benefit decision",
+    "Exact-image paired lifecycle and controlled reboot recovery",
+    "New bounded 24-hour endurance run",
+    "Final publication review and conditional production cutover"
+  ],
+  "evidence_scope": [
+    "All qualification fixtures are synthetic. This export contains selected counters and hashes, not private inference traffic.",
+    "Receipt digests bind preserved local records. Those records include installation details and remain private.",
+    "Twenty client runs completed, but this is not a completed cutover-gate manifest.",
+    "No throughput claim is derived from correctness-test timings. Matched benchmark acceptance is pending."
+  ]
+}
