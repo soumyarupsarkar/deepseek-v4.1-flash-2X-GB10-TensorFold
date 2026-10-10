@@ -5,9 +5,11 @@ has passed all 20 functional and capacity checks, including full-window C32,
 cold million-token retrieval, independent cold compaction references and a short
 mixed-load soak. The original 614k failure and three adjacent/odd context cases
 also pass. The measured-benefit review accepts faster deep prefill with the
-documented short-workload costs below. Recovery, rollback rehearsal and a new
-24-hour endurance run remain open. The published Python deployment
-remains the qualified fallback and is stopped during this work.
+documented short-workload costs below. Paired recovery, a controlled worker
+reboot and the full native-to-Python-to-native rollback rehearsal have passed.
+A new bounded 24-hour endurance run began on **2026-10-10 at 23:35 UTC**;
+its results and memory trends still require review. The retained Python
+deployment remains the fallback, with the cold-start procedure described below.
 
 ## Exact inputs and evidence
 
@@ -322,8 +324,9 @@ the substantial cold long-context C1 gain under the original policy, with these
 C32 costs and the earlier C4 regression disclosed. It claims neither a short-C1
 speedup nor a reduction in physical memory requirements. The noisy temperature-1
 Python C32 result is not the basis for acceptance. No capacity, draft budget or
-feature was reduced for this decision. Paired recovery, rollback and a new 24-hour
-endurance run must still pass before production cutover.
+feature was reduced for this decision. Recovery and rollback subsequently
+passed. The new 24-hour endurance run must still pass its serving and memory
+review before production cutover.
 
 ## Historical measurements on the earlier image
 
@@ -367,16 +370,37 @@ command. Imported caches remain read-only and require complete comparison with
 the intended checkpoint: a legacy `prepared_cache_producer` field identifies
 a known format/loader revision, not proof of which commit wrote an imported file.
 
+## Recovery and retained Python startup
+
+The selected native image passed worker-loss cleanup, interrupted startup,
+host restoration and one controlled worker reboot. The head was not rebooted.
+After worker recovery, native baseline, structured-output and alias checks
+passed. A separate 16-stage rehearsal then exercised native → Python → native,
+with host restoration between engines and serving checks on both sides.
+[Sanitized recovery evidence](release/native-recovery-20261010.json) preserves
+the source/image and receipt hashes, checks and limitations.
+
+The first Python rollback and an unchanged diagnostic restart both failed:
+the cold worker's resident CPU state reduced its host-derived allocator ceiling
+to 107.08 and 107.24 GiB. A prefill temporary allocation failed first; the peer
+timeout and NCCL error followed. The earlier failures remain preserved.
+
+A bounded startup helper now requests anonymous reclaim from the owned worker
+cgroup during warm-up, before that ceiling is fixed. The successful round trip
+used the unchanged Python source/image, C32, KV pool and 2.5 GiB host reserve;
+startup ceilings were 108.9 GiB on the head and 109 GiB on the worker. Its single
+2 GiB request increased worker swap use by about 2.11 GiB. Kernel reclaim can
+over- or under-shoot the requested bytes, and concurrent warm-up changes memory
+counters. This adds startup swap writes without enabling session caching or
+changing persistent VM policy. See the [pinned fallback procedure](deployment/MIGRATION-ROLLBACK.md).
+
 ## Remaining cutover gates
 
-1. Recheck paired failure, interrupted startup, host restoration and controlled
-   reboot recovery on the selected runtime/image. Earlier-image lifecycle checks
-   are insufficient. Rehearse returning to the qualified Python deployment and
-   then the same native image, verifying host restoration at both stops.
-2. Complete a **new bounded 24-hour** synthetic qualification with quiet memory
+1. Complete the **new bounded 24-hour** synthetic qualification with quiet memory
    windows, mixed serving and deep-context checks. Preserve failed or interrupted
-   receipts. The previously user-stopped endurance process stays stopped.
-3. Finish source, attribution, setup/rollback and sanitized-evidence review, then
+   receipts. This run has automatic restart disabled and a 26-hour service limit.
+   The previously user-stopped endurance processes remain stopped.
+2. Finish source, attribution, setup/rollback and sanitized-evidence review, then
    cut over only if every gate passes. Otherwise restore the qualified Python
    deployment and document the concrete blockers.
 
