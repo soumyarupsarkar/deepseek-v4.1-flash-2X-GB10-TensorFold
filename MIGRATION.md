@@ -18,8 +18,8 @@ The completed functional checks below belong to corrected runtime source
 `4d48d4ec5f3db83a361c2228088d72e27f487d62` and image
 `sha256:83752d9d3bc7da632fd195332963501e9ca5208a8e2fcf409e781e985049aafd`.
 Later documentation commits do not change which runtime produced those results.
-The corrected image's primary matched comparison is complete. Its temperature-1
-and deep-context suites are running. Earlier-image measurements remain explicitly
+The corrected image's primary and temperature-1 matched comparisons are complete.
+Its deep-context suite is running. Earlier-image measurements remain explicitly
 labeled as historical results.
 
 The rollback source is this fork's `32c4ebea7d0a81808aaa503d88ebe1a84612d0cf`,
@@ -146,54 +146,58 @@ to make those measurements more useful. The first 32k primary wave captured thre
 graphs, with that cost included in timing.
 
 The [benefit policy](release/native-benefit-policy-20261010.json) was declared
-before native matched measurements. Temperature-1 and deeper-context results,
-memory interpretation, and recovery/endurance gates are still required.
+before native matched measurements. Deeper-context results, memory interpretation,
+and recovery/endurance gates are still required.
 Engine-specific cache eviction occurs outside scored timing:
 the Python client inserted 32 prefixes, and the native client inserted 64
 fixtures to displace its retained states. Every scored request reports zero
 cached tokens. Client changes adapt native counters and record post-response
 drain outside stream timings; native graph-capture cost remains included.
 
-## Historical measurements on the earlier image
+## Temperature-1 matched measurements on the corrected image
 
-The [earlier primary comparison](release/native-primary-comparison-20261010.json)
-and the temperature-1 results below were produced by runtime
-`80b399cd023d3a88ad69501c8261143ea622328b` and image
-`sha256:5835a26f281d1dd2ddd868648a5ac6048d6924e02ca0d1a5a1cd1324949cbb6d`,
-which subsequently failed the 614k prefill. They do not qualify the corrected
-image. In particular, the earlier primary C1-code gain was not reproduced by
-the corrected image's two repetitions above.
-
-### Temperature-1 matched measurements on the earlier image
-
-The [sampled comparison](release/native-sampled-comparison-20261010.json)
+The [sampled comparison](release/native-sampled-comparison-20261010-r2.json)
 contains eight scored waves and 100 requests, with two repetitions per workload
-at temperature 1 and the same explicit seed. Every request was cold. These are
-end-to-end rates, including prefill and admission:
+at temperature 1 and the same explicit seed, on corrected runtime `4d48d4ec` /
+image `83752d9d`. Every request was cold and every wave reached its requested
+concurrency. These are end-to-end rates, including prefill and admission:
 
 | Workload | Prompt / reply tokens per request | Python tok/s | Native tok/s | Change |
 | --- | --- | ---: | ---: | ---: |
-| C1 code | 43 / 384 | 88.86 | 89.42 | +0.6% |
-| C1 prose | 23 / 384 | 56.62 | 60.74 | +7.3% |
-| C16 mixed | 1,024 / 256 | 105.72 | 125.48 | +18.7% |
-| C32 mixed | 1,024 / 256 | 118.87 | 132.60 | +11.6% |
+| C1 code | 43 / 384 | 88.86 | 88.56 | −0.3% |
+| C1 prose | 23 / 384 | 56.62 | 56.45 | −0.3% |
+| C16 mixed | 1,024 / 256 | 105.72 | 121.65 | +15.1% |
+| C32 mixed | 1,024 / 256 | 118.87 | 132.14 | +11.2% |
 
 Full text digests and reported token hashes matched for 98 of 100 requests.
 Both prose replies differed, so their rate change does not isolate runtime
-speed on identical output. Native C1-code repetitions ranged from 81.94 to
-96.91 tok/s; the 0.6% median difference does not establish a sampled C1 gain.
+speed on identical output. Native C1-code repetitions were 93.91 and 83.20 tok/s,
+a 12.9% relative range. Their median is approximately even with Python and does
+not establish a sampled C1 gain. The sampled steady rates also varied by 10.5%.
 There were no native graph captures in these eight waves.
 
 Python C32 repetitions were 134.04 and 103.69 tok/s. The slower run had an early
-admission stall associated with system paging. Native repetitions were 132.66
-and 132.53 tok/s. The noisy Python median makes the apparent 11.6% end-to-end
+admission stall associated with system paging. Native repetitions were 133.39
+and 130.89 tok/s. The noisy Python median makes the apparent 11.2% end-to-end
 gain unsuitable as sole benefit evidence. Eligible steady-decode medians were
-219.86 and 233.45 tok/s (+6.2% native), whereas temperature-0 C32 steady decode
-was 6.5% slower. The result depends on workload and sampling configuration.
+219.86 and 228.77 tok/s (+4.1% native), below the declared 5% benefit threshold.
+Temperature-0 C32 steady decode was 7.5% slower. C16 is faster at both
+temperatures, but that does not substitute a different workload for the declared
+C1/C32 benefit criterion.
 
 The memory observations include different resident and swapped states. They
 do not establish a reduction in physical memory requirements. The deep-context
 comparison and investigation of the short C4 and C1 measurements remain open.
+
+## Historical measurements on the earlier image
+
+The [earlier primary comparison](release/native-primary-comparison-20261010.json)
+and [earlier temperature-1 comparison](release/native-sampled-comparison-20261010.json)
+were produced by runtime `80b399cd023d3a88ad69501c8261143ea622328b` and image
+`sha256:5835a26f281d1dd2ddd868648a5ac6048d6924e02ca0d1a5a1cd1324949cbb6d`,
+which subsequently failed the 614k prefill. They do not qualify the corrected
+image. In particular, the earlier primary C1-code gain was not reproduced by
+the corrected image's two repetitions above. Both earlier exports remain intact.
 
 ## Native integration changes
 

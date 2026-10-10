@@ -38,7 +38,16 @@ is complete. C1-code end-to-end throughput is 4.9% lower, C16 is 12.4% higher,
 and C32 is 9.2% lower than the Python reference. All repetitions are retained;
 174 of 178 reported token hashes and full-text digests match. Native C1-code
 variability, C4's 10.5% steady-decode regression and C32's drafting costs need
-follow-up. The corrected image's temperature-1 and deep-context suites are running.
+follow-up.
+
+The corrected image's [eight-wave temperature-1 comparison](native-sampled-comparison-20261010-r2.json)
+is also complete. C1 is approximately even with Python, while C16 end-to-end
+throughput is 15.1% higher. C32 steady decode is 4.1% higher, below the declared
+5% benefit threshold; its apparent 11.2% end-to-end gain is affected by a noisy
+Python reference. Full-text digests and reported token hashes match for 98 of
+100 requests; the two prose replies differ. All repetitions remain included,
+including the 12.9% native C1-code end-to-end range. The deep-context suite is
+running, and no measured-benefit gate has been accepted.
 
 The earlier image's [primary comparison](native-primary-comparison-20261010.json)
 and [temperature-1 comparison](native-sampled-comparison-20261010.json) remain
