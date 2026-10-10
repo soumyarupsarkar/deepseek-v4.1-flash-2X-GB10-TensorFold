@@ -55,6 +55,15 @@ and extended replay, including output-hash comparisons and the 64-state bound.
 A separate test fragmented live reservations, required real relocation and
 compared continued outputs with solo execution after cancellation. Full-context
 capacity, matched performance, fault recovery and endurance remain pending.
+Cancellation, malformed requests, idle recovery and full-pool queuing/release
+also passed. In the first full-window attempt, all 32 requests completed their
+261,120-token prompts and 1,024-token replies with C32 overlap, but the client's
+immediate idle assertion failed before the second wave. The subsequent health
+sample was idle and healthy. That failed receipt is preserved; it does not pass
+the two-wave replay gate. The capacity, million-token and soak clients now use
+the same bounded post-response drain as the benchmark client. An intervening
+client-wrapper attempt was deliberately interrupted to correct health-adapter
+import order, without restarting the serving ranks.
 
 One parity attempt failed a client assumption: the final SSE response had ended
 before the scheduler removed its request. The runtime remained healthy, had no
