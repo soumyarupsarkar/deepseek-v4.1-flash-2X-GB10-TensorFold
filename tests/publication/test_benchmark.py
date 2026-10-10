@@ -14,6 +14,29 @@ import benchmark
 
 
 class BenchmarkTests(unittest.TestCase):
+    def test_completed_sse_can_drain_without_changing_scored_results(self):
+        busy = dict(ok=True, requests_running=1, native=dict(active_streams=0))
+        idle = dict(ok=True, requests_running=0, native=dict(active_streams=0))
+        with patch.object(benchmark, 'json_request', side_effect=[busy, idle]), \
+             patch.object(benchmark.time, 'perf_counter', side_effect=[0, .01, .03]), \
+             patch.object(benchmark.time, 'sleep'):
+            health, drain = benchmark.wait_idle('http://fixture', timeout=.5)
+        self.assertEqual(health, idle)
+        self.assertEqual(drain['seconds'], .03)
+        self.assertEqual([s['health']['requests_running'] for s in drain['samples']], [1, 0])
+        # Timing remains computed from stream endpoints, never drain duration.
+        self.assertEqual(benchmark.summarize(self.results(), [], 2)['aggregate_e2e_tps'], 20)
+
+    def test_post_response_drain_refuses_faults_and_has_a_deadline(self):
+        for health, error in ((dict(ok=False, requests_running=0), RuntimeError),
+                              (dict(ok=True, requests_running=1), TimeoutError)):
+            with self.subTest(health=health), \
+                 patch.object(benchmark, 'json_request', return_value=health), \
+                 patch.object(benchmark.time, 'perf_counter', side_effect=[0, 1]), \
+                 self.assertRaises(error) as caught:
+                benchmark.wait_idle('http://fixture', timeout=.5)
+            self.assertEqual(caught.exception.drain['samples'][0]['health']['ok'], health['ok'])
+
     def native_health(self):
         return dict(status='ok', runtime_poisoned=False,
                     native=dict(rdma_failed=False, active_streams=4, prefilling_streams=1),

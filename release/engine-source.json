@@ -66,7 +66,7 @@
     },
     {
       "path": "deployment/scripts/benchmark.py",
-      "sha256": "70046aafef2a8fc3b5c8971fa417f07531626753373bebbe41610e4884888230"
+      "sha256": "45e307c2c4166cd6d8f2c0628887cee0d5bdc69116ff22a7bc3484b7cc12386e"
     },
     {
       "path": "deployment/scripts/build_native.py",

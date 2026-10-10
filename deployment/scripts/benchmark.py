@@ -131,6 +131,32 @@ def sampled_health(health):
     return out
 
 
+def wait_idle(base, timeout=5):
+    """Wait for post-response accounting, outside scored stream timings.
+
+    A native SSE response can finish immediately before the scheduler removes
+    its request. Keep that cleanup interval as evidence; never call a healthy
+    transient busy state a completed idle sample or conceal a poisoned rank.
+    """
+    start = time.perf_counter()
+    samples = []
+    while True:
+        health = json_request(base, '/health', timeout=min(timeout, 5))
+        elapsed = time.perf_counter() - start
+        samples.append(dict(elapsed_s=elapsed, health=sampled_health(health)))
+        if not health['ok']:
+            error = RuntimeError('Unhealthy runtime during post-response drain')
+        elif not health['requests_running']:
+            return health, dict(seconds=elapsed, samples=samples)
+        elif elapsed >= timeout:
+            error = TimeoutError('Requests did not drain after completed responses')
+        else:
+            time.sleep(min(.02, timeout-elapsed))
+            continue
+        error.drain = dict(seconds=elapsed, samples=samples)
+        raise error
+
+
 def tokens(base, text=None, messages=None):
     body = dict(model=MODEL, add_special_tokens=False)
     if messages is not None:
@@ -348,7 +374,7 @@ def wave(base, case, epoch):
         stop.set()
         watcher.join(timeout=15)
     try:
-        after = json_request(base, '/health', timeout=30)
+        after, drain = wait_idle(base)
         assert after['requests_total']-before['requests_total'] == n, 'Other completed requests contaminated the wave'
         assert after['completion_tokens_total']-before['completion_tokens_total'] == sum(
             r['usage']['completion_tokens'] for r in results), 'Token counters include another workload'
@@ -376,6 +402,7 @@ def wave(base, case, epoch):
                 assert 0 <= pool['resident_logical_tokens'] <= pool['reserved_rows'] <= pool['allocator_rows'], pool
                 assert pool['free_rows'] + pool['reserved_rows'] == pool['allocator_rows'], pool
         return dict(case=case, priming=priming, eviction=eviction, health_before=before, health_after=after, results=results,
+                    post_response_drain=drain,
                     native_graph_captures_during_wave=graph_captures if 'native' in after else None,
                     summary=summarize(results, samples, n), samples=samples)
     except BaseException as exc:
@@ -383,6 +410,7 @@ def wave(base, case, epoch):
         # completed. Keep those outputs and samples too, without scoring them.
         exc.benchmark_wave = dict(case=case, priming=priming, eviction=eviction,
             health_before=before, health_after=locals().get('after'),
+            post_response_drain=locals().get('drain', getattr(exc, 'drain', None)),
             samples=samples, results=results)
         raise
 
