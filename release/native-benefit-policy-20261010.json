@@ -1,0 +1,14 @@
+{
+  "created": "2026-10-10T08:07:01.100384+00:00",
+  "status": "declared-before-native-matched-results",
+  "eligibility": [
+    "exact synthetic prompt hashes, budgets, sampling and cold-cache state match",
+    "all feature, capacity and output-parity gates pass",
+    "compare end-to-end and steady decode separately; retain graph-capture cost",
+    "minimum two complete repetitions; investigate greater-than-10-percent spread before a marginal decision"
+  ],
+  "improvement": "At least 5 percent median end-to-end or eligible steady-decode improvement in C1 code/prose or C32, or a documented substantial memory reduction without throughput loss.",
+  "regression_guard": "No unexplained median regression above 10 percent in C1 code/prose, C32, or matched deep-context decode/prefill; inspect latency and long-context failures separately.",
+  "judgment": "Automated ratios are evidence, not authorization to waive feature, stability, context or restoration gates. A marginal/noisy result requires more matched measurements, not rounding to passed.",
+  "additional_feature_gate": "Small text/schema/image requests must finish during long native prefill within a declared 30-second bound; exact output parity, partial-prefill cancellation and relocation must pass."
+}

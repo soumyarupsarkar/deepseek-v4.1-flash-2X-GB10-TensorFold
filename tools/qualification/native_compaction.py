@@ -126,12 +126,18 @@ try:
         if value['scheduler']['running']==0 and value['scheduler']['waiting']==0:break
         time.sleep(.25)
     assert value['scheduler']['running']==0 and value['scheduler']['waiting']==0
+    # A retained checkpoint from the moved holder is not an independent reference.
+    from benchmark import evict, wait_idle
+    record['solo_eviction']=evict(BASE,2026101201)
+    wait_idle(BASE,timeout=30)
     record['solo_comparisons']=[]
     for i in list(range(1,16,2))+[16]:
         solo=post(dict(prompt=prompts[i],max_tokens=256,ignore_eos=True,temperature=0,draft=False),'/v1/completions')
+        cached=solo['response']['usage']['prompt_tokens_details']['cached_tokens']
+        assert cached==0,('Solo reference reused a retained checkpoint',i,cached)
         answer=solo['response']['choices'][0]['text']
         assert answer.startswith(prefixes[i]),('Relocated stream differs from solo',i)
-        record['solo_comparisons'].append(dict(index=i,prefix_equal=True,characters=len(prefixes[i]),
+        record['solo_comparisons'].append(dict(index=i,prefix_equal=True,characters=len(prefixes[i]),solo_cached_tokens=cached,
             prefix_sha256=hashlib.sha256(prefixes[i].encode()).hexdigest(),solo_token_sha=solo['response']['tensorfold']['token_sha']))
         common.atomic(path,record)
     canary=chat('Reply with HEALTHY.');assert 'HEALTHY' in text(canary)

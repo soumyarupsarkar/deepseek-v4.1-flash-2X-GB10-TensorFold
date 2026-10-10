@@ -11,15 +11,53 @@ SPEC.loader.exec_module(comparison)
 
 
 def receipt(image, rate):
-    return dict(status='passed', launch=dict(image=image), rows=[dict(
+    value = dict(status='passed', launch=dict(image=image), rows=[dict(
         case=dict(streams=1, prompt_tokens=16, reply_tokens=32, cache='cold', mode='default', rep=rep),
         results=[dict(index=0, prompt_sha256='synthetic', usage=dict(prompt_tokens=16, completion_tokens=32),
                       tensorfold=dict(cached=0, token_sha='hash-' + image))],
         summary=dict(aggregate_e2e_tps=rate, sampled_steady_decode_tps=rate + 1, peak_decoding=1))
         for rep in range(2)])
+    value['cases'] = [copy.deepcopy(row['case']) for row in value['rows']]
+    return value
 
 
 class NativeComparison(unittest.TestCase):
+    def test_two_equally_truncated_suites_are_not_complete(self):
+        reference, candidate = receipt('reference', 10), receipt('candidate', 20)
+        for value in (reference, candidate):
+            # Two repetitions remain, but a whole declared workload is absent.
+            value['cases'].extend(dict(case, streams=32) for case in list(value['cases']))
+        with self.assertRaisesRegex(ValueError, 'All declared scored cases'):
+            comparison.compare(reference, candidate)
+
+    def test_receipt_without_case_declaration_is_not_complete(self):
+        candidate = receipt('candidate', 20)
+        del candidate['cases']
+        with self.assertRaisesRegex(ValueError, 'scored-case declaration'):
+            comparison.compare(receipt('reference', 10), candidate)
+
+    def test_duplicate_or_invalid_stream_indices_cannot_hide_missing_requests(self):
+        for indices in ((0, 0), (0, 2), (0, True), (0, '1')):
+            reference, candidate = receipt('reference', 10), receipt('candidate', 20)
+            for value in (reference, candidate):
+                for case, row in zip(value['cases'], value['rows']):
+                    case['streams'] = row['case']['streams'] = 2
+                    row['results'].append(copy.deepcopy(row['results'][0]))
+                    for result, index in zip(row['results'], indices):
+                        result['index'] = index
+            with self.subTest(indices=indices), self.assertRaisesRegex(ValueError, 'each stream index'):
+                comparison.compare(reference, candidate)
+
+    def test_result_order_does_not_change_workload_matching(self):
+        reference, candidate = receipt('reference', 10), receipt('candidate', 20)
+        for value in (reference, candidate):
+            for case, row in zip(value['cases'], value['rows']):
+                case['streams'] = row['case']['streams'] = 2
+                row['results'].append(dict(copy.deepcopy(row['results'][0]), index=1))
+        for row in candidate['rows']:
+            row['results'].reverse()
+        self.assertEqual(comparison.compare(reference, candidate)['matched_requests'], 4)
+
     def test_workloads_match_without_claiming_cross_engine_token_identity(self):
         result = comparison.compare(receipt('reference', 10), receipt('candidate', 20))
         self.assertEqual(result['matched_requests'], 2)

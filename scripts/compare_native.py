@@ -29,6 +29,11 @@ def compare(reference, candidate):
         result = {canonical(row['case']): row for row in receipt['rows']}
         if len(result) != len(receipt['rows']):
             raise ValueError('Duplicate cases; use explicit repetition numbers')
+        declared = receipt.get('cases')
+        if not isinstance(declared, list) or not declared:
+            raise ValueError('Require the complete scored-case declaration')
+        if len(declared) != len(result) or {canonical(case) for case in declared} != result.keys():
+            raise ValueError('All declared scored cases must have exactly one completed wave')
         return result
     left, right = indexed(reference), indexed(candidate)
     if left.keys() != right.keys():
@@ -39,9 +44,15 @@ def compare(reference, candidate):
     for key in left:
         before, after = left[key], right[key]
         case = before['case']
+        streams = case.get('streams')
+        if type(streams) is not int or streams < 1:
+            raise ValueError('Require a positive integer stream count')
+        for row in (before, after):
+            indices = [result.get('index') for result in row['results']]
+            if (len(indices) != streams or any(type(index) is not int for index in indices)
+                    or set(indices) != set(range(streams))):
+                raise ValueError('Require one completed result for each stream index')
         lrows, rrows = (sorted(row['results'], key=lambda x: x['index']) for row in (before, after))
-        if len(lrows) != case['streams'] or len(rrows) != case['streams']:
-            raise ValueError('Incomplete wave')
         for x, y in zip(lrows, rrows):
             if (x['index'] != y['index'] or x['prompt_sha256'] != y['prompt_sha256']
                     or x['usage']['prompt_tokens'] != y['usage']['prompt_tokens']

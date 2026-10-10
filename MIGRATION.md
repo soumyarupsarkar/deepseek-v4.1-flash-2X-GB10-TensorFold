@@ -1,177 +1,190 @@
-# Native engine migration (in progress)
+# Native engine migration (qualification in progress)
 
-This branch is an integration candidate. The published Python deployment
-remains the qualified rollback reference until every cutover gate below passes.
-The native candidate runs on loopback during maintenance; passing compilation
-alone does not establish serving qualification.
+The native candidate has passed the live feature and capacity checks summarized
+below. It has **not** passed all production cutover gates. Matched performance,
+an independent cold compaction reference, recovery and a new 24-hour endurance
+run are still required. The published Python deployment remains the qualified
+fallback; it is stopped while this loopback-only hardware qualification runs.
+
+## Exact inputs and evidence
 
 The native engine starts at Bertholomus's
 [`4e80f05`](https://github.com/bertholomus/TensorFold/commit/4e80f05ecba89a4e90d16375ade2eddbdc0a10c4),
 with the v0.6.1 recipe and kernel builders at
 [`5e90ec9`](https://github.com/bertholomus/deepseek-v4.1-tensorfold-tp2-2xgb10/tree/5e90ec9302149049e8f019ea035827cb24c206f8).
+The current hardware results belong to runtime source
+`80b399cd023d3a88ad69501c8261143ea622328b` and image
+`sha256:5835a26f281d1dd2ddd868648a5ac6048d6924e02ca0d1a5a1cd1324949cbb6d`.
+Later documentation and qualification-client commits do not change which
+runtime produced those results.
+
 The rollback source is this fork's `32c4ebea7d0a81808aaa503d88ebe1a84612d0cf`,
 documented and published in `29c1a04ecd75ea56ba85502279aa39b0bf6705f8`.
-Original checkpoints and prepared rank caches are immutable inputs; generated
-native kernels and mutable caches use separate directories.
+Its [20-case Python baseline](deployment/release/native-python-baseline-20261010.json)
+is separate from native measurements. Historical Python results do not qualify
+the native implementation.
 
-As of October 10, the third live integration compiles for GB10. Its checks passed
-286 Zig CPU/server tests, the native xgrammar contract test, 64 portable recipe
-and benchmark contracts, and six native controller contracts. Both ranks' fresh
-native cache writers have independent full-byte readback checks. These checks
-are separate from serving qualification. The [20-case Python baseline](deployment/release/native-python-baseline-20261010.json)
-is recorded separately from native measurements.
+The [October 10 functional evidence](release/native-functional-20261010.json)
+records 20 completed synthetic client runs, their source and receipt hashes,
+selected counters, and the remaining acceptance gates. Raw installation records
+remain private. The export does not include real inference traffic or establish
+a throughput advantage.
 
-The first live candidate reached ready state and exercised text, image input,
-prefix reuse and a single-stream drafted/ordinary comparison, then failed at
-C4: the router requested an 18-row `_rowmm_parts` variant while the pinned kit
-only supplies up to 16. The fix slices wide router rounds into supported
-variants. A GPU regression compares every width from 1 through 48 against
-independent one-row launches: 9,048,144 words matched, with intact canaries.
-The paired monitor stopped both ranks and host restoration passed. A second
-live qualification is required; the primitive regression alone does not pass
-C32, structured-output, performance or endurance gates.
+## Completed checks on the current image
 
-The second live attempt passed the complete baseline, including C4, and passed
-ordinary JSON object/schema and streamed-schema checks. A thinking-budget
-schema failed because the forced reasoning close appended a blank-line token
-which the schema rejects before its root. A CPU-only probe with the actual
-tokenizer and grammar reproduced that rejection. The corrected close ends at
-`</think>` for constrained output and lets its mask select the first answer
-token; ordinary text retains its existing close. Server and C++ regressions
-pass. Both hosts again passed restoration. Remaining feature/capacity gates
-still require a new live run.
+| Area | Observed result | Scope |
+| --- | --- | --- |
+| Build and preparation | 90 build steps and 291 CPU/server tests passed; native grammar and GPU primitive checks passed on both ranks | Full native cache comparison checked 143,770 entries and 106,107,109,192 bytes per rank against the intended Keys checkpoint |
+| Serving features | Text, vision, JSON object/schema, required tools, thinking budgets, seeds, aliases, Chat, Responses and Messages passed | Includes JPEG/WebP through all three APIs; synthetic fixtures |
+| Drafting parity | Ordinary/drafted token hashes matched at C4/8/16/24/32, at temperatures 0 and 1 | Zero cached tokens, observed requested concurrency, drafts for every request; these fixtures compare the reported 12-hex token hashes |
+| Constrained C32 | 32 schemas and 32 required tool calls passed at each temperature | All validators passed and all four waves observed C32 decoding |
+| Retention | 32 distinct 16k histories passed cold admission, replay, extension and extended replay | 64 retained states; 408 MiB snapshot storage |
+| Decoder compaction | Eight live survivors relocated; a selected survivor's continued output matched fresh solo execution | The witness includes at least 64 tokens generated after the relocation checkpoint |
+| Full-window C32 | Two waves of 32 sessions each completed 261,120 prompt tokens plus 1,024 reply tokens | Exact returned token IDs matched across waves; one identical primed document with independent active session extents |
+| Million-token request | A cold 1,048,320-token prompt plus 256-token reply completed and retrieved all three synthetic passphrases | Small arithmetic and JSON requests finished during prefill in 0.96 s and 2.53 s, within the declared 30 s limit |
+| Incremental prefill | Five small requests completed in 8.18 s during a separate 262k prefill | Short/image output parity and cancellation checks passed; the long-text solo comparison used a retained prefix |
+| Admission and API recovery | Full-pool queuing, release, cancellation, malformed requests and return to idle passed | This does not replace paired-process or reboot recovery |
+| Short soak | Eight C32 cycles completed 256 text/schema/vision requests over a six-minute requested run | No eager graph fallbacks; this does not replace 24-hour endurance |
 
-The third live image, built from `b7b884d`, passed the feature suite: text and
-image input; strict JSON/schema/tools including thinking budgets; random and
-explicit seeds; all context aliases; Chat, Responses and Messages; and JPEG/WebP
-through all three APIs. Greedy and temperature-1 ordinary/drafted output hashes
-matched at C4/8/16/24/32, with zero reported cached tokens in those short-prompt
-fixtures. Every request received drafts in the drafted runs. Thirty-two distinct
-strict schemas and 32 required tool calls also passed with observed C32 decode
-overlap. These are short-context checks, not the full 32 × 262k capacity gate.
+The profile independently sets an **8,650,752-token shared KV pool**, a
+**1,048,576-token request limit**, **32 stream slots**, and a **48-row draft
+round budget**. C32 capacity uses retained copies of the same synthetic document;
+it does not measure simultaneous cold prefill of 32 different long documents.
+Correctness-test wall times are not matched performance results.
 
-Thirty-two distinct 16k prefixes passed cold admission, cached replay, extension
-and extended replay, including output-hash comparisons and the 64-state bound.
-A separate test fragmented live reservations, required real relocation and
-compared continued outputs with solo execution after cancellation. Full-context
-capacity, matched performance, fault recovery and endurance remain pending.
-Cancellation, malformed requests, idle recovery and full-pool queuing/release
-also passed. In the first full-window attempt, all 32 requests completed their
-261,120-token prompts and 1,024-token replies with C32 overlap, but the client's
-immediate idle assertion failed before the second wave. The subsequent health
-sample was idle and healthy. That failed receipt is preserved; it does not pass
-the two-wave replay gate. The capacity, million-token and soak clients now use
-the same bounded post-response drain as the benchmark client. An intervening
-client-wrapper attempt was deliberately interrupted to correct health-adapter
-import order, without restarting the serving ranks.
+Partial-prefill compaction remains provisional. A populated partial prefill
+was observed relocating and its continued reply matched the client's solo
+comparison, but that comparison did not require zero cached tokens. Acceptance
+requires reproducing the saved post-relocation reply prefix from an independent
+cold request on the same unchanged launch. The public qualification client now
+evicts retained checkpoints and requires zero cached tokens for that comparison.
 
-The corrected full-window client subsequently passed two waves of 32 sessions,
-each with 261,120 prompt tokens and 1,024 reply tokens. Both waves observed C32
-decoding, and every fixed seed produced exactly the same token IDs across the
-two waves. The fixture uses an identical primed prefix, with separate resident
-stream extents; it establishes capacity and replay, not cold-prefill throughput
-for 32 distinct documents. The longest recorded cleanup drain was about 213 ms.
+## Primary matched measurements (partial qualification)
 
-That image also completed a cold 1,048,320-token prompt plus a 256-token reply,
-correctly retrieving synthetic passphrases from 10%, 50% and 90% depth. Its
-prefill took 662.3 seconds and its short reply decoded at about 46.4 tok/s.
-However, the two small requests submitted during prefill waited 632–633 seconds.
-The native admission path filled the entire prompt before returning to its
-scheduler. This is a responsiveness regression against the Python deployment,
-even though the original retrieval test accepted the eventual correct answers.
+The [complete primary comparison](release/native-primary-comparison-20261010.json)
+contains 20 scored waves and 178 requests, with two repetitions per workload.
+Actual prompt hashes, output budgets and zero cached tokens match. These are
+observed test medians on the pinned images, not a completed benefit decision:
 
-The follow-up implementation returns between 2,048-token chunks, retains each
-prompt's own slot, restore position and image embeddings, and alternates long
-prefill with decoding. Short remainders receive priority. This follows the
-Python dual-GB10 engine's 50% decode-share approach. CPU regressions and fresh
-hardware qualification are required for this new source. The strengthened
-million-token gate and a separate mixed-image/cancellation gate require small
-requests to finish during long prefill, within a declared 30-second limit.
-Earlier live passes belong to the third image; they do not qualify this change.
+| Workload, temperature 0 | Prompt / reply tokens per request | Python end-to-end tok/s | Native end-to-end tok/s | Change |
+| --- | --- | ---: | ---: | ---: |
+| C1 code | 43 / 384 | 89.88 | 95.41 | +6.2% |
+| C4 mixed | 1,024 / 256 | 95.58 | 90.98 | −4.8% |
+| C16 mixed | 1,024 / 256 | 117.37 | 132.10 | +12.6% |
+| C32 mixed | 1,024 / 256 | 153.22 | 141.38 | −7.7% |
 
-The first incremental build passed 290 CPU/server tests, but review caught a
-missing integration before serving: the CUDA context-binding adapter forwarded
-only the legacy blocking prefill call. A new adapter-level test reproduced the
-resulting short-request stall and passes after forwarding both incremental
-callbacks and the chunk size. Cancellation is checked through both adapter
-paths. The corrected image still needs fresh hardware qualification.
+The full comparison retains every workload and repetition. Reported token
+hashes matched for 174 of 178 requests. The four differences are the two C1
+prose replies and the two 128k replies; their rate differences do not isolate
+runtime speed on identical generated output. C1 code, C4 and C32 also matched
+full text digests. C16's Python end-to-end repetitions differed by 16.4%, so its
+median needs that variability context.
 
-One parity attempt failed a client assumption: the final SSE response had ended
-before the scheduler removed its request. The runtime remained healthy, had no
-active GPU stream, and subsequently became idle; all four output hashes already
-matched. The failed receipt is retained. The corrected client records a bounded
-post-response accounting drain outside its stream timings. Later greedy checks
-needed at most about 24 ms. Parity fixtures omit unnecessary LRU eviction for
-their fixed 1024-token inputs, which are shorter than a native checkpoint chunk;
-they still reject every reported cache hit. Matched performance suites retain
-their explicit cold-cache preparation.
+C4's eligible steady-decode median fell 11.1%, with only about three seconds
+of eligible interval per repetition and no native graph captures in either
+wave. A longer-reply ordinary/default diagnostic is prepared to investigate it;
+it has not run. A missing native steady interval at 32k stays null. The separate
+deep-context suite uses longer replies to make those measurements more useful.
 
-Drafting was faster at C4/C8 in those correctness fixtures. At higher concurrency,
-its advantage varied with sampling: greedy C16/C24/C32 was slower than ordinary
-decoding, while temperature-1 C16/C24 was faster and C32 was close. These are not
-matched Python speedups. One tuning candidate is the inherited timing table:
-its cost stops increasing beyond 24 rows, even though this profile permits 48.
-That is a plausible contributor, not an isolated performance diagnosis. Matched
-temperature-1 and deep-context measurements are required before choosing a
-production profile.
+The [benefit policy](release/native-benefit-policy-20261010.json) was declared
+before native matched measurements. Deeper-context results,
+memory interpretation, and the remaining functional/recovery/endurance gates
+are still required. Engine-specific cache eviction occurs outside scored timing:
+the Python client inserted 32 prefixes, and the native client inserted 64
+fixtures to displace its retained states. Every scored request reports zero
+cached tokens. Client changes adapt native counters and record post-response
+drain outside stream timings; native graph-capture cost remains included.
+
+## Temperature-1 matched measurements
+
+The [sampled comparison](release/native-sampled-comparison-20261010.json)
+contains eight scored waves and 100 requests, with two repetitions per workload
+at temperature 1 and the same explicit seed. Every request was cold. These are
+end-to-end rates, including prefill and admission:
+
+| Workload | Prompt / reply tokens per request | Python tok/s | Native tok/s | Change |
+| --- | --- | ---: | ---: | ---: |
+| C1 code | 43 / 384 | 88.86 | 89.42 | +0.6% |
+| C1 prose | 23 / 384 | 56.62 | 60.74 | +7.3% |
+| C16 mixed | 1,024 / 256 | 105.72 | 125.48 | +18.7% |
+| C32 mixed | 1,024 / 256 | 118.87 | 132.60 | +11.6% |
+
+Full text digests and reported token hashes matched for 98 of 100 requests.
+Both prose replies differed, so their rate change does not isolate runtime
+speed on identical output. Native C1-code repetitions ranged from 81.94 to
+96.91 tok/s; the 0.6% median difference does not establish a sampled C1 gain.
+There were no native graph captures in these eight waves.
+
+Python C32 repetitions were 134.04 and 103.69 tok/s. The slower run had an early
+admission stall associated with system paging. Native repetitions were 132.66
+and 132.53 tok/s. The noisy Python median makes the apparent 11.6% end-to-end
+gain unsuitable as sole benefit evidence. Eligible steady-decode medians were
+219.86 and 233.45 tok/s (+6.2% native), whereas temperature-0 C32 steady decode
+was 6.5% slower. The result depends on workload and sampling configuration.
+
+The memory observations include different resident and swapped states. They
+do not establish a reduction in physical memory requirements. The deep-context
+comparison and investigation of the short C4 and C1 measurements remain open.
+
+## Native integration changes
+
+The integration separates shared-pool capacity from each request's context
+limit, expands bounded stream/verifier/drafter/MoE/graph storage for C32, adds
+DRM-backed compressed KV allocation, and preserves the reversible deployment
+controller's host journals. It implements constrained decoding, required tools,
+bounded retained state, live extent compaction and incremental prefill.
+
+Hardware qualification exposed two implementation defects that were corrected
+before the current image: wide router rounds requested kernel variants absent
+from the pinned kit, and forced reasoning closure could introduce whitespace
+rejected by a root schema. Router rounds now use supported slices; an independent
+GPU check compares widths 1–48 against one-row launches. Constrained reasoning
+closure leaves the first answer token to the grammar mask.
+
+The earlier native prefill path blocked other requests for the whole prompt.
+The current implementation returns between 2,048-token chunks, preserves each
+prompt's slot, restore position and image embeddings, and interleaves decoding
+with prefill. It follows the Python dual-GB10 engine's 50% decode-share approach.
+An adapter-level regression also checks that the CUDA context-binding adapter
+forwards both incremental callbacks and cancellation. Earlier images' passes
+and failures remain separate from this image's evidence.
 
 The serving engine, scheduler and sampler are native. The xgrammar compiler is
 a pinned C++ library. Offline compressed-token-map preparation uses the pinned
 `tokenizers` package; upstream's bounded Pillow helper handles image codecs
-other than the native PNG path. No Python model engine or PyTorch tensor loop
-is used for native inference. Fresh rank-cache preparation has a CPU-only native
-command; existing rank caches remain read-only and require an independent
-comparison of every prepared tensor with the intended Keys checkpoint.
-The legacy `prepared_cache_producer` metadata names a known format/loader
-revision. It does not establish which commit originally wrote an imported file;
-compatibility comes from immutable asset checks and the complete native tensor
-comparison.
+other than the native PNG path. Native inference does not use a Python model
+engine or PyTorch tensor loop. Fresh rank-cache preparation has a CPU-only native
+command. Imported caches remain read-only and require complete comparison with
+the intended checkpoint: a legacy `prepared_cache_producer` field identifies
+a known format/loader revision, not proof of which commit wrote an imported file.
 
-## Required gates
+## Remaining cutover gates
 
-1. Pinned, reproducible native builds, host tests and rank-cache compatibility.
-2. Keys overlay provenance, text and vision; strict JSON/schema/tool output;
-   random unseeded sampling, explicit seeds and configurable prompt-derived
-   seeds; the existing context aliases and request limits.
-3. C32 with an 8,650,752-token shared KV pool, independently sized million-token
-   requests, bounded retained prefixes, admission queueing and live compaction,
-   including partially filled prompts. Small requests must complete during long
-   prefill; cancellation and image switching must preserve solo output parity.
-4. Reversible DRM allocation and host settings, honest memory/health counters,
-   peer failure handling and restoration through the deployment controller.
-5. Matched synthetic throughput, latency, correctness and memory measurements
-   against the Python reference, including deep context and concurrency.
-6. A new bounded 24-hour synthetic qualification with comparable quiet windows,
-   cancellation and recovery tests. Preserve failed/interrupted receipts. The
-   previously user-stopped endurance process must remain stopped.
-7. Reviewed source, attribution, setup/rollback documentation and sanitized
-   evidence. Cut over only after feature, capacity and stability parity plus
-   a measured benefit; otherwise restore the qualified Python deployment.
-
-## Gaps found in the upstream baseline
-
-- The native adapter couples pool size to the per-request context limit.
-  RoPE tables and scratch allocations also use that combined value.
-- Stream arrays permit at most 16 slots. A larger slot count must also respect
-  verifier, drafter, MoE, graph and communication buffer limits.
-- Native HTTP validation knows structured formats, but the CUDA engine does
-  not advertise or enforce strict outputs or required tool calls.
-- Compressed KV extents use ordinary CUDA allocation; our DRM-backed pool and
-  reversible host lifecycle need a native implementation.
-- Retained extents can be evicted, but there is no live compaction path.
-- Admission fills a whole prompt synchronously, delaying every other stream
-  behind million-token prefill. Per-stream chunk state and interleaving are needed.
-
-These are implementation requirements, not settings that can safely be enabled
-without further work. Upstream's published C4 speeds do not establish this
-branch's Keys/C32 performance.
+1. Complete the independent cold partial-prefill compaction comparison.
+2. Finish matched synthetic throughput, latency and memory comparisons against
+   the Python reference, including temperature-1 sampling and deep context.
+   Require a measured benefit without unexplained material regressions; investigate
+   noisy or marginal results before selecting a production profile.
+3. Recheck paired failure, interrupted startup, host restoration and controlled
+   reboot recovery on the selected runtime/image. Earlier-image lifecycle checks
+   are insufficient.
+4. Complete a **new bounded 24-hour** synthetic qualification with quiet memory
+   windows, mixed serving and deep-context checks. Preserve failed or interrupted
+   receipts. The previously user-stopped endurance process stays stopped.
+5. Finish source, attribution, setup/rollback and sanitized-evidence review, then
+   cut over only if every gate passes. Otherwise restore the qualified Python
+   deployment and document the concrete blockers.
 
 ## Rollback contract
 
 Preserve the qualified checkout, images on both hosts, verified model assets,
-installation ownership and host journals. Stop the candidate through its own
-controller and verify host restoration before starting the qualified checkout
-with its matching image. Never replace current ownership journals with old
-copies. Candidate builds and CPU-only tests do not change the serving selector.
+installation ownership and host journals. Original checkpoints and imported
+rank caches are immutable inputs; generated native kernels and mutable caches
+use separate directories. Stop the candidate through its own controller and
+verify host restoration before starting the qualified checkout with its matching
+image. Never replace current ownership journals with old copies.
+
+Candidate builds, tests and publication edits do not change the serving selector.
 Keep private host configuration, operational logs, credentials and raw receipts
-outside Git; publish only synthetic fixtures and reviewed aggregate evidence.
+outside Git. See [migration rollback](deployment/MIGRATION-ROLLBACK.md) and the
+[host recovery procedure](deployment/ROLLBACK.md).
