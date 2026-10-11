@@ -4,8 +4,6 @@
 
 Run DeepSeek-V4.1-Flash across two NVIDIA GB10s using Mia's EXL3 weights, drowzeys' Keys overlay and Bertholomus's native Zig TP2 engine. This fork adds the recipe's context aliases, structured output, shared-pool capacity and reversible deployment controls to that engine.
 
-**Native endurance qualification is pending.** The author started the tested native image for personal LAN use on 2026-10-11 after the finite performance and serving checks. This does not claim a completed 24-hour endurance test. The settings below are configuration limits; measured results and their scope appear in [migration status](MIGRATION.md). The previous Python deployment remains available for rollback.
-
 | Configuration target | Setting |
 |---|---|
 | Shared KV pool | **8,650,752 logical tokens** shared by active and retained sessions |
@@ -15,7 +13,7 @@ Run DeepSeek-V4.1-Flash across two NVIDIA GB10s using Mia's EXL3 weights, drowze
 | Features under qualification | Vision, Keys, strict JSON/schema/tools, random and explicit request seeds |
 | Session KV writes to NVMe | **Off** |
 
-Slots and maximum context are separate limits: 32 slots do not mean 32 simultaneously full million-token histories. [Fresh Python reference measurements](deployment/release/native-python-baseline-20261010.json) and [historical benchmarks](benchmarks/README.md) must not be read as native results.
+Slots and maximum context are separate limits: 32 slots do not mean 32 simultaneously full million-token histories.
 
 [Credits](#credits) · [Setup](#setup) · [Rollback](#rollback) · [Development](#development) · [License](#license)
 
