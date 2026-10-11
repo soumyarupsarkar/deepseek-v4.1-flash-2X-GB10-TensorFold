@@ -30,8 +30,19 @@ fn run(cases: []const Case) ![][]u32 {
 }
 
 fn runGeneration(cases: []const Case, policy: ?*const fn (*anyopaque, []const be.DraftRequest) anyerror!bool) ![][]u32 {
+    return runPolicy(cases, policy, null);
+}
+
+const BudgetObservations = struct { positive: usize = 0, zero: usize = 0, waiting: usize = 0 };
+
+fn runPolicy(cases: []const Case, policy: ?*const fn (*anyopaque, []const be.DraftRequest) anyerror!bool, budget: ?*BudgetObservations) ![][]u32 {
     var cfg = try model();
     defer cfg.deinit(gpa);
+    if (budget != null) {
+        cfg.node_probabilities = true;
+        cfg.probe_unallocated_drafts = true;
+        cfg.batch_rows = @intCast(cases.len + 1);
+    }
     var target: fake.Fake = .{ .gpa = gpa };
     defer target.deinit();
     var clock: fake.FixedClock = .{};
@@ -54,7 +65,15 @@ fn runGeneration(cases: []const Case, policy: ?*const fn (*anyopaque, []const be
         p.deinit();
     };
     for (streams) |*s| try engine.addStream(s);
-    while (engine.activeCount() > 0) try engine.step();
+    while (engine.activeCount() > 0) {
+        try engine.step();
+        if (budget) |b| for (streams) |s| {
+            if (s.granted) |n| {
+                if (n > 0) b.positive += 1 else b.zero += 1;
+            }
+            if (s.depth) |st| b.waiting += @intFromBool(st.unallocated_rounds > 0);
+        };
+    }
     const out = try gpa.alloc([]u32, cases.len);
     for (out, streams) |*o, *s| o.* = try gpa.dupe(u32, s.emitted());
     return out;
@@ -181,6 +200,25 @@ test "turning generation off and back on preserves tokens and forced closes" {
         const plain = try run(&cases);
         defer free(plain);
         for (plain, alternating) |a, b| try std.testing.expectEqualSlices(u32, a, b);
+    }
+}
+
+test "budgeted shared generation preserves greedy sampled and forced-close tokens" {
+    for ([_]?Sampling{ null, .{ .seed = 57, .temperature = 0.7, .top_k = 0, .top_p = 0.95 } }) |sampling| {
+        var cases = [_]Case{
+            .{ .prompt = &p1, .sampling = sampling, .max_new = 120 },
+            .{ .prompt = &p2, .sampling = sampling, .max_new = 120 },
+            .{ .prompt = &p1, .sampling = sampling, .max_new = 120 },
+            .{ .prompt = &p2, .sampling = sampling, .max_new = 120, .think_budget = 9 },
+        };
+        var observed: BudgetObservations = .{};
+        const budgeted = try runPolicy(&cases, null, &observed);
+        defer free(budgeted);
+        try std.testing.expect(observed.positive > 0 and observed.zero > 0 and observed.waiting > 0);
+        for (&cases) |*c| c.drafts = false;
+        const plain = try run(&cases);
+        defer free(plain);
+        for (plain, budgeted) |a, b| try std.testing.expectEqualSlices(u32, a, b);
     }
 }
 

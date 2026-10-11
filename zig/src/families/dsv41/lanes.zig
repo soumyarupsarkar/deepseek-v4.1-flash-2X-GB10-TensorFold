@@ -273,6 +273,7 @@ pub const Lanes = struct {
     measurements: ?be.measure.Measurements = null,
     round_backend_ns: u64 = 0, // engine-thread-only scratch for the shared-round observer
     adaptive_generation: bool = false,
+    budgeted_generation: bool = false,
     // Exact live counts, greedy/sampled, and context buckets keep unlike rounds
     // out of each other's estimates. These cells are engine-thread-only.
     generation_guards: [be.measure.contexts * 2 * (max_streams + 1)]generation.Guard = @splat(.{}),
@@ -289,6 +290,8 @@ pub const Lanes = struct {
     generation_prefill_skips: std.atomic.Value(u64) = .init(0),
     generation_skipped_streams: std.atomic.Value(u64) = .init(0),
     generation_c32_draft_rounds: std.atomic.Value(u64) = .init(0),
+    generation_budget_skipped_streams: std.atomic.Value(u64) = .init(0),
+    generation_budget_probe_streams: std.atomic.Value(u64) = .init(0),
     fix_k: ?usize = null, // a measurement (tf-dsv41-lanes --fix-k): K drafts a stream, chances 1 to K and 0 past it
     drawn: [ring]u32 = undefined,
     next: u64 = 0,
@@ -375,6 +378,7 @@ pub const Lanes = struct {
             .drm_used_bytes = cv.used,
             .rdma_failed = if (self.m.ring) |r| r.failure() != null else false,
             .adaptive_generation = self.adaptive_generation,
+            .budgeted_generation = self.budgeted_generation,
             .generation_plain_rounds = self.generation_plain_rounds.load(.monotonic),
             .generation_draft_rounds = self.generation_draft_rounds.load(.monotonic),
             .generation_probe_rounds = self.generation_probe_rounds.load(.monotonic),
@@ -383,6 +387,8 @@ pub const Lanes = struct {
             .generation_prefill_skips = self.generation_prefill_skips.load(.monotonic),
             .generation_skipped_streams = self.generation_skipped_streams.load(.monotonic),
             .generation_c32_draft_rounds = self.generation_c32_draft_rounds.load(.monotonic),
+            .generation_budget_skipped_streams = self.generation_budget_skipped_streams.load(.monotonic),
+            .generation_budget_probe_streams = self.generation_budget_probe_streams.load(.monotonic),
             .timing = if (self.measurements) |*m| m.summary() else null,
             .costs = if (self.measurements) |*m| (if (self.active_streams.load(.monotonic) == 0) m.snapshot() else null) else null,
         };
@@ -454,6 +460,7 @@ pub const Lanes = struct {
             .max_streams = @intCast(self.m.streams),
             .shared_costs = self.sc[0..self.m.eng.round_rows],
             .separate_solo_costs = true,
+            .probe_unallocated_drafts = self.budgeted_generation,
             .draft_probabilities = drafting,
             .draft_streams = drafting,
         };
@@ -848,6 +855,12 @@ pub const Lanes = struct {
             if (r.lanes != null or r.early) return error.TreesNotBuilt;
             const l = self.streams.getPtr(r.stream) orelse return error.UnknownStream;
             l.nheld = 0;
+            if (self.budgeted_generation and requests.len > 1 and self.generation_outgoing != .plain and
+                !r.stream.finished and r.stream.force.items.len == 0 and r.stream.granted == 0)
+            {
+                const counter = if (r.depth == 0) &self.generation_budget_skipped_streams else &self.generation_budget_probe_streams;
+                _ = counter.fetchAdd(1, .monotonic);
+            }
             if (r.depth == 0) continue;
             if (n == max_streams) return error.TooManyStreams;
             if (r.position != r.stream.cache_len + 1) return error.PositionMismatch;
@@ -905,7 +918,7 @@ pub const Lanes = struct {
             }
             start = end;
         }
-        if (self.generation_outgoing == .draft and self.round_streams == max_streams and n == max_streams)
+        if (self.round_streams == max_streams and n == max_streams)
             _ = self.generation_c32_draft_rounds.fetchAdd(1, .monotonic);
     }
 

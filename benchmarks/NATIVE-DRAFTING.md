@@ -88,6 +88,32 @@ generation, sampling, acceptance and forced reasoning closure are unchanged.
 No GPU kernel, pass width, KV allocation or context limit changes are involved.
 All 32 streams remain eligible for drafting within the existing 48-row budget.
 
+The first two hardware candidates combined this calibrated prior with the
+empirical guard. Both preserved all 384 short-benchmark outputs, but neither
+closed the short-reply C32 gap. The first candidate's median greedy end-to-end
+rate was 147.78 tok/s and sampled rate 133.19 tok/s. Earlier withdrawal in the
+second candidate gave 144.99 and 133.96 tok/s. These mixed results do not justify
+claiming that the empirical guard is a demonstrated throughput improvement.
+
+The next candidate disables that guard in the deployment profile and enables
+`TF_DS_BUDGET_DRAFTS=1`. It uses the last shared allocation to avoid regenerating
+proposals for a stream granted zero speculative verification rows. Each eligible
+zero-grant stream gets a one-proposal probe every eight shared budget decisions;
+a positive allocation resumes generation immediately. Streams with unknown
+allocation, solo generation and forced closes retain their existing behavior.
+This preserves all-stream eligibility without requiring generation for all 32
+streams on every round. A probe is an opportunity, not a guarantee that the
+allocator will accept a proposal. Draft-state absorption remains active.
+
+This targets a measured mismatch: at C32, the 48-row verifier has only 16 rows
+left after each stream's mandatory target row, while the previous generation
+budget allowed two extra proposals even for zero-grant streams. The native
+drafter computes five hidden rows per selected stream regardless of requested
+depth, so avoiding a whole stream's generation can save more work than merely
+shortening its proposed chain. The pass width and GPU kernels are unchanged.
+The bounded-probe policy and guard-off profile form one candidate, not an
+isolated one-variable ablation; hardware results are still pending.
+
 The health diagnostics report measured drafted/suppressed rounds, probe rounds,
 excluded transitions/captures/prefill, suppressed stream requests and completed draft
 rounds that generated for all 32 streams. Optional `TF_DS_MEASURE_COSTS=1`
@@ -104,7 +130,9 @@ Candidate results will be recorded after compilation and hardware validation.
 
 Setting `TF_DS_ADAPTIVE_DRAFTS=0` disables the generation guard; unsetting
 `TF_DS_SHARED_ROUND_MS` removes the calibrated shared prior. These switches do
-not undo the corrected table extrapolation. Exact rollback uses the retained
+not undo the corrected table extrapolation. `TF_DS_BUDGET_DRAFTS=0` restores
+generation slack for zero-grant streams. Both policy switches default off in
+the engine; their deployment choices are explicit in the profile. Exact rollback uses the retained
 source and image, through the owned deployment controller. Stop both current
 ranks and verify host restoration before switching revisions. Keep the current
 ownership and restoration journals; never replace them with an earlier

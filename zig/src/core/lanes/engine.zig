@@ -54,6 +54,7 @@ pub const Engine = struct {
                 .family_costs = &cfg.family_costs,
                 .shared_costs = &cfg.shared_costs,
                 .separate_solo_costs = cfg.separate_solo_costs,
+                .probe_unallocated_drafts = cfg.probe_unallocated_drafts,
                 .mtp_step_ms = cfg.mtp_step_ms,
                 .plain_guard = cfg.plain_guard,
                 .node_probabilities = cfg.node_probabilities,

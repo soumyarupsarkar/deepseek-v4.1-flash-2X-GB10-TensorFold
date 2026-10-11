@@ -29,6 +29,7 @@ pub const Model = struct {
     max_streams: u32 = 0, // a shared forward's streams at most (0: 32)
     shared_costs: []const Cost = &.{}, // shared forwards' ms by total rows (timed at load)
     separate_solo_costs: bool = false, // single-window probability allocation uses window_costs, not shared_costs
+    probe_unallocated_drafts: bool = false, // skip shared generation for zero-grant streams between bounded probes
     draft_probabilities: bool = false, // the head gives each drafted node's chance of landing
     draft_streams: bool = false, // the head drafts every stream of a shared round in one batch
     head_trees: bool = false, // the head drafts trees of lanes (DraftRequest.lanes) and holds them
@@ -61,6 +62,7 @@ pub const Config = struct {
     family_costs: Table,
     shared_costs: Table,
     separate_solo_costs: bool = false,
+    probe_unallocated_drafts: bool = false,
     lane_costs: Table, // window ms by rows to 64 (lanes/plan_lanes.zig)
     mtp_step_ms: f64,
     enter_match: i64 = 8, // matching tokens a copy needs (rejects coincidental indentation)
@@ -117,6 +119,7 @@ pub const Config = struct {
             .family_costs = family_costs,
             .shared_costs = try alloc.extendCosts(gpa, timed.items, batch_rows),
             .separate_solo_costs = m.separate_solo_costs,
+            .probe_unallocated_drafts = m.probe_unallocated_drafts,
             .lane_costs = try alloc.extendCosts(gpa, m.lane_costs, 64),
             .mtp_step_ms = m.mtp_step_ms,
         };

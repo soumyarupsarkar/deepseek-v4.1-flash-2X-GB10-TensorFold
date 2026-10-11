@@ -52,6 +52,7 @@ pub const Diagnostics = struct {
     drm_used_bytes: u64 = 0,
     rdma_failed: bool = false,
     adaptive_generation: bool = false,
+    budgeted_generation: bool = false,
     generation_plain_rounds: u64 = 0,
     generation_draft_rounds: u64 = 0,
     generation_probe_rounds: u64 = 0,
@@ -60,6 +61,8 @@ pub const Diagnostics = struct {
     generation_prefill_skips: u64 = 0,
     generation_skipped_streams: u64 = 0,
     generation_c32_draft_rounds: u64 = 0,
+    generation_budget_skipped_streams: u64 = 0,
+    generation_budget_probe_streams: u64 = 0,
     timing: ?measure.Summary = null,
     costs: ?measure.Snapshot = null,
 };

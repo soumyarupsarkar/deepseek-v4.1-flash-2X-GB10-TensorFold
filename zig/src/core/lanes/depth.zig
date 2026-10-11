@@ -19,6 +19,7 @@ pub const State = struct {
     rounds: u64 = 0,
     plain: ?u64 = null,
     wait: ?u64 = null,
+    unallocated_rounds: u64 = 0,
     ms: ?Table = null, // plain_guard: the stream's own round times
 
     pub fn deinit(st: *State, gpa: Allocator) void {
@@ -53,6 +54,7 @@ pub const Rule = struct {
     family_costs: *const Table,
     shared_costs: *const Table,
     separate_solo_costs: bool = false,
+    probe_unallocated_drafts: bool = false,
     mtp_step_ms: f64,
     plain_guard: bool,
     node_probabilities: bool,
@@ -193,7 +195,22 @@ pub const Rule = struct {
             for (whos, out) |*w, *o| {
                 const inner = try r.headDepth(w, null, probe);
                 const granted: i64 = if (w.granted) |g| g else r.most_drafts;
-                o.* = try r.headDepth(w, @min(inner, granted + r.k.draft_slack), probe);
+                var budget = granted + r.k.draft_slack;
+                // Keep unallocated streams eligible without paying to regenerate
+                // proposals the shared verifier repeatedly declined. A fixed,
+                // per-stream probe interval prevents permanent starvation.
+                if (r.probe_unallocated_drafts and whos.len > 1) {
+                    if (inner > 0 and !w.finished and !w.forced and w.granted != null and granted == 0) {
+                        _ = try r.rates(w.*);
+                        const st = &w.state.*.?;
+                        st.unallocated_rounds += 1;
+                        if (st.unallocated_rounds >= @max(1, r.k.depth_probe_every)) {
+                            st.unallocated_rounds = 0;
+                            budget = 1;
+                        } else budget = 0;
+                    } else if (w.state.*) |*st| st.unallocated_rounds = 0;
+                }
+                o.* = try r.headDepth(w, @min(inner, budget), probe);
             }
             return;
         }
@@ -270,4 +287,75 @@ test "depth picks the most tokens a ms and probes deeper" {
     defer if (st) |*s| s.deinit(gpa);
     const who: Who = .{ .state = &st, .draft_room = 100, .finished = false, .forced = false };
     try std.testing.expectEqual(@as(i64, 3), try rule.depth(who));
+}
+
+test "zero-grant shared streams skip generation but all receive bounded probes" {
+    const gpa = std.testing.allocator;
+    const costs: Table = .{};
+    var rule: Rule = .{ .gpa = gpa, .prior = &.{ 0.9, 0.9, 0.9, 0.9, 0.9 }, .most_drafts = 5, .family_costs = &costs, .shared_costs = &costs, .mtp_step_ms = 0, .plain_guard = false, .node_probabilities = true, .probe_unallocated_drafts = true, .batch_rows = 48 };
+    defer rule.deinit();
+    var states: [32]?State = @splat(null);
+    defer for (&states) |*st| {
+        if (st.*) |*s| s.deinit(gpa);
+    };
+    var whos: [32]Who = undefined;
+    for (&whos, &states, 0..) |*w, *st, i| w.* = .{ .state = st, .draft_room = 100, .finished = false, .forced = false, .granted = if (i < 16) 1 else 0 };
+    var dummy: u8 = 0;
+    const no_copy = struct {
+        fn check(_: *anyopaque, _: *const Who) bool {
+            return false;
+        }
+    };
+    const probe: Probe = .{ .ptr = &dummy, .copy = no_copy.check };
+    var out: [32]i64 = undefined;
+    var attempts: [32]u32 = @splat(0);
+    for (0..25) |round| {
+        try rule.budgets(&whos, probe, &out);
+        for (out, 0..) |d, i| {
+            attempts[i] += @intFromBool(d > 0);
+            const expected: i64 = if (i < 16) 3 else if ((round + 1) % 8 == 0) 1 else 0;
+            try std.testing.expectEqual(expected, d);
+        }
+    }
+    for (attempts[0..16]) |n| try std.testing.expectEqual(@as(u32, 25), n);
+    for (attempts[16..]) |n| try std.testing.expectEqual(@as(u32, 3), n);
+    // A newly positive allocation resumes generation immediately; no global
+    // C16 cutoff prevents any of the 32 streams from drafting.
+    for (&whos) |*w| w.granted = 1;
+    try rule.budgets(&whos, probe, &out);
+    for (out) |d| try std.testing.expectEqual(@as(i64, 3), d);
+    for (states[16..]) |st| try std.testing.expectEqual(@as(u64, 0), st.?.unallocated_rounds);
+}
+
+test "budget probing preserves opt-out solo unknown forced and finished behavior" {
+    const gpa = std.testing.allocator;
+    const costs: Table = .{};
+    var rule: Rule = .{ .gpa = gpa, .prior = &.{ 0.9, 0.9, 0.9 }, .most_drafts = 3, .family_costs = &costs, .shared_costs = &costs, .mtp_step_ms = 0, .plain_guard = false, .node_probabilities = true, .batch_rows = 48 };
+    defer rule.deinit();
+    var states: [4]?State = @splat(null);
+    defer for (&states) |*st| {
+        if (st.*) |*s| s.deinit(gpa);
+    };
+    var whos: [4]Who = undefined;
+    for (&whos, &states) |*w, *st| w.* = .{ .state = st, .draft_room = 100, .finished = false, .forced = false, .granted = 0 };
+    whos[1].granted = null;
+    whos[2].forced = true;
+    whos[3].finished = true;
+    var dummy: u8 = 0;
+    const no_copy = struct {
+        fn check(_: *anyopaque, _: *const Who) bool {
+            return false;
+        }
+    };
+    const probe: Probe = .{ .ptr = &dummy, .copy = no_copy.check };
+    var out: [4]i64 = undefined;
+    try rule.budgets(&whos, probe, &out);
+    try std.testing.expectEqualSlices(i64, &.{ 2, 3, 0, 0 }, &out);
+    rule.probe_unallocated_drafts = true;
+    for (0..16) |round| {
+        try rule.budgets(&whos, probe, &out);
+        try std.testing.expectEqualSlices(i64, &.{ if ((round + 1) % 8 == 0) 1 else 0, 3, 0, 0 }, &out);
+    }
+    try rule.budgets(whos[0..1], probe, out[0..1]);
+    try std.testing.expectEqual(@as(i64, 2), out[0]);
 }
