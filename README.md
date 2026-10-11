@@ -10,13 +10,14 @@ Run DeepSeek-V4.1-Flash across two NVIDIA GB10s using Mia's EXL3 weights, drowze
 | Concurrent active slots | **32** |
 | Maximum context | **1,048,576 tokens per request**, prompt plus reply |
 | Context aliases | **262,144 / 524,288 / 614,400 / 1,048,576** tokens |
-| C1 code / prose / counting decode | **99.9 / 59.5 / 142.4 output tok/s** |
-| C32 steady decode | **290.1 / 261.3 aggregate output tok/s** (greedy / sampled) |
-| C32 end-to-end output | **149.6 / 140.5 aggregate output tok/s** (greedy / sampled) |
+| C1 greedy decode — code / prose / counting | **100.2 / 59.3 / 140.6 output tok/s** |
+| C32 greedy decode — code / prose / counting | **313.4 / 268.6 / 377.0 aggregate output tok/s** |
+| C1 sampled decode — code / prose / counting | **98.6 / 62.5 / 139.3 output tok/s** |
+| C32 sampled decode — code / prose / counting | **268.9 / 251.1 / 366.5 aggregate output tok/s** |
 | Features under qualification | Vision, Keys, strict JSON/schema/tools, random and explicit request seeds |
 | Session KV writes to NVMe | **Off** |
 
-C1 is one session; C32 is 32 concurrent sessions. [Native benchmark workloads, timing methods and all repetitions](benchmarks/NATIVE-DECODE.md).
+C1 is one session; C32 is 32 concurrent sessions. Decode measurements use short prompts and a 384-token reply cap, at temperature 0 (greedy) or 1 (sampled). [Workloads, timing methods and all repetitions](benchmarks/NATIVE-WORKLOADS.md).
 
 Slots and maximum context are separate limits: 32 slots do not mean 32 simultaneously full million-token histories.
 
@@ -152,13 +153,14 @@ Two cold synthetic requests per engine and context, each generating 1,024 tokens
 
 This graph and its Python comparison belong to the pre-optimization native runtime `4d48d4e`.
 
-The tradeoff is workload-dependent: the C32 short-prompt confirmation measured **141.2 versus 153.2 aggregate end-to-end tok/s** (six native runs versus the original two Python runs). The measured-benefit gate accepts faster deep prefill with this cost disclosed. Recovery and the Python rollback rehearsal passed. The 24-hour endurance run was stopped at the author's request to review these numbers first; endurance qualification and production cutover remain pending. [All repetitions, methods and limits](MIGRATION.md#deep-context-matched-measurements-on-the-corrected-image) · [JSON data](release/native-deep-comparison-20261010.json) · [PNG](release/figures/native-deep-context-20261010.png).
+The tradeoff is workload-dependent: the mixed C32 short-prompt confirmation measured **141.2 versus 153.2 aggregate end-to-end tok/s** (six native runs versus the original two Python runs). The measured-benefit gate accepts faster deep prefill with this cost disclosed. Recovery and the Python rollback rehearsal passed. The 24-hour endurance run was stopped at the author's request to review these numbers first; endurance qualification and production cutover remain pending. [All repetitions, methods and limits](MIGRATION.md#deep-context-matched-measurements-on-the-corrected-image) · [JSON data](release/native-deep-comparison-20261010.json) · [PNG](release/figures/native-deep-context-20261010.png).
 
 ## Native drafting measurements
 
 The separate drafting investigation compares native candidate `6aaec5b` against
-the instrumented native baseline `7d7ddd3`. For C32 with 1,024 prompt and 256
-reply tokens per request, the initial three-pair medians were:
+the instrumented native baseline `7d7ddd3`. For mixed C32 batches (11 code,
+11 prose and 10 counting requests), with 1,024 prompt and 256 reply tokens per
+request, the initial three-pair medians were:
 
 | Temperature | Complete-wave aggregate tok/s, previous → candidate | Steady aggregate tok/s, previous → candidate |
 | --- | ---: | ---: |

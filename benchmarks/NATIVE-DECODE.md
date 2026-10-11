@@ -1,4 +1,7 @@
-# Native headline measurements
+# Initial native C1 measurements
+
+The current hero uses the expanded [C1/C32 workload measurements](NATIVE-WORKLOADS.md).
+This report preserves the earlier unchanged-kit C1 run and mixed C32 diagnostic.
 
 The C1 code/prose/counting results were measured on 2026-10-11 against the
 running native deployment, using the original unpadded set-b prompts and the
@@ -34,10 +37,10 @@ profile, source and image. Request and token counters matched exactly. Both
 ranks kept their identities with zero restarts, and the paired monitor remained
 active. The benchmark changed no host or server configuration.
 
-## C32 aggregate throughput
+## Earlier mixed C32 aggregate throughput
 
-The C32 hero rows retain the completed three-repetition measurements on the
-same native source and image:
+The earlier mixed C32 diagnostic completed three repetitions on the same
+native source and image:
 
 | Temperature | Steady aggregate output tok/s | End-to-end aggregate output tok/s |
 | --- | ---: | ---: |
@@ -62,7 +65,7 @@ the hero now uses the original per-task C1 benchmark.
 
 ## Runtime identity
 
-Both headline sets belong to native source
+Both measurement sets belong to native source
 `6aaec5b3616f4547fabbe2fcc3fb1e779bb75f82`, image
 `sha256:baa3fc8d748766476d694da36f3e79ac501f18bed6b9572e36c1c80c4baa7bc7`.
 The deployment has Keys, vision and structured-output support enabled, 32 active

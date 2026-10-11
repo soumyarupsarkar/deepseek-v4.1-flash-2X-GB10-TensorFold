@@ -1,9 +1,9 @@
 # Measurement definitions and reproduction
 
-The current [native C1 code/prose/counting measurements](NATIVE-DECODE.md)
-provide the README's single-session headline, with every repetition, actual
-reply length and reproduction commands. That report also explains the separate
-C32 workload and timing definitions used in the hero.
+The current [native C1/C32 code/prose/counting measurements](NATIVE-WORKLOADS.md)
+provide the README's per-workload headlines, with every repetition, actual
+reply length and reproduction commands. The [initial unchanged-kit C1 run](NATIVE-DECODE.md)
+and mixed C32 results remain available with their original methods.
 
 The native [drafting investigation](NATIVE-DRAFTING.md) records the October 10–11
 throughput work, its separate baseline, candidate trials and timing definitions.
