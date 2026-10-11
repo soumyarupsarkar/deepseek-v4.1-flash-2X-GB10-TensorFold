@@ -1,7 +1,10 @@
 # Measurement definitions and reproduction
 
-The native [drafting investigation](NATIVE-DRAFTING.md) records the October 10
+The native [drafting investigation](NATIVE-DRAFTING.md) records the October 10–11
 throughput work, its separate baseline, candidate trials and timing definitions.
+The final image passed the finite performance and serving/capacity checks;
+[all repetitions and observed limits](../release/native-throughput-policy-20261010.json)
+remain separate from endurance and production acceptance.
 The Python measurements below remain historical and are not relabeled as native
 results.
 

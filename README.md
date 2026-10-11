@@ -135,7 +135,7 @@ If a host is unreachable, recover it and retry with the same journals. After a r
 ## Native changes and limits
 
 - Independently sized request windows and shared KV pool, with 32 slots, bounded retained checkpoints and live extent compaction.
-- Native DRM-backed KV allocation, bounded graph caching with eager fallback, and measured engine/host diagnostics.
+- Native DRM-backed KV allocation, bounded graph caching with least-recently-used replacement, and measured engine/host diagnostics.
 - Batched drafting, verifier and communication bounds checked independently; router rounds wider than 16 rows use validated slices of the pinned AOT kernels.
 - A C++ xgrammar bridge for JSON objects, schemas, required/named tool calls and guided formats. Constrained requests use ordinary decoding.
 - Configurable prompt-derived or random request seeding. The deployment chooses random; explicit seeds support replay.
@@ -149,7 +149,34 @@ Session KV histories are not written to NVMe. Prepared weights, compiler/driver 
 
 Two cold synthetic requests per engine and context, each generating 1,024 tokens at temperature 0. At a million tokens, median steady decode was **88.8 tok/s native versus 89.4 Python**; first token arrived in **670 s versus 875 s**. These are independent fixed-length requests. The generated replies differ between engines, so the graph compares matched prompts and output budgets rather than identical generated decode work.
 
+This graph and its Python comparison belong to the pre-optimization native runtime `4d48d4e`.
+
 The tradeoff is workload-dependent: the C32 short-prompt confirmation measured **141.2 versus 153.2 aggregate end-to-end tok/s** (six native runs versus the original two Python runs). The measured-benefit gate accepts faster deep prefill with this cost disclosed. Recovery and the Python rollback rehearsal passed. The 24-hour endurance run was stopped at the author's request to review these numbers first; endurance qualification and production cutover remain pending. [All repetitions, methods and limits](MIGRATION.md#deep-context-matched-measurements-on-the-corrected-image) · [JSON data](release/native-deep-comparison-20261010.json) · [PNG](release/figures/native-deep-context-20261010.png).
+
+## Native drafting measurements
+
+The separate drafting investigation compares native candidate `6aaec5b` against
+the instrumented native baseline `7d7ddd3`. For C32 with 1,024 prompt and 256
+reply tokens per request, the initial three-pair medians were:
+
+| Temperature | Complete-wave aggregate tok/s, previous → candidate | Steady aggregate tok/s, previous → candidate |
+| --- | ---: | ---: |
+| 0 | 143.5 → **149.6** (+4.2%) | 262.0 → **290.1** (+10.7%) |
+| 1 | 134.0 → **140.5** (+4.9%) | 234.6 → **261.3** (+11.4%) |
+
+Steady rates use only full-occupancy decode intervals. Ordinary decoding still
+finished these short waves sooner than drafting. Repeated long-reply C1 results
+were essentially unchanged, while greedy C4 remained about 2.4% below its
+single baseline measurement. A later C32 repeat confirmed the improvement at
+149.1/140.9 end-to-end tok/s. The current image passed the serving, full-window
+C32 and million-token checks, but the head came within 26.6 MiB of the 2 GiB
+memory floor. Endurance and production cutover remain held.
+
+This diagnostic uses a different cache protocol from the historical Python
+comparison above. The
+[investigation report](benchmarks/NATIVE-DRAFTING.md) preserves the longer-reply
+and deep-context results, all repetitions, capacity checks and remaining limits.
+[Machine-readable evidence](release/native-throughput-policy-20261010.json).
 
 ## Development
 

@@ -20,7 +20,20 @@ The native implementation bounds retained checkpoint states at 64 and their snap
 
 When free space is fragmented, the native allocator can pack live reservations to the left using aligned, non-overlapping CUDA copies, synchronize relocation with the follower, update bases and invalidate stale snapshots. Qualification must demonstrate both an actual relocation and unchanged continuing output; a pure allocation-plan unit test is insufficient.
 
-Graphs are captured lazily for bounded shapes, with a limit of 512 cached entries and eager execution when another graph cannot be retained. Initial measurements can include capture cost. The server does not advertise a prewarmed or sealed Python graph cache.
+Target-round graphs are captured lazily for bounded shapes. The deployment
+profile retains at most 144 executables, enough for all 48 row widths and three stretches in one
+context bucket. A new shape evicts the least recently used executable and is
+captured normally. The engine's default limit remains 512; the profile explicitly
+selects the smaller bound. Alternating between many contexts and row shapes can
+therefore add recapture latency. This bounds executable residency, not total
+physical driver memory, and does not change the KV pool or retention budget.
+
+Benchmark wall time includes captures and recaptures. Cost calibration excludes
+capture rounds using the cumulative capture counter, since resident occupancy
+can stay constant during replacement. Eager fallback remains available for a
+sealed cache; the deployment does not select sealed operation. The
+[drafting investigation](../benchmarks/NATIVE-DRAFTING.md) records the image-specific
+hardware checks and observed memory limits.
 
 ## Read the native counters
 
@@ -33,7 +46,8 @@ Graphs are captured lazily for bounded shapes, with a limit of 512 cached entrie
 | `native.prefill_tokens`, `verify_rounds`, `draft_passes` | Monotonic engine progress |
 | `native.retained_states`, `snapshot_bytes` | Retained checkpoint count and bytes |
 | `native.compactions`, `relocated_tokens` | Executed live relocations |
-| `native.round_graphs`, `graph_limit`, `graph_eager_fallbacks` | Graph occupancy and fallback activity |
+| `native.round_graphs`, `graph_limit` | Resident target-round graph executables and their configured limit |
+| `native.graph_captures`, `graph_evictions`, `graph_eager_fallbacks` | Cumulative captures (including recaptures), replacements and eager fallbacks |
 | `native.drm_reserved_bytes`, `drm_used_bytes` | Display-memory allocator budget and placement |
 | `native.rdma_failed`, `runtime_poisoned` | Failure state requiring coordinated recovery |
 | `scheduler.generation_tokens_total` | Committed outputs, including currently active requests |

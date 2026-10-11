@@ -1,8 +1,8 @@
 # Native engine migration (qualification in progress)
 
-The native candidate is **not qualified for production**. The corrected image
-has passed all 20 functional and capacity checks, including full-window C32,
-cold million-token retrieval, independent cold compaction references and a short
+The native candidate is **not qualified for production**. The pre-optimization
+corrected image `4d48d4ec` passed all 20 functional and capacity checks, including
+full-window C32, cold million-token retrieval, independent cold compaction references and a short
 mixed-load soak. The original 614k failure and three adjacent/odd context cases
 also pass. The measured-benefit review accepts faster deep prefill with the
 documented short-workload costs below. Paired recovery, a controlled worker
@@ -12,11 +12,40 @@ was stopped at the author's request at **23:44 UTC** to review headline results
 before further endurance testing. Its interrupted receipt records five complete
 mixed cycles and one deep wave over 526.5 seconds; this is not an endurance pass.
 No new endurance run or production cutover will begin without renewed direction.
-An isolated [native drafting investigation](benchmarks/NATIVE-DRAFTING.md) is
-now measuring the C32 regression and testing a shared-generation policy. Its
-candidate changes do not inherit the baseline image's hardware qualification.
+The subsequent [native drafting investigation](benchmarks/NATIVE-DRAFTING.md)
+is complete. Its final image independently passed the 11 serving/capacity gates
+selected for that phase and all finite performance comparisons; it does not
+inherit the earlier image's recovery, compaction or rollback-rehearsal results.
 The retained Python deployment remains the fallback, with the cold-start
 procedure described below.
+
+## Completed throughput phase
+
+Source `6aaec5b3616f4547fabbe2fcc3fb1e779bb75f82`, image
+`sha256:baa3fc8d748766476d694da36f3e79ac501f18bed6b9572e36c1c80c4baa7bc7`,
+corrects the shared-forward cost prior, avoids repeated generation for
+unfunded draft proposals under row scarcity, reduces numeric prompt-parser
+allocation overhead and bounds target-round graphs with LRU replacement.
+All 32 streams remain eligible for drafting; the pool, context and row budgets
+are unchanged.
+
+Repeated short C32 measurements improved drafted end-to-end rates by 4.2%/4.9%
+and eligible steady decode by 10.7%/11.4% at temperatures 0/1 against the
+instrumented native baseline. A later repeat confirmed the result. Ordinary
+decoding still finished those short waves sooner. Repeated C1 rates were
+essentially unchanged; greedy C4 remained 2.4% below its single earlier
+baseline. This protocol differs from the historical Python comparison below.
+
+All 315 build tests, seven GPU checks per host, complete prepared-tensor
+comparisons, serving features, retention, two full-window C32 waves and the
+cold million-token/interleaving gate passed. The head's minimum available
+memory was only 26.6 MiB above the unchanged 2 GiB floor, with paging observed.
+This is a finite validation result, not an endurance or production acceptance.
+Both test ranks are stopped and fresh host-restoration checks passed.
+The [report](benchmarks/NATIVE-DRAFTING.md) and
+[sanitized evidence](release/native-throughput-policy-20261010.json) preserve
+all repetitions, failed earlier candidates and the precise scope of each check.
+The sections below retain their original source/image identities.
 
 ## Exact inputs and evidence
 
