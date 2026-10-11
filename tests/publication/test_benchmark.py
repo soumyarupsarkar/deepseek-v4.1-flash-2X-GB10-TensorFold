@@ -14,6 +14,20 @@ import benchmark
 
 
 class BenchmarkTests(unittest.TestCase):
+    def test_graph_replacements_count_as_captures_at_constant_residency(self):
+        before = dict(native=dict(round_graphs=144, graph_captures=200))
+        after = dict(native=dict(round_graphs=144, graph_captures=209))
+        self.assertEqual(benchmark.native_graph_capture_delta(before, after), 9)
+        after['native']['round_graphs'] = 143
+        self.assertEqual(benchmark.native_graph_capture_delta(before, after), 9)
+        after['native']['graph_captures'] = 100
+        with self.assertRaises(AssertionError):
+            benchmark.native_graph_capture_delta(before, after)
+        legacy = dict(native=dict(round_graphs=140))
+        self.assertEqual(benchmark.native_graph_capture_delta(legacy, dict(native=dict(round_graphs=144))), 4)
+        with self.assertRaises(AssertionError):
+            benchmark.native_graph_capture_delta(legacy, before)
+
     def test_completed_sse_can_drain_without_changing_scored_results(self):
         busy = dict(ok=True, requests_running=1, native=dict(active_streams=0))
         idle = dict(ok=True, requests_running=0, native=dict(active_streams=0))

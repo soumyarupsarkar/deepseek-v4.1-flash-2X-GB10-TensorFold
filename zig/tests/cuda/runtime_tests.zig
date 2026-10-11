@@ -177,6 +177,15 @@ pub fn graphs(gpu: Gpu) !void {
     try expect(try readCounter(counter) == 188, "updated nodes add 8 * 10", .{});
     check.pass("exec kernel-node update: new arguments in place, replay adds 80", .{});
 
+    // Graph-cache eviction may release an executable immediately after its
+    // launch. Queued work must finish correctly before its device buffers die.
+    var retired = try captured.instantiate();
+    try retired.launchOn(stream);
+    retired.deinit();
+    try stream.synchronize();
+    try expect(try readCounter(counter) == 224, "destroyed executable completes its queued 36", .{});
+    check.pass("in-flight executable destruction preserves queued work", .{});
+
     try explicitGraphs(gpu, probe, stream);
 }
 

@@ -390,7 +390,7 @@ def wave(base, case, epoch):
             assert after['native']['round_graphs'] <= after['native']['graph_limit']
             # Lazy captures are real work. Record them; never relabel a cold
             # capture as warm throughput or invent Python allocator counters.
-            graph_captures = after['native']['round_graphs']-before['native']['round_graphs']
+            graph_captures = native_graph_capture_delta(before, after)
         else:
             graph_captures = 0
             for key in ('allocation_ooms', 'allocation_retries', 'round_graph_captures'):
@@ -414,6 +414,16 @@ def wave(base, case, epoch):
             samples=samples, results=results)
         raise
 
+
+
+def native_graph_capture_delta(before, after):
+    """Count replacements too; older non-evicting images only expose residency."""
+    old, new = before['native'], after['native']
+    assert ('graph_captures' in old) == ('graph_captures' in new), 'Graph counter contract changed during wave'
+    key = 'graph_captures' if 'graph_captures' in new else 'round_graphs'
+    delta = new[key] - old[key]
+    assert delta >= 0, 'Graph capture counter reset during wave'
+    return delta
 
 
 def main():

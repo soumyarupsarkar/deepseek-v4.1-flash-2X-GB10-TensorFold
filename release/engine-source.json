@@ -58,7 +58,7 @@
     },
     {
       "path": "deployment/config/profile.json",
-      "sha256": "a015be7fd30a84c18597d149f6aa698433b5452df4410aef20fefea0704c1025"
+      "sha256": "41c473e57c1e41ebe5da6da996c36aa83813c1558faf99da5e431b1a058fcff1"
     },
     {
       "path": "deployment/config/requirements-resolved.txt",
@@ -70,7 +70,7 @@
     },
     {
       "path": "deployment/scripts/benchmark.py",
-      "sha256": "45e307c2c4166cd6d8f2c0628887cee0d5bdc69116ff22a7bc3484b7cc12386e"
+      "sha256": "25f8ea03cc436610c813eeda15c0d33d17dc941de60d4ca07fb57363eaea4443"
     },
     {
       "path": "deployment/scripts/build_native.py",
@@ -1550,7 +1550,7 @@
     },
     {
       "path": "zig/src/core/lanes/backend.zig",
-      "sha256": "fef080fe26ed1c595df3a901f4bddcef0ee27665f3fb1a1afe6e5f8d84afead8"
+      "sha256": "0f3f89eea9e9e9ce7b119e4abef592129e70dad68899ec69f2a6028c3c49ff81"
     },
     {
       "path": "zig/src/core/lanes/config.zig",
@@ -2042,11 +2042,11 @@
     },
     {
       "path": "zig/src/families/dsv41/graph_policy.zig",
-      "sha256": "3bc45c5d96fe19150d45f124041469b6eb014a92b0fc1cbf8de962468293efa6"
+      "sha256": "00d3bc0440da49b1f34891d1b5bab5c151959ebf415abaf2f304100a59d24b84"
     },
     {
       "path": "zig/src/families/dsv41/lanes.zig",
-      "sha256": "59e785c4531505cffe80f926cb9f69871e2c12cac96a88776d25e9a40f66033f"
+      "sha256": "7b0338d3da104f1f3c073f7a69d6baa89110b8dd6abfe33f19a4b397f5ce4236"
     },
     {
       "path": "zig/src/families/dsv41/lanes_main.zig",
@@ -2134,7 +2134,7 @@
     },
     {
       "path": "zig/src/families/dsv41/round.zig",
-      "sha256": "7e54832bab7eea7ac63de015f9e9904ab171d420806f87b444c13ca5fcaa1e43"
+      "sha256": "1335fa83eee2bfc76900f1c5a11316174ea1ae8913b4a6f3b6dbdeff28f41c5a"
     },
     {
       "path": "zig/src/families/dsv41/round2d.zig",
@@ -3050,7 +3050,7 @@
     },
     {
       "path": "zig/tests/cuda/runtime_tests.zig",
-      "sha256": "b0f82911262766db12a800460a5ad708c0f08da79a87aec8330efcfbc424d8ca"
+      "sha256": "cb5c73b0c60c0c488c02e68104e6a08a45eb04d77bc28c7f756f5ca95ff9e59a"
     },
     {
       "path": "zig/tests/cuda/sample_tests.zig",

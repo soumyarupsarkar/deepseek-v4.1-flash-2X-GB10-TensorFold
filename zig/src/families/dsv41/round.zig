@@ -842,9 +842,11 @@ const Carry = struct {
 /// arguments as the eager round, so the same bytes.
 pub const Graphs = struct {
     gpa: std.mem.Allocator,
-    map: std.AutoHashMapUnmanaged(Key, Entry) = .empty,
+    cache: @import("graph_policy.zig").Lru(Key, Entry) = .{},
     policy: @import("graph_policy.zig").Policy = .{ .ceiling = 1048576 },
     captured: std.atomic.Value(u64) = .init(0),
+    resident: std.atomic.Value(u64) = .init(0),
+    evicted: std.atomic.Value(u64) = .init(0),
     eager_fallbacks: std.atomic.Value(u64) = .init(0),
     sealed: bool = false, // engine thread only
 
@@ -862,19 +864,25 @@ pub const Graphs = struct {
     }
 
     pub fn deinit(g: *Graphs) void {
-        var it = g.map.valueIterator();
-        while (it.next()) |en| en.exec.deinit();
-        g.map.deinit(g.gpa);
+        while (g.cache.takeOldest()) |entry| {
+            var exec = entry.exec;
+            exec.deinit();
+        }
+        g.cache.deinit(g.gpa);
         g.* = undefined;
     }
 
-    /// The captured stretches.
+    /// Resident executables; captures() also counts replacements after eviction.
     pub fn count(g: *const Graphs) usize {
+        return @intCast(g.resident.load(.monotonic));
+    }
+
+    pub fn captures(g: *const Graphs) usize {
         return @intCast(g.captured.load(.monotonic));
     }
 
     fn run(g: *Graphs, key: Key, e: *const Engine, rd: *Round, ch: *const Chunk, cs: *const Caches, rings: []const u64, cy: *Carry, li: usize, end: usize) !void {
-        if (g.map.getPtr(key)) |en| {
+        if (g.cache.get(key)) |en| {
             if (!std.meta.eql(en.start, cy.*)) return error.GraphStateMismatch;
             try en.exec.launchOn(e.s);
             cy.* = en.end;
@@ -883,9 +891,18 @@ pub const Graphs = struct {
             rd.has_cblk = cy.has_cblk;
             return;
         }
-        if (g.sealed or g.map.count() >= g.policy.limit) {
+        if (g.sealed) {
             _ = g.eager_fallbacks.fetchAdd(1, .monotonic);
             return stretch(e, rd, ch, cs, rings, cy, li, end, null);
+        }
+        if (g.cache.count() >= g.policy.limit) {
+            var old = g.cache.takeOldest() orelse return error.EmptyGraphCache;
+            // CUDA defers destruction of an in-flight executable until it
+            // completes. The engine thread owns all cache access; no extra GPU
+            // synchronization is needed, and a graph's buffers stay live.
+            old.exec.deinit();
+            g.resident.store(g.cache.count(), .monotonic);
+            _ = g.evicted.fetchAdd(1, .monotonic);
         }
         const start = cy.*;
         try cuda.graph.beginCapture(e.s, .thread_local);
@@ -899,9 +916,14 @@ pub const Graphs = struct {
         var graph = try cuda.graph.endCapture(e.s);
         defer graph.deinit();
         var exec = try graph.instantiate();
-        errdefer exec.deinit();
-        try g.map.put(g.gpa, key, .{ .exec = exec, .start = start, .end = cy.* });
-        g.captured.store(g.map.count(), .monotonic);
+        g.cache.put(g.gpa, key, .{ .exec = exec, .start = start, .end = cy.* }) catch |err| {
+            exec.deinit();
+            return err;
+        };
+        // Ownership transferred to the cache even if the following launch
+        // fails; deinit must not destroy the same executable twice.
+        g.resident.store(g.cache.count(), .monotonic);
+        _ = g.captured.fetchAdd(1, .monotonic);
         try exec.launchOn(e.s);
     }
 };

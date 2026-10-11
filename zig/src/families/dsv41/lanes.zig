@@ -374,6 +374,8 @@ pub const Lanes = struct {
             .round_graphs = if (self.m.graphs) |*g| g.count() else 0,
             .graph_limit = if (self.m.graphs) |*g| g.policy.limit else 0,
             .graph_eager_fallbacks = if (self.m.graphs) |*g| g.eager_fallbacks.load(.monotonic) else 0,
+            .graph_captures = if (self.m.graphs) |*g| g.captures() else 0,
+            .graph_evictions = if (self.m.graphs) |*g| g.evicted.load(.monotonic) else 0,
             .drm_reserved_bytes = cv.reserved,
             .drm_used_bytes = cv.used,
             .rdma_failed = if (self.m.ring) |r| r.failure() != null else false,
@@ -762,7 +764,7 @@ pub const Lanes = struct {
         }
         const t1 = m.now();
         const rows = try self.built.build(gpa, &self.seqs, wins[0..windows.len]);
-        const graphs_before = if (m.graphs) |*g| g.count() else 0;
+        const graphs_before = if (m.graphs) |*g| g.captures() else 0;
         try m.verify(rows, self.built.absorb[0..windows.len]);
         const t2 = m.now();
         // every row greedy: the device's argmax (R tokens back); else the logits for the host's draws
@@ -776,7 +778,7 @@ pub const Lanes = struct {
         self.round_streams = windows.len;
         self.generation_trace = null;
         self.generation_outgoing = null;
-        self.generation_capture = (if (m.graphs) |*g| g.count() else 0) != graphs_before;
+        self.generation_capture = (if (m.graphs) |*g| g.captures() else 0) != graphs_before;
         // Incremental prefill can leave work queued ahead of this verification.
         // Keep the selected policy, but do not price prefill as decode cost.
         self.generation_prefilling = self.prefilling_streams.load(.monotonic) != 0;
@@ -798,7 +800,7 @@ pub const Lanes = struct {
             measurements.add(.{ .send_ns = t1 - t0, .verify_ns = t2 - t1, .logits_ns = t3 - t2, .sample_ns = m.now() - t3 });
             var longest: usize = 0;
             for (wins[0..windows.len]) |w| longest = @max(longest, w.start + w.ids.len);
-            const captured = (if (m.graphs) |*g| g.count() else 0) != graphs_before;
+            const captured = (if (m.graphs) |*g| g.captures() else 0) != graphs_before;
             measurements.verify(longest, windows.len, rows.ids.len, t2 - t1, captured);
         };
         defer if (self.prof) |*p| {

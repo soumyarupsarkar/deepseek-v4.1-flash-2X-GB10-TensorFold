@@ -25,7 +25,7 @@
     "TF_DS_ROUND_ROWS": "48",
     "TF_DS_GRAPHS": "1",
     "TF_DS_GRAPH_BUCKETS": "8192,262144",
-    "TF_DS_GRAPH_MAX_ENTRIES": "512",
+    "TF_DS_GRAPH_MAX_ENTRIES": "144",
     "TF_DS_HC_SIDE": "1",
     "TF_DS_L2_PREFETCH": "1",
     "TF_DS_ENGRAM_AIO": "1",
