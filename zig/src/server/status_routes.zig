@@ -66,9 +66,32 @@ pub fn nativeDiagnostics(a: Allocator, d: api.Diagnostics) Allocator.Error!Value
     const o = try json.newObject(a);
     inline for (@typeInfo(@TypeOf(d)).@"struct".field_names) |name| {
         const value = @field(d, name);
-        try o.put(a, name, if (@TypeOf(value) == bool) .{ .bool = value } else try json.intValue(a, value));
+        // Optional instrumentation stays absent when disabled. Tables are
+        // bounded and contain only counts, elapsed times and shape indices.
+        if (@typeInfo(@TypeOf(value)) == .optional) {
+            if (value) |v| try o.put(a, name, try diagnosticValue(a, v));
+        } else try o.put(a, name, try diagnosticValue(a, value));
     }
     return .{ .object = o };
+}
+
+fn diagnosticValue(a: Allocator, value: anytype) Allocator.Error!Value {
+    return switch (@typeInfo(@TypeOf(value))) {
+        .bool => .{ .bool = value },
+        .int => try json.intValue(a, value),
+        .array => blk: {
+            const out = try a.alloc(Value, value.len);
+            for (value, out) |v, *item| item.* = try diagnosticValue(a, v);
+            break :blk .{ .array = out };
+        },
+        .@"struct" => blk: {
+            const out = try json.newObject(a);
+            inline for (@typeInfo(@TypeOf(value)).@"struct".field_names) |name|
+                try out.put(a, name, try diagnosticValue(a, @field(value, name)));
+            break :blk .{ .object = out };
+        },
+        else => @compileError("Unsupported diagnostic value"),
+    };
 }
 
 pub fn models(srv: *Server, conn: *Conn, a: Allocator) !void {
@@ -168,4 +191,15 @@ test "native diagnostics expose measured allocation and compaction facts" {
     try std.testing.expectEqualStrings("8650752", v.get("pool_tokens").?.int);
     try std.testing.expectEqualStrings("2", v.get("compactions").?.int);
     try std.testing.expect(v.get("rdma_failed").?.bool);
+    try std.testing.expect(v.get("timing") == null and v.get("costs") == null);
+}
+
+test "opt-in timing diagnostics retain integer precision and bounded shape tables" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const v = try nativeDiagnostics(arena.allocator(), .{ .timing = .{ .verify_ns = 9007199254740993 }, .costs = .{} });
+    try std.testing.expectEqualStrings("9007199254740993", v.get("timing").?.get("verify_ns").?.int);
+    try std.testing.expectEqual(@as(usize, 4), v.get("costs").?.get("verify_count").?.array.len);
+    try std.testing.expectEqual(@as(usize, 7), v.get("costs").?.get("verify_count").?.array[0].array.len);
+    try std.testing.expectEqual(@as(usize, 49), v.get("costs").?.get("verify_count").?.array[0].array[6].array.len);
 }

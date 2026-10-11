@@ -3,6 +3,7 @@ const std = @import("std");
 const Stream = @import("stream.zig").Stream;
 const Shape = @import("shape.zig").Shape;
 const Held = @import("stream.zig").Held;
+pub const measure = @import("measure.zig");
 
 /// A token to feed: one the backend drew and holds (a handle), or a host value (forced or pending).
 pub const Feed = union(enum) { handle: u64, value: u32 };
@@ -50,6 +51,8 @@ pub const Diagnostics = struct {
     drm_reserved_bytes: u64 = 0,
     drm_used_bytes: u64 = 0,
     rdma_failed: bool = false,
+    timing: ?measure.Summary = null,
+    costs: ?measure.Snapshot = null,
 };
 
 /// Absorb a stream's kept rows into its draft head and hold `depth` drafts for its next round.
@@ -103,6 +106,8 @@ pub const Backend = struct {
         /// The stream left the rounds: free its caches and held drafts.
         release: *const fn (ptr: *anyopaque, s: *Stream) void,
         diagnostics: ?*const fn (ptr: *anyopaque) Diagnostics = null,
+        /// Optional observation of a completed shared round; never changes its decisions.
+        shared_round_observed: ?*const fn (ptr: *anyopaque, elapsed_ns: u64) void = null,
     };
 
     pub fn prefill(b: Backend, s: *Stream) !void {

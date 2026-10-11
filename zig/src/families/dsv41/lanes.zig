@@ -254,6 +254,8 @@ pub const Lanes = struct {
     seqs: [max_streams]std.ArrayList(i32) = @splat(.empty),
     built: Built = .{},
     prof: ?Profile = null,
+    measurements: ?be.measure.Measurements = null,
+    round_backend_ns: u64 = 0, // engine-thread-only scratch for the shared-round observer
     fix_k: ?usize = null, // a measurement (tf-dsv41-lanes --fix-k): K drafts a stream, chances 1 to K and 0 past it
     drawn: [ring]u32 = undefined,
     next: u64 = 0,
@@ -310,6 +312,7 @@ pub const Lanes = struct {
             .probabilities = probabilitiesFn,
             .release = releaseFn,
             .diagnostics = diagnosticsFn,
+            .shared_round_observed = sharedRoundObserved,
         } };
     }
 
@@ -336,7 +339,14 @@ pub const Lanes = struct {
             .drm_reserved_bytes = cv.reserved,
             .drm_used_bytes = cv.used,
             .rdma_failed = if (self.m.ring) |r| r.failure() != null else false,
+            .timing = if (self.measurements) |*m| m.summary() else null,
+            .costs = if (self.measurements) |*m| (if (self.active_streams.load(.monotonic) == 0) m.snapshot() else null) else null,
         };
+    }
+
+    fn sharedRoundObserved(ptr: *anyopaque, elapsed_ns: u64) void {
+        const self = of(ptr);
+        if (self.measurements) |*m| m.add(.{ .shared_round_ns = elapsed_ns, .shared_rounds = 1, .shared_backend_ns = self.round_backend_ns, .shared_other_ns = elapsed_ns -| self.round_backend_ns });
     }
 
     /// The facts the round loop reads: windows of the pending row and up to the drafter's block, several streams'
@@ -620,6 +630,12 @@ pub const Lanes = struct {
         const self = of(ptr);
         const m = self.m;
         const gpa = self.gpa;
+        const measured = self.measurements != null;
+        const began = if (measured) m.now() else 0;
+        if (measured) self.round_backend_ns = 0;
+        defer if (measured) {
+            self.round_backend_ns += m.now() - began;
+        };
         if (windows.len > max_streams) return error.WindowTooWide;
         var ids: [max_streams][max_rows]i32 = undefined;
         var wins: [max_streams]Win = undefined;
@@ -652,6 +668,7 @@ pub const Lanes = struct {
         }
         const t1 = m.now();
         const rows = try self.built.build(gpa, &self.seqs, wins[0..windows.len]);
+        const graphs_before = if (m.graphs) |*g| g.count() else 0;
         try m.verify(rows, self.built.absorb[0..windows.len]);
         const t2 = m.now();
         // every row greedy: the device's argmax (R tokens back); else the logits for the host's draws
@@ -666,6 +683,13 @@ pub const Lanes = struct {
         const logits: []const f32 = if (greedy) &.{} else try m.roundLogits(rows.ids.len);
         _ = self.verify_rounds.fetchAdd(1, .monotonic);
         const t3 = m.now();
+        defer if (self.measurements) |*measurements| {
+            measurements.add(.{ .send_ns = t1 - t0, .verify_ns = t2 - t1, .logits_ns = t3 - t2, .sample_ns = m.now() - t3 });
+            var longest: usize = 0;
+            for (wins[0..windows.len]) |w| longest = @max(longest, w.start + w.ids.len);
+            const captured = (if (m.graphs) |*g| g.count() else 0) != graphs_before;
+            measurements.verify(longest, windows.len, rows.ids.len, t2 - t1, captured);
+        };
         defer if (self.prof) |*p| {
             p.send += t1 - t0;
             p.enqueue += m.t_enqueue;
@@ -702,6 +726,11 @@ pub const Lanes = struct {
         const self = of(ptr);
         const m = self.m;
         const gpa = self.gpa;
+        const measured = self.measurements != null;
+        const began = if (measured) m.now() else 0;
+        defer if (measured) {
+            self.round_backend_ns += m.now() - began;
+        };
         if (m.dr == null) return error.NoDraftHead;
         const block = m.dr.?.n;
         var tokens: [max_streams]i64 = undefined;
@@ -733,6 +762,7 @@ pub const Lanes = struct {
         var start: usize = 0;
         while (start < n) {
             const end = @min(start + draft.max_pass_streams, n);
+            const send_start = m.now();
             if (try self.begin(.pass)) {
                 try self.wire.int(gpa, u32, @intCast(end - start));
                 try self.wire.int(gpa, u32, @intCast(steps));
@@ -744,7 +774,16 @@ pub const Lanes = struct {
                 try self.flush();
             }
             const t0 = m.now();
+            const graphs_before = if (m.dr.?.graphs) |g| g.map.count() else 0;
             try m.pass(tokens[start..end], q0[start..end], slots[start..end], steps);
+            if (self.measurements) |*measurements| {
+                const elapsed = m.now() - t0;
+                var held: u64 = 0;
+                for (depths[start..end]) |depth| held += depth;
+                measurements.add(.{ .draft_send_ns = t0 - send_start, .draft_ns = elapsed, .generated_proposals = (end - start) * steps, .held_proposals = held, .draft_hidden_rows = (end - start) * block });
+                const captured = (if (m.dr.?.graphs) |g| g.map.count() else 0) != graphs_before;
+                measurements.draft(end - start, steps, elapsed, captured);
+            }
             _ = self.draft_passes.fetchAdd(1, .monotonic);
             if (self.prof) |*p| {
                 p.pass += m.now() - t0;

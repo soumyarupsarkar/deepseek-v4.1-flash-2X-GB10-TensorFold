@@ -54,7 +54,7 @@
     },
     {
       "path": "deployment/config/profile.json",
-      "sha256": "b53b0850b4336139f0b6cc7d640c72ec318a8f1731483175b25e676b6c99528f"
+      "sha256": "980f7714abb3600b20ad73fc7cf20a0551270fdc51332b18195c3dfaf6620db5"
     },
     {
       "path": "deployment/config/requirements-resolved.txt",
@@ -1546,7 +1546,7 @@
     },
     {
       "path": "zig/src/core/lanes/backend.zig",
-      "sha256": "1539d20514a4de49e22ada43c9181a361fbf2c7173011f1c3527e07927370ebb"
+      "sha256": "0e32e4558708218d79d5924dc5d32c320e6f63b5c2dfff371c6a97138ba2b28d"
     },
     {
       "path": "zig/src/core/lanes/config.zig",
@@ -1558,7 +1558,7 @@
     },
     {
       "path": "zig/src/core/lanes/engine.zig",
-      "sha256": "dac1481d12519bca7288121adca737c1ac51fc222e93194b47f14e973a910855"
+      "sha256": "d07c9f67b27123abb00842b75b3c5cc59396de35dd5e4c0d70554d934fb3a0fe"
     },
     {
       "path": "zig/src/core/lanes/engine_test.zig",
@@ -1590,7 +1590,11 @@
     },
     {
       "path": "zig/src/core/lanes/lanes.zig",
-      "sha256": "9375af3720e7d73526c1bda3cb20b4fe2e1691674f643875e64e874e46d8cd96"
+      "sha256": "1669067ece655738e737333cc6bac38e51671417ca0c5059f2b3a18d04e86e99"
+    },
+    {
+      "path": "zig/src/core/lanes/measure.zig",
+      "sha256": "2ad12344eb6716f988efb2e406cbadca9e226e9989d58a57f18e84771474a241"
     },
     {
       "path": "zig/src/core/lanes/plan_lanes.zig",
@@ -2034,7 +2038,7 @@
     },
     {
       "path": "zig/src/families/dsv41/lanes.zig",
-      "sha256": "3ca4bbe911982adeba45e53d85c07d37cde5dcf4cc3dc5934eee82b42fd9cadd"
+      "sha256": "e5392fbc68a6db2cf0eac5bb74fa5d3acfb4b2676e1a2936bac51f973ebca8aa"
     },
     {
       "path": "zig/src/families/dsv41/lanes_main.zig",
@@ -2062,7 +2066,7 @@
     },
     {
       "path": "zig/src/families/dsv41/native.zig",
-      "sha256": "50446fd86feea47dcd5994a51fbbe3284e850c38845dbbeb85c22b9e3e9fc690"
+      "sha256": "bec02f159fd7ffbf364a282ca9aa491240c2ae0e2d599203930277e7c8465d66"
     },
     {
       "path": "zig/src/families/dsv41/ops.zig",
@@ -2682,7 +2686,7 @@
     },
     {
       "path": "zig/src/native/cuda.zig",
-      "sha256": "434f1b9fba7bf6b1a7c27eaa3abe2712c4a5786a509db4aacff7e6f8596759c1"
+      "sha256": "e193bd3fce547b0387a601daa17bc750be289c44c07be5df3f1bd39d54af5c13"
     },
     {
       "path": "zig/src/native/cuda_memory.zig",
@@ -2910,7 +2914,7 @@
     },
     {
       "path": "zig/src/server/status_routes.zig",
-      "sha256": "ea9594d0d35e007cd2a478c712dc916c6eeaac12484d4bb19937f849fde88367"
+      "sha256": "01129922b5a6e337ce060ec4bbb18b45b54ac09c14d5252de3a853f0d8e87f74"
     },
     {
       "path": "zig/src/server/stream_preflight_test.zig",

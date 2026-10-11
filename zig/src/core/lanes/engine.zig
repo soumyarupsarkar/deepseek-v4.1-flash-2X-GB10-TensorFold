@@ -364,6 +364,7 @@ pub const Engine = struct {
         try e.backend.keep(windows, paths);
         const ms = e.clock.elapsedMs(.overhead);
         try trail.event(e, &.{ f("ev", str("overhead")), f("streams", int(plans.len)), f("rows", int(total)), f("ms", ev.bits(ms)) });
+        if (e.backend.vtable.shared_round_observed) |observe| observe(e.backend.ptr, @intFromFloat(@max(0, ms) * 1e6));
         try e.rule.observeOverhead(@intCast(plans.len), total, ms);
     }
 

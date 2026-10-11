@@ -300,6 +300,12 @@ const Host = struct {
                     return x.inner.vtable.diagnostics.?(x.inner.ptr);
                 }
             }.f else null,
+            .shared_round_observed = if (v.shared_round_observed != null) struct {
+                fn f(p: *anyopaque, elapsed_ns: u64) void {
+                    const x: *Host = @ptrCast(@alignCast(p));
+                    x.inner.vtable.shared_round_observed.?(x.inner.ptr, elapsed_ns);
+                }
+            }.f else null,
         };
         return .{ .ptr = h, .vtable = &h.vtable };
     }

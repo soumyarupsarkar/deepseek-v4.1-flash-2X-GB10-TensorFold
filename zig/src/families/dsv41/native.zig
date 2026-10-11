@@ -19,6 +19,8 @@
 //!   TF_DS_L2_PREFETCH=1                         the paced L2 prefetch of the next kernels' weights
 //!   TF_DS_ENGRAM_AIO=1                          a round's Engram reads by Linux AIO on O_DIRECT
 //!   TF_DS_FIX_K=K                               a measurement: every drafted stream verifies K drafts a round
+//!   TF_DS_MEASURE_COSTS=1                       bounded wall-time counters and idle cost tables in /health;
+//!                                               no extra GPU synchronization or sampling changes
 //! The kernel set (TENSORFOLD_CUDA_KERNELS) is the recorded Triton set (aot_pack.py). Each stream reserves its prompt,
 //! max_tokens and round slack in the shared pool. TF_DS_POOL_TOKENS defaults to --context for upstream compatibility.
 //! TF_TP_WORLD=4: the four nodes of the exact 2D split (prompt2d.zig), ranks 1-3 `tf-dsv41-lanes` following on the
@@ -150,6 +152,9 @@ pub fn open(gpa: std.mem.Allocator, io: std.Io, ctx: *const cuda.Context, dir: [
     });
     errdefer st.m.close();
     st.lanes = lanes_mod.Lanes.init(gpa, st.m);
+    if (getenv("TF_DS_MEASURE_COSTS")) |t| {
+        if (std.mem.eql(u8, t, "1")) st.lanes.measurements = .{} else if (!std.mem.eql(u8, t, "0")) return error.BadMeasureCosts;
+    }
     if (getenv("TF_DS_FIX_K")) |t| st.lanes.fix_k = std.fmt.parseInt(usize, t, 10) catch return error.BadFixK;
     // a vision checkpoint's tower on this rank, from the kit's vision/ (torch's attention cubin, the routing bias)
     st.vision = null;
