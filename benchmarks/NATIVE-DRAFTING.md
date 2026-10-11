@@ -75,6 +75,11 @@ transitions, graph construction and rounds interleaved with active prefill do
 not train the estimates. Measurements
 are workload dependent; this is not a fixed concurrency cutoff.
 The learned rates live in memory and reset when the serving process restarts.
+After at least four settled rounds, a selected drafter whose measured rate falls
+below the plain estimate triggers an early plain probe. This avoids retaining a
+losing preference for the entire 64-round interval; the probe refreshes the
+alternative measurement before selecting again. The 3% entry margin and 0%
+early-withdrawal threshold provide hysteresis.
 
 Suppressing generation keeps target-state absorption active so drafting can
 resume. It can still use a valid copied continuation. This differs from a

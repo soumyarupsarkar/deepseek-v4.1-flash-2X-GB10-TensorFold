@@ -83,7 +83,13 @@ pub const Guard = struct {
             return;
         }
         g.settled += 1;
-        if (g.settled >= retry_rounds) {
+        // A previously profitable drafter can lose as the response changes.
+        // Do not hold it for the entire retry interval after its measured rate
+        // falls behind plain generation. Four fresh plain rounds recheck that
+        // estimate; entering draft still requires the margin above.
+        const losing_draft = mode == .draft and g.settled >= probe_rounds and
+            g.rates[1].tokens_per_ms < g.rates[0].tokens_per_ms;
+        if (losing_draft or g.settled >= retry_rounds) {
             g.mode = if (mode == .draft) .plain else .draft;
             g.probing = probe_rounds;
             g.settled = 0;
@@ -126,6 +132,22 @@ test "invalid and stale transition observations cannot consume the probe" {
     g.observe(.draft, 32, 0);
     try std.testing.expectEqual(@as(u32, Guard.probe_rounds), g.probing);
     try std.testing.expectEqual(@as(u64, 0), g.rates[0].rounds + g.rates[1].rounds);
+}
+
+test "a declining drafter rechecks plain before the full retry interval" {
+    var g: Guard = .{};
+    for (0..Guard.probe_rounds) |_| g.observe(.draft, 48, 100_000_000);
+    for (0..Guard.probe_rounds) |_| g.observe(.plain, 32, 100_000_000);
+    try std.testing.expectEqual(Mode.draft, g.selected());
+    var rounds: usize = 0;
+    while (g.selected() == .draft and rounds < Guard.retry_rounds) : (rounds += 1)
+        g.observe(.draft, 16, 100_000_000);
+    try std.testing.expect(rounds >= Guard.probe_rounds and rounds < Guard.retry_rounds);
+    try std.testing.expectEqual(Mode.plain, g.selected());
+    try std.testing.expectEqual(@as(u32, Guard.probe_rounds), g.probing);
+    for (0..Guard.probe_rounds) |_| g.observe(.plain, 32, 100_000_000);
+    try std.testing.expectEqual(Mode.plain, g.selected());
+    try std.testing.expectEqual(@as(u32, 0), g.probing);
 }
 
 test "a marginal noisy win does not enable draft generation" {

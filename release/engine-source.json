@@ -1582,7 +1582,7 @@
     },
     {
       "path": "zig/src/core/lanes/generation.zig",
-      "sha256": "f16ed1d293647a6f304992d02849c2f26b934b210d3ee5ab30e0dd4d2306274c"
+      "sha256": "faab6f4cb5231c324a31a1fc09b481661ac282e02f23a0fb624e5c38cfb13d4b"
     },
     {
       "path": "zig/src/core/lanes/gpu_full.zig",
