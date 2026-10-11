@@ -6,10 +6,9 @@ Run DeepSeek-V4.1-Flash across two NVIDIA GB10s using Mia's EXL3 weights, drowze
 
 | Headline | Setting or measured result |
 |---|---|
-| Shared KV pool | **8,650,752 logical tokens** shared by active and retained sessions |
+| Shared KV pool | **8,650,752 logical tokens** shared by active and retained sessions (supporting 32 × 262k resident sessions, 8 × 1M, 4 × 1M + 8 × 524k, or any combination within the pool capacity) |
 | Concurrent active slots | **32** |
 | Maximum context | **1,048,576 tokens per request**, prompt plus reply |
-| Context aliases | **262,144 / 524,288 / 614,400 / 1,048,576** tokens |
 | C1 greedy decode — code / prose / counting | **100.2 / 59.3 / 140.6 output tok/s** |
 | C32 greedy decode — code / prose / counting | **313.4 / 268.6 / 377.0 aggregate output tok/s** |
 | C1 sampled decode — code / prose / counting | **98.6 / 62.5 / 139.3 output tok/s** |
