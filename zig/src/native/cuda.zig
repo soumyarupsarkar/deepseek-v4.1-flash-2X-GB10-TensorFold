@@ -301,9 +301,15 @@ const Host = struct {
                 }
             }.f else null,
             .shared_round_observed = if (v.shared_round_observed != null) struct {
-                fn f(p: *anyopaque, elapsed_ns: u64) void {
+                fn f(p: *anyopaque, elapsed_ns: u64, committed: usize) void {
                     const x: *Host = @ptrCast(@alignCast(p));
-                    x.inner.vtable.shared_round_observed.?(x.inner.ptr, elapsed_ns);
+                    x.inner.vtable.shared_round_observed.?(x.inner.ptr, elapsed_ns, committed);
+                }
+            }.f else null,
+            .allow_draft_generation = if (v.allow_draft_generation != null) struct {
+                fn f(p: *anyopaque, requests: []const lanes.backend.DraftRequest) !bool {
+                    const x: *Host = @ptrCast(@alignCast(p));
+                    return x.inner.vtable.allow_draft_generation.?(x.inner.ptr, requests);
                 }
             }.f else null,
         };

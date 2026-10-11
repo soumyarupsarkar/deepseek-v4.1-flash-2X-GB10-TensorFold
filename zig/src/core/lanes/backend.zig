@@ -51,6 +51,15 @@ pub const Diagnostics = struct {
     drm_reserved_bytes: u64 = 0,
     drm_used_bytes: u64 = 0,
     rdma_failed: bool = false,
+    adaptive_generation: bool = false,
+    generation_plain_rounds: u64 = 0,
+    generation_draft_rounds: u64 = 0,
+    generation_probe_rounds: u64 = 0,
+    generation_transition_skips: u64 = 0,
+    generation_capture_skips: u64 = 0,
+    generation_prefill_skips: u64 = 0,
+    generation_skipped_streams: u64 = 0,
+    generation_c32_draft_rounds: u64 = 0,
     timing: ?measure.Summary = null,
     costs: ?measure.Snapshot = null,
 };
@@ -106,8 +115,11 @@ pub const Backend = struct {
         /// The stream left the rounds: free its caches and held drafts.
         release: *const fn (ptr: *anyopaque, s: *Stream) void,
         diagnostics: ?*const fn (ptr: *anyopaque) Diagnostics = null,
-        /// Optional observation of a completed shared round; never changes its decisions.
-        shared_round_observed: ?*const fn (ptr: *anyopaque, elapsed_ns: u64) void = null,
+        /// Optional shared-round observation, after accepted tokens are committed.
+        shared_round_observed: ?*const fn (ptr: *anyopaque, elapsed_ns: u64, committed: usize) void = null,
+        /// A generation guard may suppress all requested chain drafts. Verification
+        /// and sampling are unchanged; depth-zero requests still reach the backend.
+        allow_draft_generation: ?*const fn (ptr: *anyopaque, requests: []const DraftRequest) anyerror!bool = null,
     };
 
     pub fn prefill(b: Backend, s: *Stream) !void {

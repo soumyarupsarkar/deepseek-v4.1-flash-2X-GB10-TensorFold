@@ -173,7 +173,8 @@ pub fn allocate(e: *Engine, plans: []Plan) !void {
             pr.* = try nodeChances(e, p.stream, n);
         }
     }
-    const counts = try alloc.allocate(a, fixed, probs, &e.cfg.shared_costs, e.rule.overheadMs(plans.len), @max(plans.len, e.cfg.batch_rows));
+    const costs = if (plans.len == 1 and e.cfg.separate_solo_costs) &e.cfg.family_costs else &e.cfg.shared_costs;
+    const counts = try alloc.allocate(a, fixed, probs, costs, e.rule.overheadMs(plans.len), @max(plans.len, e.cfg.batch_rows));
     for (plans, probs, counts) |*p, chances, c| {
         if (p.kind == .head) p.stream.granted = c;
         if (chances.len == 0 or c == chances.len) continue;

@@ -53,6 +53,7 @@ pub const Engine = struct {
                 .most_drafts = cfg.most_drafts,
                 .family_costs = &cfg.family_costs,
                 .shared_costs = &cfg.shared_costs,
+                .separate_solo_costs = cfg.separate_solo_costs,
                 .mtp_step_ms = cfg.mtp_step_ms,
                 .plain_guard = cfg.plain_guard,
                 .node_probabilities = cfg.node_probabilities,
@@ -364,7 +365,11 @@ pub const Engine = struct {
         try e.backend.keep(windows, paths);
         const ms = e.clock.elapsedMs(.overhead);
         try trail.event(e, &.{ f("ev", str("overhead")), f("streams", int(plans.len)), f("rows", int(total)), f("ms", ev.bits(ms)) });
-        if (e.backend.vtable.shared_round_observed) |observe| observe(e.backend.ptr, @intFromFloat(@max(0, ms) * 1e6));
+        if (e.backend.vtable.shared_round_observed) |observe| {
+            var committed: usize = 0;
+            for (outcomes) |o| committed += o.got.len;
+            observe(e.backend.ptr, @intFromFloat(@max(0, ms) * 1e6), committed);
+        }
         try e.rule.observeOverhead(@intCast(plans.len), total, ms);
     }
 
@@ -485,6 +490,16 @@ pub const Engine = struct {
             }
             asked = &one;
         } else if (requests.len == 1) requests[0].stream.held_levels = requests[0].depth;
+        if (lone == null) if (e.backend.vtable.allow_draft_generation) |allow| {
+            if (!try allow(e.backend.ptr, asked)) {
+                const plain = try e.arena.allocator().dupe(be.DraftRequest, asked);
+                for (plain) |*r| {
+                    r.depth = 0;
+                    r.stream.held_levels = 0;
+                }
+                asked = plain;
+            }
+        };
         try e.backend.draft(asked);
         for (asked) |r| {
             r.stream.dropHeld(e.gpa);

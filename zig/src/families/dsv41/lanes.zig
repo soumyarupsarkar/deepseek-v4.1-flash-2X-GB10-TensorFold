@@ -24,6 +24,7 @@ const cuda = @import("cuda");
 const extent_plan = @import("extent_plan.zig");
 
 const be = lanes.backend;
+const generation = lanes.generation;
 const Model = model.Model;
 const max_streams = model.max_streams;
 const max_rows = round.max_rows;
@@ -196,10 +197,24 @@ pub const Profile = struct {
 /// A round-cost table "30.0,35.2,..." (TF_DS_ROUND_MS's form): ms by rows from 1.
 pub fn parseMs(a: std.mem.Allocator, text: []const u8) ![]const f64 {
     var out: std.ArrayList(f64) = .empty;
+    errdefer out.deinit(a);
     var it = std.mem.splitScalar(u8, text, ',');
-    while (it.next()) |x| try out.append(a, try std.fmt.parseFloat(f64, std.mem.trim(u8, x, " ")));
+    while (it.next()) |x| {
+        const value = std.fmt.parseFloat(f64, std.mem.trim(u8, x, " ")) catch return error.BadRoundMs;
+        if (!std.math.isFinite(value) or value <= 0) return error.BadRoundMs;
+        try out.append(a, value);
+    }
     if (out.items.len == 0) return error.BadRoundMs;
-    return out.items;
+    return out.toOwnedSlice(a);
+}
+
+/// Preserve supplied widths; outside the table use its widest cost per row,
+/// as core/lanes/allocate.extendCosts does. Repeating the last value makes
+/// additional verification rows appear free (notably rows 25..48 at C32).
+pub fn rowCost(table: []const f64, rows: usize) f64 {
+    std.debug.assert(table.len > 0 and rows > 0);
+    if (rows <= table.len) return table[rows - 1];
+    return table[table.len - 1] * @as(f64, @floatFromInt(rows)) / @as(f64, @floatFromInt(table.len));
 }
 
 /// Per-stream prompt state survives a return to the serving scheduler. Image
@@ -226,6 +241,7 @@ const Lane = struct {
     held: [draft.max_block]u32 = undefined,
     confs: [draft.max_block]f32 = undefined,
     nheld: usize = 0,
+    generation_stamp: ?generation.Stamp = null,
     prefill: ?Prefill = null,
 };
 
@@ -256,6 +272,23 @@ pub const Lanes = struct {
     prof: ?Profile = null,
     measurements: ?be.measure.Measurements = null,
     round_backend_ns: u64 = 0, // engine-thread-only scratch for the shared-round observer
+    adaptive_generation: bool = false,
+    // Exact live counts, greedy/sampled, and context buckets keep unlike rounds
+    // out of each other's estimates. These cells are engine-thread-only.
+    generation_guards: [be.measure.contexts * 2 * (max_streams + 1)]generation.Guard = @splat(.{}),
+    generation_trace: ?generation.Trace = null,
+    generation_outgoing: ?generation.Mode = null,
+    generation_capture: bool = false,
+    generation_prefilling: bool = false,
+    round_streams: usize = 0,
+    generation_plain_rounds: std.atomic.Value(u64) = .init(0),
+    generation_draft_rounds: std.atomic.Value(u64) = .init(0),
+    generation_probe_rounds: std.atomic.Value(u64) = .init(0),
+    generation_transition_skips: std.atomic.Value(u64) = .init(0),
+    generation_capture_skips: std.atomic.Value(u64) = .init(0),
+    generation_prefill_skips: std.atomic.Value(u64) = .init(0),
+    generation_skipped_streams: std.atomic.Value(u64) = .init(0),
+    generation_c32_draft_rounds: std.atomic.Value(u64) = .init(0),
     fix_k: ?usize = null, // a measurement (tf-dsv41-lanes --fix-k): K drafts a stream, chances 1 to K and 0 past it
     drawn: [ring]u32 = undefined,
     next: u64 = 0,
@@ -273,10 +306,11 @@ pub const Lanes = struct {
 
     pub fn init(gpa: std.mem.Allocator, m: *Model) Lanes {
         var ln: Lanes = .{ .gpa = gpa, .m = m, .peer = if (m.world > 1) m.peer() else null };
-        // the round costs by rows: ROUND_MS[min(rows, len) - 1] (the served table, or TF_DS_ROUND_MS)
+        // Supplied forward costs, extended with a nonzero marginal row cost.
+        // A complete TF_DS_ROUND_MS table keeps every supplied value unchanged.
         const t = m.round_ms;
-        for (&ln.wc, 0..) |*c, i| c.* = .{ .width = @intCast(i + 1), .ms = t[@min(i, t.len - 1)] };
-        for (&ln.sc, 0..) |*c, i| c.* = .{ .width = @intCast(i + 1), .ms = t[@min(i, t.len - 1)] };
+        for (&ln.wc, 0..) |*c, i| c.* = .{ .width = @intCast(i + 1), .ms = rowCost(t, i + 1) };
+        for (&ln.sc, 0..) |*c, i| c.* = .{ .width = @intCast(i + 1), .ms = rowCost(t, i + 1) };
         return ln;
     }
 
@@ -313,6 +347,7 @@ pub const Lanes = struct {
             .release = releaseFn,
             .diagnostics = diagnosticsFn,
             .shared_round_observed = sharedRoundObserved,
+            .allow_draft_generation = allowDraftGeneration,
         } };
     }
 
@@ -339,18 +374,69 @@ pub const Lanes = struct {
             .drm_reserved_bytes = cv.reserved,
             .drm_used_bytes = cv.used,
             .rdma_failed = if (self.m.ring) |r| r.failure() != null else false,
+            .adaptive_generation = self.adaptive_generation,
+            .generation_plain_rounds = self.generation_plain_rounds.load(.monotonic),
+            .generation_draft_rounds = self.generation_draft_rounds.load(.monotonic),
+            .generation_probe_rounds = self.generation_probe_rounds.load(.monotonic),
+            .generation_transition_skips = self.generation_transition_skips.load(.monotonic),
+            .generation_capture_skips = self.generation_capture_skips.load(.monotonic),
+            .generation_prefill_skips = self.generation_prefill_skips.load(.monotonic),
+            .generation_skipped_streams = self.generation_skipped_streams.load(.monotonic),
+            .generation_c32_draft_rounds = self.generation_c32_draft_rounds.load(.monotonic),
             .timing = if (self.measurements) |*m| m.summary() else null,
             .costs = if (self.measurements) |*m| (if (self.active_streams.load(.monotonic) == 0) m.snapshot() else null) else null,
         };
     }
 
-    fn sharedRoundObserved(ptr: *anyopaque, elapsed_ns: u64) void {
+    fn sharedRoundObserved(ptr: *anyopaque, elapsed_ns: u64, committed: usize) void {
         const self = of(ptr);
         if (self.measurements) |*m| m.add(.{ .shared_round_ns = elapsed_ns, .shared_rounds = 1, .shared_backend_ns = self.round_backend_ns, .shared_other_ns = elapsed_ns -| self.round_backend_ns });
+        const trace = self.generation_trace orelse return;
+        const mode = self.generation_outgoing orelse return;
+        if (self.generation_prefilling) {
+            _ = self.generation_prefill_skips.fetchAdd(1, .monotonic);
+            return;
+        }
+        if (self.generation_capture) {
+            _ = self.generation_capture_skips.fetchAdd(1, .monotonic);
+            return;
+        }
+        if (!trace.permits(mode) or committed == 0 or elapsed_ns == 0) {
+            _ = self.generation_transition_skips.fetchAdd(1, .monotonic);
+            return;
+        }
+        const guard = &self.generation_guards[trace.key];
+        if (guard.probing > 0) _ = self.generation_probe_rounds.fetchAdd(1, .monotonic);
+        const counter = if (mode == .plain) &self.generation_plain_rounds else &self.generation_draft_rounds;
+        _ = counter.fetchAdd(1, .monotonic);
+        guard.observe(mode, committed, elapsed_ns);
     }
 
-    /// The facts the round loop reads: windows of the pending row and up to the drafter's block, several streams'
-    /// windows in one forward of at most 16 rows (four streams), the drafter's chances, the served lane's round ms.
+    fn allowDraftGeneration(ptr: *anyopaque, requests: []const be.DraftRequest) !bool {
+        const self = of(ptr);
+        // Solo decoding keeps its existing confidence/depth policy. A prompt's
+        // initial drafts bypass this shared-round hook and have no learned stamp.
+        const trace = self.generation_trace orelse {
+            for (requests) |r| {
+                const lane = self.streams.getPtr(r.stream) orelse return error.UnknownStream;
+                lane.generation_stamp = null;
+            }
+            return true;
+        };
+        const mode = self.generation_guards[trace.key].selected();
+        self.generation_outgoing = mode;
+        for (requests) |r| {
+            const lane = self.streams.getPtr(r.stream) orelse return error.UnknownStream;
+            // Departure rounds verify one cohort but generate for a smaller one.
+            if (r.stream.finished) self.generation_trace.?.stable = false;
+            lane.generation_stamp = .{ .key = trace.key, .mode = mode };
+            if (mode == .plain and r.depth > 0) _ = self.generation_skipped_streams.fetchAdd(1, .monotonic);
+        }
+        return mode == .draft;
+    }
+
+    /// The facts the round loop reads: each pending row and its draft block,
+    /// configured shared row/stream limits, draft probabilities and forward costs.
     pub fn facts(self: *const Lanes) lanes.Model {
         const drafting = self.m.drafting();
         return .{
@@ -367,6 +453,7 @@ pub const Lanes = struct {
             .batch_rows = @intCast(self.m.eng.round_rows),
             .max_streams = @intCast(self.m.streams),
             .shared_costs = self.sc[0..self.m.eng.round_rows],
+            .separate_solo_costs = true,
             .draft_probabilities = drafting,
             .draft_streams = drafting,
         };
@@ -679,6 +766,23 @@ pub const Lanes = struct {
                 greedy = false;
             };
         }
+        self.round_streams = windows.len;
+        self.generation_trace = null;
+        self.generation_outgoing = null;
+        self.generation_capture = (if (m.graphs) |*g| g.count() else 0) != graphs_before;
+        // Incremental prefill can leave work queued ahead of this verification.
+        // Keep the selected policy, but do not price prefill as decode cost.
+        self.generation_prefilling = self.prefilling_streams.load(.monotonic) != 0;
+        if (self.adaptive_generation and windows.len > 1) {
+            var longest: usize = 0;
+            for (wins[0..windows.len]) |w| longest = @max(longest, w.start + w.ids.len);
+            const key = (be.measure.contextBucket(longest) * 2 + @intFromBool(!greedy)) * (max_streams + 1) + windows.len;
+            var trace: generation.Trace = .{ .key = key };
+            for (windows) |w| if (w.stream.drafts) {
+                trace.include(self.streams.getPtr(w.stream).?.generation_stamp);
+            };
+            if (trace.eligible > 0) self.generation_trace = trace;
+        }
         const tokens: []const u32 = if (greedy) try m.roundArgmax(rows.ids.len) else &.{};
         const logits: []const f32 = if (greedy) &.{} else try m.roundLogits(rows.ids.len);
         _ = self.verify_rounds.fetchAdd(1, .monotonic);
@@ -776,12 +880,13 @@ pub const Lanes = struct {
             const t0 = m.now();
             const graphs_before = if (m.dr.?.graphs) |g| g.map.count() else 0;
             try m.pass(tokens[start..end], q0[start..end], slots[start..end], steps);
+            const captured = (if (m.dr.?.graphs) |g| g.map.count() else 0) != graphs_before;
+            self.generation_capture = self.generation_capture or captured;
             if (self.measurements) |*measurements| {
                 const elapsed = m.now() - t0;
                 var held: u64 = 0;
                 for (depths[start..end]) |depth| held += depth;
                 measurements.add(.{ .draft_send_ns = t0 - send_start, .draft_ns = elapsed, .generated_proposals = (end - start) * steps, .held_proposals = held, .draft_hidden_rows = (end - start) * block });
-                const captured = (if (m.dr.?.graphs) |g| g.map.count() else 0) != graphs_before;
                 measurements.draft(end - start, steps, elapsed, captured);
             }
             _ = self.draft_passes.fetchAdd(1, .monotonic);
@@ -800,6 +905,8 @@ pub const Lanes = struct {
             }
             start = end;
         }
+        if (self.generation_outgoing == .draft and self.round_streams == max_streams and n == max_streams)
+            _ = self.generation_c32_draft_rounds.fetchAdd(1, .monotonic);
     }
 
     /// The chance that each held draft lands with every earlier one, as the round loop's allocation reads it: the
@@ -1163,6 +1270,25 @@ pub fn follow(gpa: std.mem.Allocator, m: *Model) !void {
             .done => return,
         }
     }
+}
+
+test "round cost parsing owns its allocation and rejects unusable prices" {
+    const a = std.testing.allocator;
+    const table = try parseMs(a, "10.0,8.0, 15.0 ");
+    defer a.free(table);
+    try std.testing.expectEqualSlices(f64, &.{ 10, 8, 15 }, table);
+    for ([_][]const u8{ "", "0", "-1", "nan", "inf", "1,", "1,2,no" }) |text|
+        try std.testing.expectError(error.BadRoundMs, parseMs(a, text));
+}
+
+test "verification beyond the final cost entry never gets free rows" {
+    const table = &draft.round_ms;
+    try std.testing.expectEqual(table[23], rowCost(table, 24));
+    try std.testing.expect(rowCost(table, 32) > rowCost(table, 24));
+    try std.testing.expectApproxEqAbs(2 * table[23], rowCost(table, 48), 1e-12);
+    // Fully calibrated widths override extrapolation, including real measured dips.
+    try std.testing.expectEqual(@as(f64, 8), rowCost(&.{ 10, 8, 15 }, 2));
+    try std.testing.expectEqual(@as(f64, 20), rowCost(&.{ 10, 8, 15 }, 4));
 }
 
 test "draft chances are the prefix survivals chooseK sums" {

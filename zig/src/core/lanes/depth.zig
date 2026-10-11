@@ -52,6 +52,7 @@ pub const Rule = struct {
     most_drafts: u32,
     family_costs: *const Table,
     shared_costs: *const Table,
+    separate_solo_costs: bool = false,
     mtp_step_ms: f64,
     plain_guard: bool,
     node_probabilities: bool,
@@ -239,7 +240,8 @@ pub const Rule = struct {
     }
 
     pub fn observeOverhead(r: *Rule, streams: u32, rows: u64, ms: f64) !void {
-        const forward = r.shared_costs.get(@intCast(rows)) orelse return;
+        const costs_table = if (streams == 1 and r.separate_solo_costs) r.family_costs else r.shared_costs;
+        const forward = costs_table.get(@intCast(rows)) orelse return;
         const extra = if (ms - forward > 0.0) ms - forward else 0.0;
         for (r.overhead.items) |*o| {
             if (o.streams == streams) {

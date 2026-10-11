@@ -16,6 +16,7 @@ pub const config = @import("config.zig");
 pub const stream = @import("stream.zig");
 pub const backend = @import("backend.zig");
 pub const measure = @import("measure.zig");
+pub const generation = @import("generation.zig");
 pub const events = @import("events.zig");
 pub const windows = @import("windows.zig");
 pub const trail = @import("trail.zig");

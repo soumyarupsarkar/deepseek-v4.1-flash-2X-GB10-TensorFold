@@ -11,6 +11,7 @@
 //!                                               they need, the pool's caches by the context)
 //!   TF_DS_ROUND_MS                              the lane core's round costs by rows (ms, comma separated; the
 //!                                               served ROUND_MS unless set: a four-node lane's rounds cost less)
+//!   TF_DS_SHARED_ROUND_MS                       optional shared-round cost override, preserving solo costs
 //!   TF_DS_ROUND_ROWS, TF_DS_STREAMS             a round's rows at most (16..48), and resident streams (1..32)
 //!   TF_DS_POOL_TOKENS                           shared KV capacity, separate from each request's --context
 //!   TF_RDMA_DEVICES                             the decode gathers over the RDMA ring on these devices (else NCCL)
@@ -21,6 +22,8 @@
 //!   TF_DS_FIX_K=K                               a measurement: every drafted stream verifies K drafts a round
 //!   TF_DS_MEASURE_COSTS=1                       bounded wall-time counters and idle cost tables in /health;
 //!                                               no extra GPU synchronization or sampling changes
+//!   TF_DS_ADAPTIVE_DRAFTS=1                     price shared draft generation from committed tokens / wall time;
+//!                                               four valid rounds per probe, retry every 64 settled rounds
 //! The kernel set (TENSORFOLD_CUDA_KERNELS) is the recorded Triton set (aot_pack.py). Each stream reserves its prompt,
 //! max_tokens and round slack in the shared pool. TF_DS_POOL_TOKENS defaults to --context for upstream compatibility.
 //! TF_TP_WORLD=4: the four nodes of the exact 2D split (prompt2d.zig), ranks 1-3 `tf-dsv41-lanes` following on the
@@ -152,10 +155,19 @@ pub fn open(gpa: std.mem.Allocator, io: std.Io, ctx: *const cuda.Context, dir: [
     });
     errdefer st.m.close();
     st.lanes = lanes_mod.Lanes.init(gpa, st.m);
+    if (getenv("TF_DS_SHARED_ROUND_MS")) |text| {
+        const costs = try lanes_mod.parseMs(gpa, text);
+        defer gpa.free(costs);
+        for (&st.lanes.sc, 0..) |*c, i| c.* = .{ .width = @intCast(i + 1), .ms = lanes_mod.rowCost(costs, i + 1) };
+    }
     if (getenv("TF_DS_MEASURE_COSTS")) |t| {
         if (std.mem.eql(u8, t, "1")) st.lanes.measurements = .{} else if (!std.mem.eql(u8, t, "0")) return error.BadMeasureCosts;
     }
+    if (getenv("TF_DS_ADAPTIVE_DRAFTS")) |t| {
+        if (std.mem.eql(u8, t, "1")) st.lanes.adaptive_generation = true else if (!std.mem.eql(u8, t, "0")) return error.BadAdaptiveDrafts;
+    }
     if (getenv("TF_DS_FIX_K")) |t| st.lanes.fix_k = std.fmt.parseInt(usize, t, 10) catch return error.BadFixK;
+    if (st.lanes.adaptive_generation and st.lanes.fix_k != null) return error.AdaptiveWithFixedDrafts;
     // a vision checkpoint's tower on this rank, from the kit's vision/ (torch's attention cubin, the routing bias)
     st.vision = null;
     if (st.m.cfg.vision) st.vision = try vision_mod.Vision.open(gpa, io, st.m, dir, getenv("TF_DS_KIT").?);

@@ -1,0 +1,280 @@
+{
+  "schema_version": 1,
+  "status": "calibrated-prior-pending-policy-validation",
+  "runtime_source": "7d7ddd39d446c43f7048f9f61c2516f861f870b0",
+  "runtime_image": "sha256:b67586ba247357e9b3f73cd04ea91eaee27487fb9bec5b2f888d3f0af0d3323d",
+  "measurement_receipt_sha256": "f3ca8c2a7103ce3da31eddd87b52e77362618c27130eea49909ecbcc36e3a70e",
+  "review_sha256": "f2c81776dd31afe03f06c1811ed639a7d068332db199d7bf80795495ab358438",
+  "hardware": "Two NVIDIA GB10s; native TP2, existing Keys checkpoint and kernel kit",
+  "workload": {
+    "prompt_tokens": 1024,
+    "reply_tokens": 1024,
+    "prompt_class": "mixed",
+    "seed": 42000,
+    "temperatures": [
+      0,
+      1
+    ],
+    "concurrent_streams": [
+      1,
+      4,
+      8,
+      12,
+      13,
+      16,
+      24,
+      32
+    ]
+  },
+  "anchor_method": "At least 32 warm observations per temperature and width; observation-weighted mean within T0/T1, equal temperature weights.",
+  "anchors": [
+    {
+      "rows": 1,
+      "ms": 21.846116743173646,
+      "strata": [
+        {
+          "temperature": 0,
+          "count": 1028,
+          "total_ns": 22352310240,
+          "mean_ms": 21.743492451361867
+        },
+        {
+          "temperature": 1,
+          "count": 1029,
+          "total_ns": 22585254525,
+          "mean_ms": 21.948741034985424
+        }
+      ]
+    },
+    {
+      "rows": 4,
+      "ms": 38.27253978902291,
+      "strata": [
+        {
+          "temperature": 0,
+          "count": 1042,
+          "total_ns": 37468921350,
+          "mean_ms": 35.95865772552783
+        },
+        {
+          "temperature": 1,
+          "count": 1112,
+          "total_ns": 45132101100,
+          "mean_ms": 40.58642185251799
+        }
+      ]
+    },
+    {
+      "rows": 8,
+      "ms": 58.8225578261674,
+      "strata": [
+        {
+          "temperature": 0,
+          "count": 1102,
+          "total_ns": 62610297333,
+          "mean_ms": 56.81515184482758
+        },
+        {
+          "temperature": 1,
+          "count": 1039,
+          "total_ns": 63202332396,
+          "mean_ms": 60.82996380750722
+        }
+      ]
+    },
+    {
+      "rows": 12,
+      "ms": 73.11424523805445,
+      "strata": [
+        {
+          "temperature": 0,
+          "count": 1061,
+          "total_ns": 75890577178,
+          "mean_ms": 71.52740544580585
+        },
+        {
+          "temperature": 1,
+          "count": 33,
+          "total_ns": 2465135806,
+          "mean_ms": 74.70108503030303
+        }
+      ]
+    },
+    {
+      "rows": 16,
+      "ms": 90.2477921084369,
+      "strata": [
+        {
+          "temperature": 0,
+          "count": 1093,
+          "total_ns": 95885096301,
+          "mean_ms": 87.72652909515097
+        },
+        {
+          "temperature": 1,
+          "count": 1068,
+          "total_ns": 99077350870,
+          "mean_ms": 92.76905512172284
+        }
+      ]
+    },
+    {
+      "rows": 24,
+      "ms": 124.967268457389,
+      "strata": [
+        {
+          "temperature": 0,
+          "count": 1022,
+          "total_ns": 121755133907,
+          "mean_ms": 119.13418190508807
+        },
+        {
+          "temperature": 1,
+          "count": 1032,
+          "total_ns": 134985966370,
+          "mean_ms": 130.80035500968992
+        }
+      ]
+    },
+    {
+      "rows": 32,
+      "ms": 148.95972823951217,
+      "strata": [
+        {
+          "temperature": 0,
+          "count": 1025,
+          "total_ns": 147628498437,
+          "mean_ms": 144.02780335317073
+        },
+        {
+          "temperature": 1,
+          "count": 1025,
+          "total_ns": 157738944454,
+          "mean_ms": 153.89165312585365
+        }
+      ]
+    },
+    {
+      "rows": 48,
+      "ms": 193.48773453827178,
+      "strata": [
+        {
+          "temperature": 0,
+          "count": 2039,
+          "total_ns": 388116544585,
+          "mean_ms": 190.34651524521826
+        },
+        {
+          "temperature": 1,
+          "count": 1660,
+          "total_ns": 326404063360,
+          "mean_ms": 196.6289538313253
+        }
+      ]
+    }
+  ],
+  "unavailable_requested_anchors": [
+    2
+  ],
+  "interpolated_rows": [
+    2,
+    3,
+    5,
+    6,
+    7,
+    9,
+    10,
+    11,
+    13,
+    14,
+    15,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47
+  ],
+  "shared_round_ms": [
+    21.846117,
+    27.321591,
+    32.797065,
+    38.27254,
+    43.410044,
+    48.547549,
+    53.685053,
+    58.822558,
+    62.39548,
+    65.968402,
+    69.541323,
+    73.114245,
+    77.397632,
+    81.681019,
+    85.964405,
+    90.247792,
+    94.587727,
+    98.927661,
+    103.267596,
+    107.60753,
+    111.947465,
+    116.287399,
+    120.627334,
+    124.967268,
+    127.966326,
+    130.965383,
+    133.964441,
+    136.963498,
+    139.962556,
+    142.961613,
+    145.960671,
+    148.959728,
+    151.742729,
+    154.525729,
+    157.308729,
+    160.09173,
+    162.87473,
+    165.657731,
+    168.440731,
+    171.223731,
+    174.006732,
+    176.789732,
+    179.572733,
+    182.355733,
+    185.138733,
+    187.921734,
+    190.704734,
+    193.487735
+  ],
+  "environment_value": "21.846117,27.321591,32.797065,38.272540,43.410044,48.547549,53.685053,58.822558,62.395480,65.968402,69.541323,73.114245,77.397632,81.681019,85.964405,90.247792,94.587727,98.927661,103.267596,107.607530,111.947465,116.287399,120.627334,124.967268,127.966326,130.965383,133.964441,136.963498,139.962556,142.961613,145.960671,148.959728,151.742729,154.525729,157.308729,160.091730,162.874730,165.657731,168.440731,171.223731,174.006732,176.789732,179.572733,182.355733,185.138733,187.921734,190.704734,193.487735",
+  "caveats": [
+    "Short-context workload prior, not a hardware-invariant latency model or deep-context calibration.",
+    "Interpolate between anchors; the unmeasured widths are not independent timing results.",
+    "Verification includes GPU computation, device communication and draft-state absorption.",
+    "Warm cost observations exclude graph construction; reported benchmark wall time includes it.",
+    "Shared rounds only: preserve the existing solo cost table and single-session policy.",
+    "The generation guard measures actual tokens per total shared-round time by context, live count and sampling class."
+  ]
+}

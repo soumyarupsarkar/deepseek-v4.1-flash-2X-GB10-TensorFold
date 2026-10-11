@@ -53,8 +53,12 @@
       "sha256": "a284600537e1af62f0eeedbbd5887f257364e8fdb6660589297748e4cd62774a"
     },
     {
+      "path": "deployment/config/native-shared-costs-20261010.json",
+      "sha256": "559010dd083d4df9480fe1eb1b2748f928572c3093e344b36ad92bd790b980d0"
+    },
+    {
       "path": "deployment/config/profile.json",
-      "sha256": "980f7714abb3600b20ad73fc7cf20a0551270fdc51332b18195c3dfaf6620db5"
+      "sha256": "3db1f31ad4667f5f41abb1447e02829aefb76b6a8daa607325ba1eefd10d269e"
     },
     {
       "path": "deployment/config/requirements-resolved.txt",
@@ -1546,23 +1550,23 @@
     },
     {
       "path": "zig/src/core/lanes/backend.zig",
-      "sha256": "0e32e4558708218d79d5924dc5d32c320e6f63b5c2dfff371c6a97138ba2b28d"
+      "sha256": "01e2834e85683b2984aaff31fcf139707752b56db1d050d12f6595272ec0ee0f"
     },
     {
       "path": "zig/src/core/lanes/config.zig",
-      "sha256": "315f0209aa55aa1c04835ac064fee3871bfb4d818d93e4dd3a3584c39714c05d"
+      "sha256": "76e15251abcc894ce43dd962e5b89cc87d0b8166834db8afa4ec9aa7b3332209"
     },
     {
       "path": "zig/src/core/lanes/depth.zig",
-      "sha256": "3f988adf263b1de68c3512cef5fa39457516762e49dc53c1abb4c572f33cdf96"
+      "sha256": "ed02b5e474eb6d33ef988e85586ffea13d5526f3d2e6c6de5eb81141d17cf384"
     },
     {
       "path": "zig/src/core/lanes/engine.zig",
-      "sha256": "d07c9f67b27123abb00842b75b3c5cc59396de35dd5e4c0d70554d934fb3a0fe"
+      "sha256": "23ab55bb6f2707d54a9adb08ea22806e5e07cb202ec94964bc24b3e17d5da212"
     },
     {
       "path": "zig/src/core/lanes/engine_test.zig",
-      "sha256": "f76d65bc52f74a389e56f6b66a4bc96b941ebbad638386c10470017876128c73"
+      "sha256": "29fd575d363ee500d7305acfbbc961f27ed7564397f00828936ee5970e6f6e20"
     },
     {
       "path": "zig/src/core/lanes/events.zig",
@@ -1575,6 +1579,10 @@
     {
       "path": "zig/src/core/lanes/fill.zig",
       "sha256": "910b50f4c36222ac5a7182b21845919fd2ef07e9f040c8c79bafedbc1d6355b1"
+    },
+    {
+      "path": "zig/src/core/lanes/generation.zig",
+      "sha256": "f16ed1d293647a6f304992d02849c2f26b934b210d3ee5ab30e0dd4d2306274c"
     },
     {
       "path": "zig/src/core/lanes/gpu_full.zig",
@@ -1590,7 +1598,7 @@
     },
     {
       "path": "zig/src/core/lanes/lanes.zig",
-      "sha256": "1669067ece655738e737333cc6bac38e51671417ca0c5059f2b3a18d04e86e99"
+      "sha256": "dab1ec41aa091daf346b43de9147ecee43c8b4aca38b3093e87114341fcbeaf6"
     },
     {
       "path": "zig/src/core/lanes/measure.zig",
@@ -1626,7 +1634,7 @@
     },
     {
       "path": "zig/src/core/lanes/windows.zig",
-      "sha256": "6b5ab1c45db219b8d9510766e658871df70a42e31ce2660cc04aacd78328bafe"
+      "sha256": "562a69cc881c48d818c20c4d387076d3a6e88772504429101c14cffbe2a1b6d8"
     },
     {
       "path": "zig/src/core/moe_route.zig",
@@ -2038,7 +2046,7 @@
     },
     {
       "path": "zig/src/families/dsv41/lanes.zig",
-      "sha256": "e5392fbc68a6db2cf0eac5bb74fa5d3acfb4b2676e1a2936bac51f973ebca8aa"
+      "sha256": "9931bc8b7c421a71a5ecb5fa3000e1db8ccfe4150a3e11ff2d58239d50c9b54a"
     },
     {
       "path": "zig/src/families/dsv41/lanes_main.zig",
@@ -2066,7 +2074,7 @@
     },
     {
       "path": "zig/src/families/dsv41/native.zig",
-      "sha256": "bec02f159fd7ffbf364a282ca9aa491240c2ae0e2d599203930277e7c8465d66"
+      "sha256": "88456659a0c219b062bc77509f0189d78041fe709c77185f3aae270317098b0f"
     },
     {
       "path": "zig/src/families/dsv41/ops.zig",
@@ -2686,7 +2694,7 @@
     },
     {
       "path": "zig/src/native/cuda.zig",
-      "sha256": "e193bd3fce547b0387a601daa17bc750be289c44c07be5df3f1bd39d54af5c13"
+      "sha256": "5b52e5f6f8e15d0a2c7aa5f0f39be61bf0fa82c07b50a19dbccabc30c0aadd87"
     },
     {
       "path": "zig/src/native/cuda_memory.zig",

@@ -6,6 +6,7 @@ const sm = @import("stream.zig");
 const fake = @import("fake.zig");
 const SuffixLookup = @import("proposer.zig").SuffixLookup;
 const Sampling = @import("sampling.zig").Sampling;
+const be = @import("backend.zig");
 
 const gpa = std.testing.allocator;
 
@@ -25,12 +26,20 @@ fn model() !Config {
 
 /// Every case's emitted tokens, the cases admitted together and stepped until done.
 fn run(cases: []const Case) ![][]u32 {
+    return runGeneration(cases, null);
+}
+
+fn runGeneration(cases: []const Case, policy: ?*const fn (*anyopaque, []const be.DraftRequest) anyerror!bool) ![][]u32 {
     var cfg = try model();
     defer cfg.deinit(gpa);
     var target: fake.Fake = .{ .gpa = gpa };
     defer target.deinit();
     var clock: fake.FixedClock = .{};
-    var engine = Engine.init(gpa, &cfg, target.backend(), clock.clock());
+    var backend = target.backend();
+    var vtable = backend.vtable.*;
+    vtable.allow_draft_generation = policy;
+    backend.vtable = &vtable;
+    var engine = Engine.init(gpa, &cfg, backend, clock.clock());
     defer engine.deinit();
     const streams = try gpa.alloc(sm.Stream, cases.len);
     defer gpa.free(streams);
@@ -111,6 +120,69 @@ fn freeGuard(runs: []GuardOut) void {
 
 const p1 = [_]u32{ 3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5 };
 const p2 = [_]u32{ 2, 7, 1, 8, 2, 8, 1, 8, 2, 8, 4, 5, 9 };
+
+fn alternatingGeneration(ptr: *anyopaque, _: []const be.DraftRequest) !bool {
+    const target: *fake.Fake = @ptrCast(@alignCast(ptr));
+    return target.rounds % 4 >= 2;
+}
+
+test "shared calibration leaves solo allocation on its own cost table" {
+    const win = @import("windows.zig");
+    var cfg = try Config.init(gpa, .{
+        .exact_width = 2,
+        .mtp = true,
+        .speculate = true,
+        .drafts = 1,
+        .window_costs = &.{ .{ .width = 1, .ms = 10 }, .{ .width = 2, .ms = 100 } },
+        .shared_costs = &.{ .{ .width = 1, .ms = 10 }, .{ .width = 2, .ms = 11 }, .{ .width = 3, .ms = 12 }, .{ .width = 4, .ms = 13 } },
+        .separate_solo_costs = true,
+        .batch_rows = 4,
+        .hidden_rows = true,
+    }, 4, 1);
+    defer cfg.deinit(gpa);
+    var target: fake.Fake = .{ .gpa = gpa };
+    defer target.deinit();
+    var clock: fake.FixedClock = .{};
+    var engine = Engine.init(gpa, &cfg, target.backend(), clock.clock());
+    defer engine.deinit();
+    var s1 = try sm.Stream.init(gpa, .{ .id = "one", .prompt = &p1, .max_new = 8 });
+    defer s1.deinit(gpa);
+    var s2 = try sm.Stream.init(gpa, .{ .id = "two", .prompt = &p2, .max_new = 8 });
+    defer s2.deinit(gpa);
+    const p = win.Plan{ .stream = &s1, .position = p1.len, .kind = .copy, .tokens = &.{42} };
+    var solo = [_]win.Plan{p};
+    try win.allocate(&engine, &solo);
+    try std.testing.expectEqual(@as(usize, 0), solo[0].count());
+    var shared = [_]win.Plan{ p, .{ .stream = &s2, .position = p2.len, .kind = .copy, .tokens = &.{43} } };
+    try win.allocate(&engine, &shared);
+    try std.testing.expectEqual(@as(usize, 1), shared[0].count());
+    try std.testing.expectEqual(@as(usize, 1), shared[1].count());
+    try engine.rule.observeOverhead(1, 2, 105);
+    try std.testing.expectEqual(@as(f64, 5), engine.rule.overheadMs(1));
+    try engine.rule.observeOverhead(2, 4, 18);
+    try std.testing.expectEqual(@as(f64, 5), engine.rule.overheadMs(2));
+    // Backends that do not opt in retain their earlier allocation behavior.
+    cfg.separate_solo_costs = false;
+    solo = .{p};
+    try win.allocate(&engine, &solo);
+    try std.testing.expectEqual(@as(usize, 1), solo[0].count());
+}
+
+test "turning generation off and back on preserves tokens and forced closes" {
+    for ([_]?Sampling{ null, .{ .seed = 57, .temperature = 0.7, .top_k = 0, .top_p = 0.95 } }) |sampling| {
+        var cases = [_]Case{
+            .{ .prompt = &p1, .sampling = sampling, .max_new = 80 },
+            .{ .prompt = &p2, .sampling = sampling, .max_new = 80, .think_budget = 9 },
+            .{ .prompt = &p1, .sampling = sampling, .max_new = 80, .drafts = false },
+        };
+        const alternating = try runGeneration(&cases, alternatingGeneration);
+        defer free(alternating);
+        for (&cases) |*c| c.drafts = false;
+        const plain = try run(&cases);
+        defer free(plain);
+        for (plain, alternating) |a, b| try std.testing.expectEqualSlices(u32, a, b);
+    }
+}
 
 test "drafted rounds commit the one-token decode, greedy and sampled" {
     for ([_]?Sampling{ null, .{ .seed = 5, .temperature = 0.7, .top_k = 0, .top_p = 0.95 } }) |s| {

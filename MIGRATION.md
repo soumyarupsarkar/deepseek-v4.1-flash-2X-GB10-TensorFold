@@ -7,9 +7,16 @@ mixed-load soak. The original 614k failure and three adjacent/odd context cases
 also pass. The measured-benefit review accepts faster deep prefill with the
 documented short-workload costs below. Paired recovery, a controlled worker
 reboot and the full native-to-Python-to-native rollback rehearsal have passed.
-A new bounded 24-hour endurance run began on **2026-10-10 at 23:35 UTC**;
-its results and memory trends still require review. The retained Python
-deployment remains the fallback, with the cold-start procedure described below.
+A new bounded 24-hour endurance run began on **2026-10-10 at 23:35 UTC** and
+was stopped at the author's request at **23:44 UTC** to review headline results
+before further endurance testing. Its interrupted receipt records five complete
+mixed cycles and one deep wave over 526.5 seconds; this is not an endurance pass.
+No new endurance run or production cutover will begin without renewed direction.
+An isolated [native drafting investigation](benchmarks/NATIVE-DRAFTING.md) is
+now measuring the C32 regression and testing a shared-generation policy. Its
+candidate changes do not inherit the baseline image's hardware qualification.
+The retained Python deployment remains the fallback, with the cold-start
+procedure described below.
 
 ## Exact inputs and evidence
 
@@ -325,8 +332,8 @@ C32 costs and the earlier C4 regression disclosed. It claims neither a short-C1
 speedup nor a reduction in physical memory requirements. The noisy temperature-1
 Python C32 result is not the basis for acceptance. No capacity, draft budget or
 feature was reduced for this decision. Recovery and rollback subsequently
-passed. The new 24-hour endurance run must still pass its serving and memory
-review before production cutover.
+passed. Endurance testing is deferred at the author's request; a future complete
+24-hour run must pass its serving and memory review before production cutover.
 
 ## Historical measurements on the earlier image
 
@@ -396,10 +403,11 @@ changing persistent VM policy. See the [pinned fallback procedure](deployment/MI
 
 ## Remaining cutover gates
 
-1. Complete the **new bounded 24-hour** synthetic qualification with quiet memory
-   windows, mixed serving and deep-context checks. Preserve failed or interrupted
-   receipts. This run has automatic restart disabled and a 26-hour service limit.
-   The previously user-stopped endurance processes remain stopped.
+1. Await renewed direction before scheduling a **new bounded 24-hour** synthetic
+   qualification with quiet memory windows, mixed serving and deep-context checks.
+   Preserve failed or interrupted receipts, use a fresh run identity, disable
+   automatic restart and retain a 26-hour service limit. All user-stopped
+   endurance processes, including the October 10 run, remain stopped.
 2. Finish source, attribution, setup/rollback and sanitized-evidence review, then
    cut over only if every gate passes. Otherwise restore the qualified Python
    deployment and document the concrete blockers.
