@@ -1,0 +1,281 @@
+{
+  "status": "recovery-passed-endurance-pending",
+  "reviewed": "2026-10-10T23:34:54.867172+00:00",
+  "source": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+  "image": "sha256:83752d9d3bc7da632fd195332963501e9ca5208a8e2fcf409e781e985049aafd",
+  "paired": {
+    "worker_loss": "passed",
+    "interrupted_start": "passed",
+    "host_restoration": "passed"
+  },
+  "reboot": {
+    "worker_reboots": 1,
+    "head_rebooted": false,
+    "host_restoration": "passed",
+    "native_restart": "passed",
+    "checks": [
+      "baseline",
+      "structured",
+      "aliases"
+    ]
+  },
+  "rollback": {
+    "status": "passed",
+    "reference_source": "32c4ebea7d0a81808aaa503d88ebe1a84612d0cf",
+    "reference_image": "sha256:973b52dedb5e9e9270fdcaa1840f4ff61076c08fadb3d97c1aea98bef6795834",
+    "checks": [
+      {
+        "stage": "native5-rollback-initial-native-host-check-02",
+        "exit_code": 0,
+        "restoration_sha256": "4030d1f1e3b059141636e3bfa32cd667e87a2e720fbad610e274bd7cbb01d38d"
+      },
+      {
+        "stage": "native5-rollback-initial-native-start-02",
+        "exit_code": 0
+      },
+      {
+        "stage": "native5-rollback-initial-native-baseline-02",
+        "exit_code": 0,
+        "receipt_sha256": "be890c9c53db84d7a1ca73f2b00ec9a33d8170a79fe3020fda79816897550766"
+      },
+      {
+        "stage": "native5-rollback-native-stop-02",
+        "exit_code": 0
+      },
+      {
+        "stage": "native5-rollback-native-restored-02",
+        "exit_code": 0,
+        "restoration_sha256": "6fc1cc565a2165906587ada90c862ba80d2adbcbec1f76cd97418444fc4d8536"
+      },
+      {
+        "stage": "native5-rollback-python-host-check-02",
+        "exit_code": 0,
+        "restoration_sha256": "5a0bac3a1bbe6d7a6bcef53e44f18b6e981a24878cac6e3a58c070e190b45e60"
+      },
+      {
+        "stage": "native5-rollback-python-start-02",
+        "exit_code": 0,
+        "starter_receipt_sha256": "92867c30fa5c8d01fe4ed0ba3a4977e033e60ac6e1d44127b1f05665cd4b1146"
+      },
+      {
+        "stage": "native5-rollback-python-baseline-02",
+        "exit_code": 0,
+        "receipt_sha256": "e91dc395a62d86429f14fe3c70d34b1b42c2d0cfc6042159eadb16d456fa3069"
+      },
+      {
+        "stage": "native5-rollback-python-structured-02",
+        "exit_code": 0,
+        "receipt_sha256": "6574e2040a5515e58e8098f7d154127965e5a90ad2ea2a05a31394c209181396"
+      },
+      {
+        "stage": "native5-rollback-python-stop-02",
+        "exit_code": 0
+      },
+      {
+        "stage": "native5-rollback-python-restored-02",
+        "exit_code": 0,
+        "restoration_sha256": "2ad1afdabb67d2759aa628442e7e01659aa7e6f2667b9b933825b87ee8156a0f"
+      },
+      {
+        "stage": "native5-rollback-native-host-check-02",
+        "exit_code": 0,
+        "restoration_sha256": "725ec7f2e9e884562db3c2983643234bbb0e281ba6a08cbbe7c8f2244ded81f1"
+      },
+      {
+        "stage": "native5-rollback-native-start-02",
+        "exit_code": 0
+      },
+      {
+        "stage": "native5-rollback-native-baseline-02",
+        "exit_code": 0,
+        "receipt_sha256": "cf2b92281ea8f2b47f048b3c8c2dcb5efc1383f0fb580916a8b06a8666d9cfbb"
+      },
+      {
+        "stage": "native5-rollback-native-structured-02",
+        "exit_code": 0,
+        "receipt_sha256": "54efce97b780c5adff07ec628a8abba9d032ed05d28d44566e73dfcdccc08aec"
+      },
+      {
+        "stage": "native5-rollback-native-aliases-02",
+        "exit_code": 0,
+        "receipt_sha256": "2a697838d029cab91fd10a99046e0783222b3a9495bbd97735e128af9dd5e43a"
+      }
+    ],
+    "python_checks": [
+      "baseline",
+      "structured"
+    ],
+    "native_checks": [
+      "baseline",
+      "structured",
+      "aliases"
+    ],
+    "host_restoration_after_each_stop": "passed",
+    "unchanged_rank_epochs_during_each_serving_check": true,
+    "starter_script": "scripts/start_legacy_python.py",
+    "starter_sha256": "c2040d8bc3c6ec0fa2a836ff70b92a1704384219ab7aefb56a08547a3a0a8e0b",
+    "earlier_failed_attempts_preserved": true,
+    "original_failures": [
+      {
+        "error": "worker torch.OutOfMemoryError",
+        "requested_mib": 100.0,
+        "allocator_allowed_gib": 107.08,
+        "private_log_sha256": "ab4ae3262bdef7bb2fa7d4296df939ae30342e69cc4d609d0d0ecd51532084ed"
+      },
+      {
+        "error": "worker torch.OutOfMemoryError",
+        "requested_mib": 200.0,
+        "allocator_allowed_gib": 107.24,
+        "private_log_sha256": "09046e27131d80c2b5942634af4367d7e0ee6a864a6ca9934ecd529f9466be1d"
+      }
+    ],
+    "failure_interpretation": "Worker allocator ceiling rejected prefill temporaries; the later peer timeout and NCCL error were secondary.",
+    "first_reclaim_attempt": "Remote guard failed with stderr not captured; no claim about which guard or whether a write occurred.",
+    "corrected_diagnostic": "One scoped worker reclaim, baseline/structured and stop/restoration passed before the separate round-trip rehearsal.",
+    "reclaim": {
+      "requests": 1,
+      "requested_bytes": 2147483648,
+      "seconds": 7.679939724000178,
+      "outcome": null,
+      "worker_swap_increase_bytes": 2269224960,
+      "worker_mem_available_increase_bytes": 1338580992,
+      "worker_anonymous_resident_before_bytes": 2347044864,
+      "worker_anonymous_resident_after_bytes": 260173824,
+      "global_swappiness_unchanged": true,
+      "cgroup_limits_unchanged": true,
+      "oom_kill_delta": 0
+    },
+    "startup_ceilings_gib_rounded": {
+      "head": 108.9,
+      "worker": 109.0
+    },
+    "source_profile_reserve_unchanged": true
+  },
+  "capacity": {
+    "shared_pool_tokens": 8650752,
+    "context_tokens": 1048576,
+    "parallel": 32
+  },
+  "limitations": [
+    "Controlled recovery rebooted the worker only; head reboot was not exercised.",
+    "The legacy startup helper is pinned to this retained Python source/image and reclaims only the owned worker cgroup.",
+    "Anonymous reclaim can over/under-shoot its requested bytes and adds startup swap writes; it does not enable session caching.",
+    "Passed recovery does not establish 24-hour stability, production cutover, or physical memory savings."
+  ],
+  "receipt_hashes": [
+    {
+      "name": "native5-paired-recovery-01.json",
+      "sha256": "ca48342b3d74f5b9f7a1538e5a7ea8ea309d573ab1f93f3c3461db68313ab798"
+    },
+    {
+      "name": "lifecycle-native5-worker-failure-01.json",
+      "sha256": "613d6a8009713536be9169116116587f1727d5c83aa78a06afc11feb47e0bab8"
+    },
+    {
+      "name": "lifecycle-native5-interrupted-start-01.json",
+      "sha256": "3809aa7edb7e3d0596556b3a87c21585f7612cf07743d43dc7b1457df1468457"
+    },
+    {
+      "name": "native5-controlled-reboot-01.json",
+      "sha256": "87bbd008dc8992e3f8bd622aa5a9e64952fd316c68d5b45594b2c71f19484cc4"
+    },
+    {
+      "name": "validation-native5-after-reboot-baseline-01.json",
+      "sha256": "4a737171311c85fe8a1d670de3fd243422579b25657f42b1137e82804d131213"
+    },
+    {
+      "name": "validation-native5-after-reboot-structured-01.json",
+      "sha256": "ff5146c546db06cda96b19d6a146c95e6baaa80e0f28a7a8c809607af7fa33e2"
+    },
+    {
+      "name": "validation-native5-after-reboot-aliases-01.json",
+      "sha256": "9f8250229899c567f814f77f0b04abebcd8a36a3bea16c368a9645b8c11e8fdc"
+    },
+    {
+      "name": "native5-rollback-rehearsal-02.json",
+      "sha256": "fcc9a30fc2f2b95f249b4bb9cb26abbddd9cdd173aafe9e560eb8c29fd4bae04"
+    },
+    {
+      "name": "native5-controlled-reboot-01.json",
+      "sha256": "87bbd008dc8992e3f8bd622aa5a9e64952fd316c68d5b45594b2c71f19484cc4"
+    },
+    {
+      "name": "native5-rollback-rehearsal-01.json",
+      "sha256": "e5967bbd58c423d87b0e529683c7219cb3942c6ebb1bf42098ee40ab8159bd06"
+    },
+    {
+      "name": "native5-python-cold-reclaim-review-02.json",
+      "sha256": "115a29395bed3313dbe7fa2c54e5afc93ac1c60ca05c39d66ac3f99cc428ec25"
+    },
+    {
+      "name": "native5-python-cold-reclaim-diagnostic-02.json",
+      "sha256": "63a3bb2b74dbfbd233f043685888188b281ac69631f9b1e83c999145a88c2407"
+    },
+    {
+      "name": "native5-rollback-initial-native-host-check-02-restoration.json",
+      "sha256": "4030d1f1e3b059141636e3bfa32cd667e87a2e720fbad610e274bd7cbb01d38d"
+    },
+    {
+      "name": "validation-native5-rollback-initial-native-baseline-02.json",
+      "sha256": "be890c9c53db84d7a1ca73f2b00ec9a33d8170a79fe3020fda79816897550766"
+    },
+    {
+      "name": "native5-rollback-native-restored-02-restoration.json",
+      "sha256": "6fc1cc565a2165906587ada90c862ba80d2adbcbec1f76cd97418444fc4d8536"
+    },
+    {
+      "name": "native5-rollback-python-host-check-02-restoration.json",
+      "sha256": "5a0bac3a1bbe6d7a6bcef53e44f18b6e981a24878cac6e3a58c070e190b45e60"
+    },
+    {
+      "name": "status.json",
+      "sha256": "92867c30fa5c8d01fe4ed0ba3a4977e033e60ac6e1d44127b1f05665cd4b1146"
+    },
+    {
+      "name": "validation-native5-rollback-python-baseline-02.json",
+      "sha256": "e91dc395a62d86429f14fe3c70d34b1b42c2d0cfc6042159eadb16d456fa3069"
+    },
+    {
+      "name": "validation-native5-rollback-python-structured-02.json",
+      "sha256": "6574e2040a5515e58e8098f7d154127965e5a90ad2ea2a05a31394c209181396"
+    },
+    {
+      "name": "native5-rollback-python-restored-02-restoration.json",
+      "sha256": "2ad1afdabb67d2759aa628442e7e01659aa7e6f2667b9b933825b87ee8156a0f"
+    },
+    {
+      "name": "native5-rollback-native-host-check-02-restoration.json",
+      "sha256": "725ec7f2e9e884562db3c2983643234bbb0e281ba6a08cbbe7c8f2244ded81f1"
+    },
+    {
+      "name": "validation-native5-rollback-native-baseline-02.json",
+      "sha256": "cf2b92281ea8f2b47f048b3c8c2dcb5efc1383f0fb580916a8b06a8666d9cfbb"
+    },
+    {
+      "name": "validation-native5-rollback-native-structured-02.json",
+      "sha256": "54efce97b780c5adff07ec628a8abba9d032ed05d28d44566e73dfcdccc08aec"
+    },
+    {
+      "name": "validation-native5-rollback-native-aliases-02.json",
+      "sha256": "2a697838d029cab91fd10a99046e0783222b3a9495bbd97735e128af9dd5e43a"
+    },
+    {
+      "name": "native5-rollback-rehearsal-01.json",
+      "sha256": "e5967bbd58c423d87b0e529683c7219cb3942c6ebb1bf42098ee40ab8159bd06"
+    },
+    {
+      "name": "native5-python-rollback-diagnostic-01.json",
+      "sha256": "62d1158feac4518af07972dd86a41785367e61b44febb126961321f34fbfb610"
+    },
+    {
+      "name": "native5-python-cold-reclaim-diagnostic-01.json",
+      "sha256": "e4e6b7e42cdd3d68b43873cf383d2956ece42e545d0c640c789bb352fdce526f"
+    },
+    {
+      "name": "native5-python-cold-reclaim-review-02.json",
+      "sha256": "115a29395bed3313dbe7fa2c54e5afc93ac1c60ca05c39d66ac3f99cc428ec25"
+    }
+  ],
+  "endurance_accepted": false,
+  "production_cutover": false
+}

@@ -1,0 +1,678 @@
+{
+  "schema": 2,
+  "recorded_at": "2026-10-10T18:58:07.658174+00:00",
+  "status": "functional-qualification-passed-not-production-acceptance",
+  "runtime": {
+    "source": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+    "image": "sha256:83752d9d3bc7da632fd195332963501e9ca5208a8e2fcf409e781e985049aafd",
+    "context_tokens": 1048576,
+    "shared_pool_tokens": 8650752,
+    "stream_slots": 32,
+    "round_rows": 48,
+    "seed_mode": "random",
+    "api_exposure": "loopback during qualification"
+  },
+  "preparation": {
+    "cpu_server_tests_passed": 293,
+    "cpu_build_steps_passed": 90,
+    "preparation_summary_sha256": "ff661984b21e8b55cf819fac0cbdedcb03b54621c3d5c1ab1761d1dd56b3397e"
+  },
+  "completed_client_runs": [
+    {
+      "name": "native5-baseline-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T17:05:37.094548+00:00",
+      "finished": "2026-10-10T17:05:55.051639+00:00",
+      "receipt_sha256": "95c07e69f8ebb5edacbdd352dad02290b7a165d30a26f961098b22b0cae7195d",
+      "client": "tools/qualification/native_features.py",
+      "client_revision": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+      "client_sha256": "5eb679a539b2a6e8eac5e96f63b182fcf1e3ef61ed22d24651cc06f778f4eee1"
+    },
+    {
+      "name": "native5-prefill-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T17:51:48.829939+00:00",
+      "finished": "2026-10-10T17:54:33.014685+00:00",
+      "receipt_sha256": "9a805a7dd902326bc820b4ac9fc016570778b23a08618fe522279593d4c77741",
+      "client": "tools/qualification/native_prefill.py",
+      "client_revision": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+      "client_sha256": "a15dc5ad63ba7944a85a166c461a4473951b82e2ed4d212aace758ab0e7f1800"
+    },
+    {
+      "name": "native5-structured-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T17:54:35.816427+00:00",
+      "finished": "2026-10-10T17:54:48.272668+00:00",
+      "receipt_sha256": "84548290859531c6fb34e007e2351d4c88f9dc1b767b7f93f097d16da32ce296",
+      "client": "tools/qualification/native_features.py",
+      "client_revision": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+      "client_sha256": "5eb679a539b2a6e8eac5e96f63b182fcf1e3ef61ed22d24651cc06f778f4eee1"
+    },
+    {
+      "name": "native5-sampling-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T17:54:50.585463+00:00",
+      "finished": "2026-10-10T17:54:56.510544+00:00",
+      "receipt_sha256": "4a035336a0b5c28994e047c35c6b228f7cb46fc22c890aba2d5bbd47fbabd7f5",
+      "client": "tools/qualification/native_features.py",
+      "client_revision": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+      "client_sha256": "5eb679a539b2a6e8eac5e96f63b182fcf1e3ef61ed22d24651cc06f778f4eee1"
+    },
+    {
+      "name": "native5-aliases-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T17:54:58.828590+00:00",
+      "finished": "2026-10-10T17:54:59.385566+00:00",
+      "receipt_sha256": "3d5349ff42f8da62afc8c38ae22f2f3ad698d2971f37c3a06bd96ca0336568e8",
+      "client": "tools/qualification/native_features.py",
+      "client_revision": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+      "client_sha256": "5eb679a539b2a6e8eac5e96f63b182fcf1e3ef61ed22d24651cc06f778f4eee1"
+    },
+    {
+      "name": "native5-protocols-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T17:55:01.808174+00:00",
+      "finished": "2026-10-10T17:55:02.345434+00:00",
+      "receipt_sha256": "7dde2de4f9ee199d235f66f1c60c934e50a2de784d1d1ca049c289449f0e0efe",
+      "client": "tools/qualification/native_features.py",
+      "client_revision": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+      "client_sha256": "5eb679a539b2a6e8eac5e96f63b182fcf1e3ef61ed22d24651cc06f778f4eee1"
+    },
+    {
+      "name": "native5-image-formats-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T17:55:04.677611+00:00",
+      "finished": "2026-10-10T17:55:10.629010+00:00",
+      "receipt_sha256": "beeaf7444a6e27e3a672a9adc4b3a2168544837b607d0282611b7cd8f503153a",
+      "client": "tools/qualification/native_image_formats.py",
+      "client_revision": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+      "client_sha256": "e0a4252ac6f24d721c58a7b35e64734c3026d16220aec632ff1f73de445b1cdd"
+    },
+    {
+      "name": "native5-parity-greedy-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T17:55:12.945903+00:00",
+      "finished": "2026-10-10T17:59:56.841839+00:00",
+      "receipt_sha256": "9f36917f88c938ae8bd02c28ed05909d9242dbb96916edeff4e5380a2fead783",
+      "client": "tools/qualification/native_parity.py",
+      "client_revision": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+      "client_sha256": "22036e9831d97cac501459d2b10e135dccc79a05e062e9cd470e4943a4f1f3d1"
+    },
+    {
+      "name": "native5-parity-sampled-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T17:59:59.630956+00:00",
+      "finished": "2026-10-10T18:05:24.082872+00:00",
+      "receipt_sha256": "025bb051e5cc54429816dbe167ff843c2c4af8bd700b92fe6d0c57b1e369e71b",
+      "client": "tools/qualification/native_parity.py",
+      "client_revision": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+      "client_sha256": "22036e9831d97cac501459d2b10e135dccc79a05e062e9cd470e4943a4f1f3d1"
+    },
+    {
+      "name": "native5-constraints-greedy-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T18:05:27.445817+00:00",
+      "finished": "2026-10-10T18:06:40.805469+00:00",
+      "receipt_sha256": "0f9b76019790413982b64ebfd7380505bfa1627ec3a8612a890e19012ffa5ee3",
+      "client": "tools/qualification/native_constraints.py",
+      "client_revision": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+      "client_sha256": "b741dbcfe3dcbbeeafc09f07e1aa1c4f137455049fe146c895f2cd7e71d706d4"
+    },
+    {
+      "name": "native5-constraints-sampled-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T18:06:43.406440+00:00",
+      "finished": "2026-10-10T18:08:04.838754+00:00",
+      "receipt_sha256": "267a09e54cc4c404b57dfdd8d387027a561937aca7b27e8d6485f0acb9dbcea6",
+      "client": "tools/qualification/native_constraints.py",
+      "client_revision": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+      "client_sha256": "b741dbcfe3dcbbeeafc09f07e1aa1c4f137455049fe146c895f2cd7e71d706d4"
+    },
+    {
+      "name": "native5-retention-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T18:08:07.300279+00:00",
+      "finished": "2026-10-10T18:17:14.093765+00:00",
+      "receipt_sha256": "964b268d27e356514669f2f2bff32f75d07bd3417c2c8e2e49f89c2b98f0b432",
+      "client": "tools/qualification/native_retention.py",
+      "client_revision": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+      "client_sha256": "f05400fe1b9ac57fe33716ceec5626b84b82250c0aca33f86de3da81981ba8a9"
+    },
+    {
+      "name": "native5-partial-compaction-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T18:17:16.908924+00:00",
+      "finished": "2026-10-10T18:25:43.272389+00:00",
+      "receipt_sha256": "f906ed035038beb7bbcd8da090081a944c1bb56c683d80b9aa4c67ee62271bc1",
+      "client": "tools/qualification/native_compaction.py",
+      "client_revision": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+      "client_sha256": "5b126a0904799ba6bdea05740a12194eeb360cd2daa22b242a1f9d3d5194e457"
+    },
+    {
+      "name": "native5-decode-compaction-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T18:25:46.995698+00:00",
+      "finished": "2026-10-10T18:26:32.359619+00:00",
+      "receipt_sha256": "d3f452360972ff932ebd688c72ac648778dfd3fe2eb70adb5d94aecb18adb9eb",
+      "client": "tools/qualification/native_decode_compaction.py",
+      "client_revision": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+      "client_sha256": "3edce28717b2c97fd742daa3e05f882a6ed4f34be8f27d93572190bef4f74a41"
+    },
+    {
+      "name": "native5-pool-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T18:26:34.778239+00:00",
+      "finished": "2026-10-10T18:30:03.511823+00:00",
+      "receipt_sha256": "83bace18297ee3cffdddef9ce90a89857a3b3cd0990b66e27d2b91708a6d7887",
+      "client": "tools/qualification/native_qualification.py",
+      "client_revision": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+      "client_sha256": "4a0fa3da90e56ac88e5e944c5b595f524425ee87a044bac69d1394c543753069"
+    },
+    {
+      "name": "native5-recovery-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T18:30:06.893104+00:00",
+      "finished": "2026-10-10T18:30:53.748819+00:00",
+      "receipt_sha256": "6f8516d431ffabe2b124156479ac75bf680da04cf9ba32c11322fd34f0994adf",
+      "client": "tools/qualification/native_qualification.py",
+      "client_revision": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+      "client_sha256": "4a0fa3da90e56ac88e5e944c5b595f524425ee87a044bac69d1394c543753069"
+    },
+    {
+      "name": "native5-pool-queue-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T18:30:56.183202+00:00",
+      "finished": "2026-10-10T18:31:17.741042+00:00",
+      "receipt_sha256": "7130548444ecc9d9a1f5f52f490caddd830332b209c090f53ec0e5f464ab6905",
+      "client": "tools/qualification/native_qualification.py",
+      "client_revision": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+      "client_sha256": "4a0fa3da90e56ac88e5e944c5b595f524425ee87a044bac69d1394c543753069"
+    },
+    {
+      "name": "native5-c32-full-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T18:31:20.228226+00:00",
+      "finished": "2026-10-10T18:39:52.801085+00:00",
+      "receipt_sha256": "600ad0b50e8d7d4ef57c5ce9ac583d342a178ae883fb4b5adaaefacca86b0795",
+      "client": "tools/qualification/native_qualification.py",
+      "client_revision": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+      "client_sha256": "4a0fa3da90e56ac88e5e944c5b595f524425ee87a044bac69d1394c543753069"
+    },
+    {
+      "name": "native5-million-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T18:39:56.487893+00:00",
+      "finished": "2026-10-10T18:51:17.091190+00:00",
+      "receipt_sha256": "873f8a3fe5b1261c41167b9cb077dda95a5df21fe4cf10f72cf67caee80f3666",
+      "client": "tools/qualification/native_context.py",
+      "client_revision": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+      "client_sha256": "80c2f61c720f40b1772e1917f7f70c0887c7927ba6e7fcacdfb3ca54f1350fb5"
+    },
+    {
+      "name": "native5-short-soak-01",
+      "client_reported_status": "passed",
+      "acceptance": "passed-within-client-scope",
+      "started": "2026-10-10T18:51:20.459712+00:00",
+      "finished": "2026-10-10T18:57:48.910179+00:00",
+      "receipt_sha256": "aaa69fbf0e96da59025108d945cf1bc14df181c63e2c4a9d198ed70da8f2dcd4",
+      "client": "tools/qualification/native_qualification.py",
+      "client_revision": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+      "client_sha256": "4a0fa3da90e56ac88e5e944c5b595f524425ee87a044bac69d1394c543753069"
+    }
+  ],
+  "incremental_prefill": {
+    "long_prompt_tokens": 262144,
+    "short_requests": 5,
+    "short_requests_wall_seconds": 8.621017846046016,
+    "latency_limit_seconds": 30.0,
+    "long_still_prefilling_at_small_finish": true,
+    "image_long_still_prefilling_at_blue_finish": true,
+    "parity": [
+      {
+        "stage": "interleaved-long-vs-cached-solo",
+        "compared_output_tokens": 256,
+        "exact_token_ids_equal": true,
+        "output_token_ids_sha256_u32le": "ec4bfce20489c8105b11df00c9fbacf118268a3375383658764de69988abced1",
+        "prompt_tokens": 262144,
+        "interleaved_cached_tokens": 0,
+        "solo_cached_tokens": 260096
+      },
+      {
+        "stage": "sampled-short-interleaved-vs-solo",
+        "compared_output_tokens": 96,
+        "exact_token_ids_equal": true,
+        "output_token_ids_sha256_u32le": "2a3ca3ceb88a8f3eebe510d2a2d0805e04ff2db125be4e29dab90daf99c65868",
+        "prompt_tokens": 23,
+        "interleaved_cached_tokens": 0,
+        "solo_cached_tokens": 0
+      },
+      {
+        "stage": "image-switch-and-solo-parity",
+        "compared_output_tokens": 2,
+        "exact_token_ids_equal": true,
+        "output_token_ids_sha256_u32le": "48195d154969fe47e742ec1daf7a02b3f609280a9bc369614aeb56e06178a349",
+        "prompt_tokens": 12202,
+        "interleaved_cached_tokens": 0,
+        "solo_cached_tokens": 0
+      }
+    ],
+    "cancellations": [
+      {
+        "stage": "cancel-partially-filled-text",
+        "drain_seconds": 1.0101652620360255,
+        "before_active_streams": 1,
+        "after_active_streams": 0,
+        "after_requests_running": 0,
+        "rdma_failed": false
+      },
+      {
+        "stage": "cancel-partially-filled-image",
+        "drain_seconds": 1.1186603670939803,
+        "before_active_streams": 1,
+        "after_active_streams": 0,
+        "after_requests_running": 0,
+        "rdma_failed": false
+      }
+    ]
+  },
+  "ordinary_drafted_parity": [
+    {
+      "temperature": 0,
+      "prompt_tokens": 1024,
+      "reply_tokens": 256,
+      "rows": [
+        {
+          "streams": 4,
+          "matched_reported_token_hashes": true,
+          "matched_client_full_text_sha256": true,
+          "requested_decode_concurrency_observed_in_both": true,
+          "requests_with_drafts": 4,
+          "minimum_drafted_tokens_per_request": 211,
+          "cache_hits": 0
+        },
+        {
+          "streams": 8,
+          "matched_reported_token_hashes": true,
+          "matched_client_full_text_sha256": true,
+          "requested_decode_concurrency_observed_in_both": true,
+          "requests_with_drafts": 8,
+          "minimum_drafted_tokens_per_request": 234,
+          "cache_hits": 0
+        },
+        {
+          "streams": 16,
+          "matched_reported_token_hashes": true,
+          "matched_client_full_text_sha256": true,
+          "requested_decode_concurrency_observed_in_both": true,
+          "requests_with_drafts": 16,
+          "minimum_drafted_tokens_per_request": 176,
+          "cache_hits": 0
+        },
+        {
+          "streams": 24,
+          "matched_reported_token_hashes": true,
+          "matched_client_full_text_sha256": true,
+          "requested_decode_concurrency_observed_in_both": true,
+          "requests_with_drafts": 24,
+          "minimum_drafted_tokens_per_request": 137,
+          "cache_hits": 0
+        },
+        {
+          "streams": 32,
+          "matched_reported_token_hashes": true,
+          "matched_client_full_text_sha256": true,
+          "requested_decode_concurrency_observed_in_both": true,
+          "requests_with_drafts": 32,
+          "minimum_drafted_tokens_per_request": 82,
+          "cache_hits": 0
+        }
+      ],
+      "hash_scope": "Reported 12-hex server token hashes and independently computed full-text SHA256 digests; no full token-ID arrays were returned."
+    },
+    {
+      "temperature": 1,
+      "prompt_tokens": 1024,
+      "reply_tokens": 256,
+      "rows": [
+        {
+          "streams": 4,
+          "matched_reported_token_hashes": true,
+          "matched_client_full_text_sha256": true,
+          "requested_decode_concurrency_observed_in_both": true,
+          "requests_with_drafts": 4,
+          "minimum_drafted_tokens_per_request": 220,
+          "cache_hits": 0
+        },
+        {
+          "streams": 8,
+          "matched_reported_token_hashes": true,
+          "matched_client_full_text_sha256": true,
+          "requested_decode_concurrency_observed_in_both": true,
+          "requests_with_drafts": 8,
+          "minimum_drafted_tokens_per_request": 242,
+          "cache_hits": 0
+        },
+        {
+          "streams": 16,
+          "matched_reported_token_hashes": true,
+          "matched_client_full_text_sha256": true,
+          "requested_decode_concurrency_observed_in_both": true,
+          "requests_with_drafts": 16,
+          "minimum_drafted_tokens_per_request": 178,
+          "cache_hits": 0
+        },
+        {
+          "streams": 24,
+          "matched_reported_token_hashes": true,
+          "matched_client_full_text_sha256": true,
+          "requested_decode_concurrency_observed_in_both": true,
+          "requests_with_drafts": 24,
+          "minimum_drafted_tokens_per_request": 130,
+          "cache_hits": 0
+        },
+        {
+          "streams": 32,
+          "matched_reported_token_hashes": true,
+          "matched_client_full_text_sha256": true,
+          "requested_decode_concurrency_observed_in_both": true,
+          "requests_with_drafts": 32,
+          "minimum_drafted_tokens_per_request": 83,
+          "cache_hits": 0
+        }
+      ],
+      "hash_scope": "Reported 12-hex server token hashes and independently computed full-text SHA256 digests; no full token-ID arrays were returned."
+    }
+  ],
+  "strict_output_waves": [
+    {
+      "name": "native5-constraints-greedy-01",
+      "temperature": 0,
+      "receipt_sha256": "0f9b76019790413982b64ebfd7380505bfa1627ec3a8612a890e19012ffa5ee3",
+      "waves": [
+        {
+          "mode": "schema",
+          "requests": 32,
+          "peak_decoding": 32
+        },
+        {
+          "mode": "tools",
+          "requests": 32,
+          "peak_decoding": 32
+        }
+      ]
+    },
+    {
+      "name": "native5-constraints-sampled-01",
+      "temperature": 1,
+      "receipt_sha256": "267a09e54cc4c404b57dfdd8d387027a561937aca7b27e8d6485f0acb9dbcea6",
+      "waves": [
+        {
+          "mode": "schema",
+          "requests": 32,
+          "peak_decoding": 32
+        },
+        {
+          "mode": "tools",
+          "requests": 32,
+          "peak_decoding": 32
+        }
+      ]
+    }
+  ],
+  "retention": {
+    "distinct_histories": 32,
+    "prefix_tokens": 16384,
+    "stages": [
+      {
+        "name": "32-distinct-cold-prefixes",
+        "requests": 32,
+        "minimum_cached_tokens": 0,
+        "maximum_cached_tokens": 0,
+        "retained_states": 64,
+        "snapshot_bytes": 427819008
+      },
+      {
+        "name": "32-sequential-replays",
+        "requests": 32,
+        "minimum_cached_tokens": 14336,
+        "maximum_cached_tokens": 14336,
+        "retained_states": 64,
+        "snapshot_bytes": 427819008
+      },
+      {
+        "name": "32-sequential-extensions",
+        "requests": 32,
+        "minimum_cached_tokens": 14336,
+        "maximum_cached_tokens": 14336,
+        "retained_states": 64,
+        "snapshot_bytes": 427819008
+      },
+      {
+        "name": "32-extended-replays",
+        "requests": 32,
+        "minimum_cached_tokens": 16384,
+        "maximum_cached_tokens": 16384,
+        "retained_states": 64,
+        "snapshot_bytes": 427819008
+      }
+    ]
+  },
+  "decoder_compaction": {
+    "moved_survivors": 8,
+    "selected_survivors": [
+      1
+    ],
+    "reservation_tokens": 526336,
+    "checkpoint_generated_tokens": 421,
+    "required_nonempty_chunks_each": 549,
+    "minimum_post_checkpoint_tokens_each": 64,
+    "continued": [
+      {
+        "characters": 2167,
+        "chunks": 549,
+        "index": 1,
+        "seconds": 32.018814572831616,
+        "text_sha256": "d715d6e290ec6cc9f82270396512dab9b4e4a2c173296ff6ee53690c03f16cb6"
+      }
+    ],
+    "solo_comparisons": [
+      {
+        "characters": 2167,
+        "chunks": 549,
+        "index": 1,
+        "prefix_equal": true,
+        "seconds": 12.086026274831966,
+        "text_sha256": "d715d6e290ec6cc9f82270396512dab9b4e4a2c173296ff6ee53690c03f16cb6"
+      }
+    ]
+  },
+  "partial_prefill_compaction": {
+    "status": "passed",
+    "partial_prefill_tokens": 262144,
+    "relocation_deltas": {
+      "compactions": 1,
+      "relocated_tokens": 3684352,
+      "relocated_prefills": 1
+    },
+    "holders": 17,
+    "continued_survivors": 9,
+    "independent_cold_solo_references": 9,
+    "all_solo_cached_tokens_zero": true,
+    "solo_comparisons": [
+      {
+        "characters": 267,
+        "index": 1,
+        "prefix_equal": true,
+        "prefix_sha256": "b11aacba15a07452fe87432dd56ce7bc953d5482c7f174fc0560f176ad455930",
+        "solo_cached_tokens": 0,
+        "solo_token_sha": "f47d6ddef79f"
+      },
+      {
+        "characters": 269,
+        "index": 3,
+        "prefix_equal": true,
+        "prefix_sha256": "25cb1bd7d8caf541f2c040795d6233abef659a474785946070839ab4158d64a3",
+        "solo_cached_tokens": 0,
+        "solo_token_sha": "0da216fea1e4"
+      },
+      {
+        "characters": 259,
+        "index": 5,
+        "prefix_equal": true,
+        "prefix_sha256": "1a5220a837431ad3d100584f19fb4cdffafcf4fbcf73067a4ed6538fd23a8dc3",
+        "solo_cached_tokens": 0,
+        "solo_token_sha": "8b7688aab919"
+      },
+      {
+        "characters": 259,
+        "index": 7,
+        "prefix_equal": true,
+        "prefix_sha256": "4122f0fa2d2be4d0ad6bdab1e302a4e4a89017a0ed7af059d81e4910715bcab9",
+        "solo_cached_tokens": 0,
+        "solo_token_sha": "87d95ab4f6e7"
+      },
+      {
+        "characters": 273,
+        "index": 9,
+        "prefix_equal": true,
+        "prefix_sha256": "8a3d4ef3ea0a27db54c45ae65b1c60278eaa6f86d98299d86f785132ebc5b5c6",
+        "solo_cached_tokens": 0,
+        "solo_token_sha": "c18b6d491b82"
+      },
+      {
+        "characters": 251,
+        "index": 11,
+        "prefix_equal": true,
+        "prefix_sha256": "ab1f65a0f89bcdaf5af199d06fa31352dcf730653bec5d9fd4fad9ebf81f340a",
+        "solo_cached_tokens": 0,
+        "solo_token_sha": "86507dc7f811"
+      },
+      {
+        "characters": 243,
+        "index": 13,
+        "prefix_equal": true,
+        "prefix_sha256": "495cef7fc933ef42975f755acec1091879f72938a99ef68a36aa8b17c3043393",
+        "solo_cached_tokens": 0,
+        "solo_token_sha": "bcc8ab3802ca"
+      },
+      {
+        "characters": 253,
+        "index": 15,
+        "prefix_equal": true,
+        "prefix_sha256": "54bdef2548b5f7ee07e84c39871437c2258a8481b2e5ecb55c2c323c2518fa6a",
+        "solo_cached_tokens": 0,
+        "solo_token_sha": "562ff24c2535"
+      },
+      {
+        "characters": 259,
+        "index": 16,
+        "prefix_equal": true,
+        "prefix_sha256": "cdd2449451353e19439884c27553ac94615158044915e55780efba118de05a11",
+        "solo_cached_tokens": 0,
+        "solo_token_sha": "b49726375905"
+      }
+    ],
+    "scope": "A populated partial prefill was relocated before its first reply token. All nine surviving reply prefixes match fresh zero-cache solo references; successful client canary and cancellation cleanup followed."
+  },
+  "full_context_c32": {
+    "prompt_tokens_each": 261120,
+    "reply_tokens_each": 1024,
+    "independent_active_sessions": 32,
+    "waves": [
+      {
+        "cycle": 0,
+        "requests": 32,
+        "peak_decoding": 32,
+        "cached_tokens_min": 260096,
+        "cached_tokens_max": 260096,
+        "per_session_token_hashes_sha256": "80d2e669cda8c8f633e1a60b7d68caedec68597f90b7cb656d5cfcf63610e8b4"
+      },
+      {
+        "cycle": 1,
+        "requests": 32,
+        "peak_decoding": 32,
+        "cached_tokens_min": 260096,
+        "cached_tokens_max": 260096,
+        "per_session_token_hashes_sha256": "80d2e669cda8c8f633e1a60b7d68caedec68597f90b7cb656d5cfcf63610e8b4"
+      }
+    ],
+    "full_token_id_replay_matches": 32,
+    "fixture_scope": "One identical primed document with separate resident session states; not 32 independent cold document prefills."
+  },
+  "million_token_request": {
+    "usage": {
+      "completion_tokens": 256,
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "prompt_tokens": 1048320,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 1048576
+    },
+    "retrieval_passphrases_correct": 3,
+    "small_request_seconds": {
+      "arithmetic": 0.937,
+      "json_object": 2.359
+    },
+    "small_group_completion_observed_within_seconds": 5.009999999999998,
+    "small_finished_during_long_prefill": true,
+    "latency_limit_seconds": 30
+  },
+  "short_soak": {
+    "requested_duration_seconds": 360,
+    "started": "2026-10-10T18:51:20.459712+00:00",
+    "finished": "2026-10-10T18:57:48.910179+00:00",
+    "cycles": 8,
+    "requests": 256,
+    "concurrency_requested": 32,
+    "host_available_gib": {
+      "head": {
+        "minimum": 3.0233116149902344,
+        "median": 3.1949501037597656
+      },
+      "worker": {
+        "minimum": 2.9781875610351562,
+        "median": 2.9831924438476562
+      }
+    },
+    "snapshot_bytes_max": 427819008,
+    "graphs_after": 222,
+    "graph_limit": 512,
+    "graph_eager_fallbacks_after": 0
+  },
+  "remaining_gates": [
+    "Completed matched throughput, latency and memory comparison and measured-benefit decision",
+    "Exact-image paired lifecycle and controlled reboot recovery",
+    "Qualified Python rollback rehearsal",
+    "New bounded 24-hour endurance run",
+    "Final publication review and conditional production cutover"
+  ],
+  "evidence_scope": [
+    "All qualification fixtures are synthetic. This export contains selected counters and hashes, not private inference traffic.",
+    "Receipt digests bind preserved local records. Those records include installation details and remain private.",
+    "Twenty feature/capacity client runs passed on the corrected image; this is not a completed cutover-gate manifest.",
+    "No throughput claim is derived from correctness-test timings. Matched benchmark acceptance is separate.",
+    "The earlier image functional snapshot remains available as historical evidence."
+  ]
+}

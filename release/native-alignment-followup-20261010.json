@@ -1,0 +1,171 @@
+{
+  "schema": 1,
+  "recorded_at": "2026-10-10T17:52:22.183291+00:00",
+  "status": "exact-and-boundary-gpu-regressions-passed-full-qualification-in-progress",
+  "failed_runtime": {
+    "source": "80b399cd023d3a88ad69501c8261143ea622328b",
+    "image": "sha256:5835a26f281d1dd2ddd868648a5ac6048d6924e02ca0d1a5a1cd1324949cbb6d",
+    "suite_status": "failed",
+    "declared_waves": 10,
+    "completed_waves": 6,
+    "failed_case": {
+      "cache": "cold",
+      "mode": "default",
+      "prompt_class": "code",
+      "prompt_tokens": 613376,
+      "rep": 0,
+      "reply_tokens": 1024,
+      "seed": 42000,
+      "streams": 1,
+      "temperature": 0
+    },
+    "error": "MissingTritonVariant",
+    "kernel": "_index_score_rows",
+    "required_visibility_alignment_bytes": 16,
+    "old_row_stride": 27,
+    "second_block_visibility_remainder_bytes": 8,
+    "paired_shutdown": "both ranks stopped",
+    "host_restoration": "passed on both hosts",
+    "receipt_sha256": "73a2d8acd6c27c28c3b60fd22c13b53497146017debeab3949d6910a6771b4e4",
+    "restoration_log_sha256": "c00285d7c98e007f6267422a9186a4ec52e9ccad472f530a22044de049e64938"
+  },
+  "correction": {
+    "commit": "727a5ef7db48c3e42e7b04da800b31f07b0f8b0f",
+    "behavior": "Round multi-block index strides down to an even number of rows; preserve single odd blocks.",
+    "repaired_614k_blocks": [
+      26,
+      26,
+      26,
+      26,
+      24
+    ],
+    "cpu_regressions_reproduced": 2,
+    "cpu_regressions_after_fix": "passed",
+    "context_tokens": 1048576,
+    "shared_pool_tokens": 8650752,
+    "index_scratch_elements": 16777216,
+    "cpu_review_sha256": "c2a22c509f25644dda40a0ea448ea969e22d350cb6690cc976afed62ab9c1e33"
+  },
+  "prepared_runtime": {
+    "source": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+    "image": "sha256:83752d9d3bc7da632fd195332963501e9ca5208a8e2fcf409e781e985049aafd",
+    "build_steps": 90,
+    "fresh_cpu_server_tests_passed": 293,
+    "native_grammar_test": "passed",
+    "gpu_checks_per_host": 7,
+    "gpu_checks": "passed on both hosts",
+    "cache_entries_compared_per_host": 143770,
+    "cache_bytes_compared_per_host": 106107109192,
+    "cache_mismatches": 0,
+    "host_restoration": "passed on both hosts",
+    "preparation_receipt_sha256": "ff661984b21e8b55cf819fac0cbdedcb03b54621c3d5c1ab1761d1dd56b3397e"
+  },
+  "remaining_gates": [
+    "Renewed finite feature, capacity, parity and independent cold compaction checks",
+    "Matched performance and memory acceptance",
+    "Selected-image paired and reboot recovery",
+    "New bounded 24-hour endurance",
+    "Final publication review and conditional cutover"
+  ],
+  "evidence_scope": "Synthetic fixtures and build/preparation evidence, including the exact cold GPU crash regression and three adjacent/odd boundary requests. Earlier-image performance stays labeled with its actual runtime. No production acceptance, cross-engine output parity or full deep-context comparison is claimed.",
+  "exact_gpu_regression": {
+    "source": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+    "image": "sha256:83752d9d3bc7da632fd195332963501e9ca5208a8e2fcf409e781e985049aafd",
+    "case": {
+      "cache": "cold",
+      "mode": "default",
+      "prompt_class": "code",
+      "prompt_tokens": 613376,
+      "rep": 0,
+      "reply_tokens": 1024,
+      "seed": 42000,
+      "streams": 1,
+      "temperature": 0
+    },
+    "cached_tokens": 0,
+    "completion_tokens": 1024,
+    "same_prompt_sha256_as_python_reference": true,
+    "same_full_text_sha256_as_python_reference": false,
+    "same_reported_token_hash_as_python_reference": false,
+    "reference_image": "sha256:973b52dedb5e9e9270fdcaa1840f4ff61076c08fadb3d97c1aea98bef6795834",
+    "time_to_first_token_seconds": 344.38195657590404,
+    "steady_decode_tokens_per_second": 84.08675230275972,
+    "native_receipt_sha256": "041ec5bd7b3d23c29c385e048f8e67c3a61d4e272b5f3ae25718aac139cb0e4a",
+    "reference_receipt_sha256": "0c6d1786610f50edcab259cee00c27be985806e95ff6dc0e6598cbc1fee58ef9",
+    "unchanged_launch_epoch_checked_by_finite_driver": true,
+    "sample_errors": 0,
+    "scope": "One cold exact regression request, not the complete two-repetition deep-context comparison or production acceptance.",
+    "status": "passed",
+    "review_sha256": "28ae07453817f7527577eb127b847c929f91514e2463ef3437fbb21872bb3428"
+  },
+  "gpu_boundaries": {
+    "status": "hardware-boundaries-passed",
+    "source": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+    "image": "sha256:83752d9d3bc7da632fd195332963501e9ca5208a8e2fcf409e781e985049aafd",
+    "cases": [
+      {
+        "case": {
+          "cache": "cold",
+          "mode": "default",
+          "prompt_class": "code",
+          "prompt_tokens": 613375,
+          "rep": 0,
+          "reply_tokens": 64,
+          "seed": 42000,
+          "streams": 1,
+          "temperature": 0
+        },
+        "actual_prompt_tokens": 613375,
+        "actual_completion_tokens": 64,
+        "cached_tokens": 0,
+        "sample_errors": 0,
+        "time_to_first_token_seconds": 346.05665254290216,
+        "healthy_after": true
+      },
+      {
+        "case": {
+          "cache": "cold",
+          "mode": "default",
+          "prompt_class": "code",
+          "prompt_tokens": 613377,
+          "rep": 0,
+          "reply_tokens": 64,
+          "seed": 42000,
+          "streams": 1,
+          "temperature": 0
+        },
+        "actual_prompt_tokens": 613377,
+        "actual_completion_tokens": 64,
+        "cached_tokens": 0,
+        "sample_errors": 0,
+        "time_to_first_token_seconds": 342.0292124268599,
+        "healthy_after": true
+      },
+      {
+        "case": {
+          "cache": "cold",
+          "mode": "default",
+          "prompt_class": "code",
+          "prompt_tokens": 986895,
+          "rep": 0,
+          "reply_tokens": 64,
+          "seed": 42000,
+          "streams": 1,
+          "temperature": 0
+        },
+        "actual_prompt_tokens": 986895,
+        "actual_completion_tokens": 64,
+        "cached_tokens": 0,
+        "sample_errors": 0,
+        "time_to_first_token_seconds": 617.4192088970449,
+        "healthy_after": true
+      }
+    ],
+    "receipt_sha256": "03dea2318ff38a92deb39a4114434cc67b2fe03f472f376463ae858d454d02bb",
+    "memory_review_sha256": "b6c54a037ec7a48ae8ee82aba10709c3c500b604a491e48365c2e1981c3de960",
+    "finite_runner_sha256": "3c8eab804053f23001a0fa9d87aa46d0df963e668972321e31570a7bf7f692d2",
+    "unchanged_launch_checked_after_stage": true,
+    "scope": "Three cold GPU alignment boundary requests, each with a 64-token reply. These are shape regressions, not a repeated deep-context performance comparison or production acceptance.",
+    "review_sha256": "2df279d95ea6e6f18c706972021a9a0a1977c82bf11bc1e4cb1f1866cd2c91e5"
+  }
+}

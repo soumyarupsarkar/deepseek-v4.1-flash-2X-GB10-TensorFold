@@ -23,7 +23,7 @@ Slots and maximum context are separate limits: 32 slots do not mean 32 simultane
 
 I have personally been using this with model aliases suffixed with `-1m` and `-262k` (variants differing only in context window) configured in my coding agent: `-1m` interactively and `-262k` for 32 parallel sessions, and I've been seeing ~140 aggregate tok/s for long-running code review/refactor agent sessions. As far as I know, this is the only dual GB10 recipe for this model that supports this (C32 at full 262k) as of today, 2026-10-08.
 
-This dated observation describes the previous Python deployment. Native measurements will be reported separately.
+This dated observation describes the previous Python deployment. [Native measurements and limits](MIGRATION.md#deep-context-matched-measurements-on-the-corrected-image) are reported separately.
 
 ## Credits
 
@@ -142,6 +142,14 @@ If a host is unreachable, recover it and retry with the same journals. After a r
 - Pinned image/asset identities, read-only model mounts, paired failure handling and journaled current-boot host restoration.
 
 Session KV histories are not written to NVMe. Prepared weights, compiler/driver caches and bounded operational logs still write to storage. Python remains for orchestration, offline token-map preparation and the bounded image-codec helper; model execution, scheduling and sampling run in Zig/CUDA.
+
+## Native context measurements
+
+![Cold C1 requests at five context lengths: native decode remains near the Python reference while time to first token improves.](release/figures/native-deep-context-20261010.svg)
+
+Two cold synthetic requests per engine and context, each generating 1,024 tokens at temperature 0. At a million tokens, median steady decode was **88.8 tok/s native versus 89.4 Python**; first token arrived in **670 s versus 875 s**. These are independent fixed-length requests. The generated replies differ between engines, so the graph compares matched prompts and output budgets rather than identical generated decode work.
+
+The tradeoff is workload-dependent: the C32 short-prompt confirmation measured **141.2 versus 153.2 aggregate end-to-end tok/s** (six native runs versus the original two Python runs). The measured-benefit gate accepts faster deep prefill with this cost disclosed. Recovery and the Python rollback rehearsal passed; the new 24-hour endurance run remains in progress. [All repetitions, methods and limits](MIGRATION.md#deep-context-matched-measurements-on-the-corrected-image) · [JSON data](release/native-deep-comparison-20261010.json) · [PNG](release/figures/native-deep-context-20261010.png).
 
 ## Development
 

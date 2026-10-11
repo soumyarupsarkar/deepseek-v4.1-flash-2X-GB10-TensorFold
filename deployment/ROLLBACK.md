@@ -1,6 +1,6 @@
 # Restore the pre-installation host state
 
-The historical Python [portable cutover](CUTOVER.md) exercised interrupted-controller recovery and idle worker-loss cleanup. Native lifecycle qualification is recorded separately in [MIGRATION.md](../MIGRATION.md). The operations below restore recipe-managed state using each installation's own journals. Actual reboot recovery remains a hardware release gate; its decision paths have offline test coverage.
+The historical Python [portable cutover](CUTOVER.md) exercised interrupted-controller recovery and idle worker-loss cleanup. The selected native image has also passed paired recovery, one controlled worker reboot and a native-to-Python-to-native rollback rehearsal; the head was not rebooted. [MIGRATION.md](../MIGRATION.md#recovery-and-retained-python-startup) records the evidence and the retained Python engine's cold-start fix. The operations below restore recipe-managed state using each installation's own journals.
 
 ## Normal stop
 

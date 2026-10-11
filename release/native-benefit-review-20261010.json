@@ -1,0 +1,708 @@
+{
+  "created": "2026-10-10T22:48:27.760718+00:00",
+  "status": "passed",
+  "source": "4d48d4ec5f3db83a361c2228088d72e27f487d62",
+  "image": "sha256:83752d9d3bc7da632fd195332963501e9ca5208a8e2fcf409e781e985049aafd",
+  "scope": "Manual measured-performance and memory benefit review only",
+  "finite_suite_sha256": "56f269cfdb16e426f9f7299c2c27e41a8a8d81fd09513924f190de5ff403f80c",
+  "policy_sha256": "565f55acc238fa2ac9fc6edb9a29dbfe94db9833665aab80fc02e6d021a5fd32",
+  "policy_changed": false,
+  "decision": "Proceed to recovery, rollback and new bounded endurance qualification; do not cut over yet.",
+  "qualifying_c1_deep_results": [
+    {
+      "total_context": 32768,
+      "end_to_end_change_percent": 4.355734346609874,
+      "steady_decode_change_percent": -2.030201409707255,
+      "ttft_change_percent": -7.211194032506462
+    },
+    {
+      "total_context": 131072,
+      "end_to_end_change_percent": 13.344847830628858,
+      "steady_decode_change_percent": -1.577203248724024,
+      "ttft_change_percent": -13.689301532958421
+    },
+    {
+      "total_context": 262144,
+      "end_to_end_change_percent": 19.051397338276498,
+      "steady_decode_change_percent": 4.623397242306204,
+      "ttft_change_percent": -16.75518059755521
+    },
+    {
+      "total_context": 614400,
+      "end_to_end_change_percent": 25.417730488864354,
+      "steady_decode_change_percent": 1.2409725608914401,
+      "ttft_change_percent": -20.777085542452312
+    },
+    {
+      "total_context": 1048576,
+      "end_to_end_change_percent": 30.05473460546233,
+      "steady_decode_change_percent": -0.6749675350560147,
+      "ttft_change_percent": -23.39577358628395
+    }
+  ],
+  "c32_confirmation_metrics": {
+    "aggregate_e2e_tps": {
+      "reference": {
+        "values": [
+          152.54662109290174,
+          153.8918841796956
+        ],
+        "median": 153.21925263629868,
+        "minimum": 152.54662109290174,
+        "maximum": 153.8918841796956,
+        "relative_range_percent": 0.8818701306891663
+      },
+      "native_original": {
+        "values": [
+          138.33362268432728,
+          139.8408187750106
+        ],
+        "median": 139.08722072966896,
+        "minimum": 138.33362268432728,
+        "maximum": 139.8408187750106,
+        "relative_range_percent": 1.0895370636845758,
+        "change_from_reference_percent": -9.223404802903822
+      },
+      "native_followup": {
+        "values": [
+          141.0304786048665,
+          141.3202766667015,
+          142.15803124739224,
+          142.704330165655
+        ],
+        "median": 141.73915395704688,
+        "minimum": 141.0304786048665,
+        "maximum": 142.704330165655,
+        "relative_range_percent": 1.1868722118417052,
+        "change_from_reference_percent": -7.492595402813029
+      },
+      "native_pooled": {
+        "values": [
+          138.33362268432728,
+          139.8408187750106,
+          141.0304786048665,
+          141.3202766667015,
+          142.15803124739224,
+          142.704330165655
+        ],
+        "median": 141.175377635784,
+        "minimum": 138.33362268432728,
+        "maximum": 142.704330165655,
+        "relative_range_percent": 3.15954096807074,
+        "change_from_reference_percent": -7.860549371757863
+      }
+    },
+    "sampled_steady_decode_tps": {
+      "reference": {
+        "values": [
+          273.61852181761924,
+          275.4263549792933
+        ],
+        "median": 274.5224383984563,
+        "minimum": 273.61852181761924,
+        "maximum": 275.4263549792933,
+        "relative_range_percent": 0.660713006438618
+      },
+      "native_original": {
+        "values": [
+          255.08064574823766,
+          252.7161358071391
+        ],
+        "median": 253.89839077768838,
+        "minimum": 252.7161358071391,
+        "maximum": 255.08064574823766,
+        "relative_range_percent": 0.9356386894515678,
+        "change_from_reference_percent": -7.5127001425046025
+      },
+      "native_followup": {
+        "values": [
+          259.1808357816985,
+          260.6127994910014,
+          257.7089192434728,
+          260.73203655876114
+        ],
+        "median": 259.89681763634997,
+        "minimum": 257.7089192434728,
+        "maximum": 260.73203655876114,
+        "relative_range_percent": 1.1730743833635815,
+        "change_from_reference_percent": -5.3276594975008695
+      },
+      "native_pooled": {
+        "values": [
+          255.08064574823766,
+          252.7161358071391,
+          259.1808357816985,
+          260.6127994910014,
+          257.7089192434728,
+          260.73203655876114
+        ],
+        "median": 258.44487751258566,
+        "minimum": 252.7161358071391,
+        "maximum": 260.73203655876114,
+        "relative_range_percent": 3.1718990661282476,
+        "change_from_reference_percent": -5.856556199801355
+      }
+    },
+    "ttft_s_p50": {
+      "reference": {
+        "values": [
+          12.910621479852125,
+          12.676640797988512
+        ],
+        "median": 12.793631138920318,
+        "minimum": 12.676640797988512,
+        "maximum": 12.910621479852125,
+        "relative_range_percent": 1.8457624980644738
+      },
+      "native_original": {
+        "values": [
+          11.693059838027693,
+          11.85629265557509
+        ],
+        "median": 11.774676246801391,
+        "minimum": 11.693059838027693,
+        "maximum": 11.85629265557509,
+        "relative_range_percent": 1.3959803491002232,
+        "change_from_reference_percent": -7.964547993095561
+      },
+      "native_followup": {
+        "values": [
+          11.71897273347713,
+          11.99865104246419,
+          11.746673377463594,
+          11.696230375906453
+        ],
+        "median": 11.732823055470362,
+        "minimum": 11.696230375906453,
+        "maximum": 11.99865104246419,
+        "relative_range_percent": 2.5856250846486795,
+        "change_from_reference_percent": -8.291688824940435
+      },
+      "native_pooled": {
+        "values": [
+          11.693059838027693,
+          11.85629265557509,
+          11.71897273347713,
+          11.99865104246419,
+          11.746673377463594,
+          11.696230375906453
+        ],
+        "median": 11.732823055470362,
+        "minimum": 11.693059838027693,
+        "maximum": 11.99865104246419,
+        "relative_range_percent": 2.613440867228478,
+        "change_from_reference_percent": -8.291688824940435
+      }
+    },
+    "ttft_s_p95": {
+      "reference": {
+        "values": [
+          22.87598996348679,
+          22.548111136897933
+        ],
+        "median": 22.712050550192362,
+        "minimum": 22.548111136897933,
+        "maximum": 22.87598996348679,
+        "relative_range_percent": 1.454129902935919
+      },
+      "native_original": {
+        "values": [
+          21.82745619463967,
+          21.799590436194556
+        ],
+        "median": 21.813523315417115,
+        "minimum": 21.799590436194556,
+        "maximum": 21.82745619463967,
+        "relative_range_percent": 0.12782698155120453,
+        "change_from_reference_percent": -3.956169579622737
+      },
+      "native_followup": {
+        "values": [
+          21.643190528452397,
+          21.877987840014974,
+          21.59877708631102,
+          21.763135682663414
+        ],
+        "median": 21.703163105557906,
+        "minimum": 21.59877708631102,
+        "maximum": 21.877987840014974,
+        "relative_range_percent": 1.2927155671277113,
+        "change_from_reference_percent": -4.442079954008871
+      },
+      "native_pooled": {
+        "values": [
+          21.82745619463967,
+          21.799590436194556,
+          21.643190528452397,
+          21.877987840014974,
+          21.59877708631102,
+          21.763135682663414
+        ],
+        "median": 21.781363059428983,
+        "minimum": 21.59877708631102,
+        "maximum": 21.877987840014974,
+        "relative_range_percent": 1.2927155671277113,
+        "change_from_reference_percent": -4.097769546200203
+      }
+    },
+    "effective_prefill_tps": {
+      "reference": {
+        "values": [
+          null,
+          null
+        ],
+        "median": null,
+        "minimum": null,
+        "maximum": null,
+        "relative_range_percent": null
+      },
+      "native_original": {
+        "values": [
+          null,
+          null
+        ],
+        "median": null,
+        "minimum": null,
+        "maximum": null,
+        "relative_range_percent": null,
+        "change_from_reference_percent": null
+      },
+      "native_followup": {
+        "values": [
+          null,
+          null,
+          null,
+          null
+        ],
+        "median": null,
+        "minimum": null,
+        "maximum": null,
+        "relative_range_percent": null,
+        "change_from_reference_percent": null
+      },
+      "native_pooled": {
+        "values": [
+          null,
+          null,
+          null,
+          null,
+          null,
+          null
+        ],
+        "median": null,
+        "minimum": null,
+        "maximum": null,
+        "relative_range_percent": null,
+        "change_from_reference_percent": null
+      }
+    },
+    "engine_prefill_tps": {
+      "reference": {
+        "values": [
+          1446.800243723674,
+          1463.0465551343702
+        ],
+        "median": 1454.923399429022,
+        "minimum": 1446.800243723674,
+        "maximum": 1463.0465551343702,
+        "relative_range_percent": 1.1229132343026693
+      },
+      "native_original": {
+        "values": [
+          1427.5621285913462,
+          1432.1634317705746
+        ],
+        "median": 1429.8627801809603,
+        "minimum": 1427.5621285913462,
+        "maximum": 1432.1634317705746,
+        "relative_range_percent": 0.32231894409868733,
+        "change_from_reference_percent": -1.722470011678745
+      },
+      "native_followup": {
+        "values": [
+          1429.8865221533692,
+          1424.0304707003409,
+          1442.352154779073,
+          1433.494175723904
+        ],
+        "median": 1431.6903489386366,
+        "minimum": 1424.0304707003409,
+        "maximum": 1442.352154779073,
+        "relative_range_percent": 1.2866075871060145,
+        "change_from_reference_percent": -1.5968572984325635
+      },
+      "native_pooled": {
+        "values": [
+          1427.5621285913462,
+          1432.1634317705746,
+          1429.8865221533692,
+          1424.0304707003409,
+          1442.352154779073,
+          1433.494175723904
+        ],
+        "median": 1431.0249769619718,
+        "minimum": 1424.0304707003409,
+        "maximum": 1442.352154779073,
+        "relative_range_percent": 1.2866075871060145,
+        "change_from_reference_percent": -1.6425897388432364
+      }
+    },
+    "latency_s_p95": {
+      "reference": {
+        "values": [
+          53.70068498357432,
+          53.23058260405669
+        ],
+        "median": 53.465633793815506,
+        "minimum": 53.23058260405669,
+        "maximum": 53.70068498357432,
+        "relative_range_percent": 0.8831434046370878
+      },
+      "native_original": {
+        "values": [
+          59.18148205563193,
+          58.551740980590694
+        ],
+        "median": 58.86661151811131,
+        "minimum": 58.551740980590694,
+        "maximum": 59.18148205563193,
+        "relative_range_percent": 1.075529206296344,
+        "change_from_reference_percent": 10.101774431636024
+      },
+      "native_followup": {
+        "values": [
+          58.06048463511979,
+          57.962389579962476,
+          57.623634363664316,
+          57.40267763630254
+        ],
+        "median": 57.7930119718134,
+        "minimum": 57.40267763630254,
+        "maximum": 58.06048463511979,
+        "relative_range_percent": 1.145951767241682,
+        "change_from_reference_percent": 8.093756439296996
+      },
+      "native_pooled": {
+        "values": [
+          59.18148205563193,
+          58.551740980590694,
+          58.06048463511979,
+          57.962389579962476,
+          57.623634363664316,
+          57.40267763630254
+        ],
+        "median": 58.011437107541134,
+        "minimum": 57.40267763630254,
+        "maximum": 59.18148205563193,
+        "relative_range_percent": 3.0988178471389682,
+        "change_from_reference_percent": 8.502290146332193
+      }
+    }
+  },
+  "findings": [
+    "Accept the measured-benefit gate under the unchanged policy; recovery, rollback, endurance and production cutover remain separate unmet gates.",
+    "The qualifying benefit is cold long-context C1 code end-to-end throughput: medians improve 13.34%, 19.05%, 25.42% and 30.05% at 128k, 262k, 614k and million total tokens. The 32k result is +4.36% and is not counted as a threshold pass. The policy never restricted C1 code to short prompts.",
+    "These gains are dominated by prefill: median first-token latency improves 13.69% through 23.40% for the four qualifying contexts. All five deep steady-decode changes remain between -2.03% and +4.62%. Every deep prompt hash and fixed output budget matches. Cross-engine output hashes/full-text digests match in 0/10 deep replies, so this is not identical generated decode work; no decode-only speedup is claimed. Each engine repeats its own digests at all five contexts.",
+    "The C32 temperature-0 follow-up retains both original native repetitions and all four predeclared additional repetitions. Six-run native median is 141.175 versus the unchanged two-run Python median 153.219 end-to-end tok/s (-7.86%); eligible steady decode is 258.445 versus 274.522 (-5.86%). The separate four-run follow-up is -7.49% end-to-end and -5.33% steady. These pass the original 10% regression guard without rounding. All original results remain visible; this is not six newly paired Python/native runs.",
+    "All 192 C32 candidate replies match both Python reference repetitions in full-text SHA256 and reported token hashes. All waves are actually cold and reach C32. Native six-run relative ranges are 3.16% end-to-end and 3.17% steady, with no scored graph captures. The original -9.22% end-to-end result is retained. No C32 temperature-0 speedup is claimed.",
+    "C32 latency is reviewed separately: pooled median of per-wave p95 request latency is 58.011 versus 53.466 seconds (+8.50%), while median TTFT is 11.733 versus 12.794 seconds (-8.29%). The original two-wave p95 regression was +10.10% and remains documented. This throughput/latency cost is accepted for the substantial deep-prefill gain, subject to stability gates.",
+    "Short C1 code/prose medians remain within the regression guard at both temperatures, with no supported speedup claim. Primary and sampled C1 code have paging-associated variance; the observed association does not establish the sole cause. All repetitions are retained. The noisy sampled Python C32 baseline is not used as sole improvement evidence; its native steady gain is only 4.06%. C8/C16 variability is likewise not used to substitute another benefit workload.",
+    "The original C4 short-reply steady median is 10.48% lower and end-to-end is 9.09% lower. C4 is outside the explicitly declared numerical C1/C32/deep guard, but this remains a documented regression. The longer internal native ordinary/default diagnostic shows C4 drafting helps; it does not establish Python parity or erase the short-reply result. At C32 the internal diagnostic shows small drafting costs, not their unique cause. No runtime budget or drafting capability was reduced to pass.",
+    "No substantial physical-memory reduction is established or claimed. All finite/capacity checks retain 8,650,752 shared KV tokens, 1,048,576 request context, 32 slots and a 48-row draft round. The matched memory receipts preserve separate host availability, RSS, swap and cgroup data; these are not summed as physical totals. Missing reference samples and the sampled-reference probe gap remain explicit.",
+    "The four confirmation waves contain 43 watchdog samples, at least 10 per wave, maximum gap 5.404 seconds, no probe/host sample errors and zero observed OOM counter deltas. Minimum sampled host availability is 3,264,114,688 bytes on head and 3,602,743,296 on worker. The 43 coarse GPU samples report no thermal slowdown flags; they do not exclude intervening clock variation. This is finite evidence, not a leak-free or endurance claim.",
+    "The 614k Python deep-decode spread is investigated and preserved; native deep first-token medians improve consistently and the benefit is not contingent on that noisy decode result. The original native 614k alignment failure, its correction, all adjacent/odd-context regressions and every failed receipt remain preserved."
+  ],
+  "memory_saving_claimed": false,
+  "short_c1_speedup_claimed": false,
+  "c32_temperature_zero_speedup_claimed": false,
+  "recovery_qualified": false,
+  "endurance_qualified": false,
+  "production_cutover": false,
+  "private_review_sha256": "04e83b9fd87c2899a14544575439c801d0bf37e59001b399da163a56a1c6445d",
+  "evidence_sha256": [
+    {
+      "artifact": "benchmark-python-deep-matched-01.json",
+      "sha256": "0c6d1786610f50edcab259cee00c27be985806e95ff6dc0e6598cbc1fee58ef9"
+    },
+    {
+      "artifact": "benchmark-python-sampled-matched-01.json",
+      "sha256": "31f8593a47d813f32ec62c9133f551cf34a5f8b3ad06ed9aa35e879898bd1265"
+    },
+    {
+      "artifact": "benchmark-zig-baseline-20261009.json",
+      "sha256": "107b618e00b6d540c73027fe5c694fc69c0f3dd807281607c95c4296f853adf2"
+    },
+    {
+      "artifact": "validation-native5-aliases-01.json",
+      "sha256": "3d5349ff42f8da62afc8c38ae22f2f3ad698d2971f37c3a06bd96ca0336568e8"
+    },
+    {
+      "artifact": "validation-native5-baseline-01.json",
+      "sha256": "95c07e69f8ebb5edacbdd352dad02290b7a165d30a26f961098b22b0cae7195d"
+    },
+    {
+      "artifact": "validation-native5-c32-full-01.json",
+      "sha256": "600ad0b50e8d7d4ef57c5ce9ac583d342a178ae883fb4b5adaaefacca86b0795"
+    },
+    {
+      "artifact": "validation-native5-constraints-greedy-01.json",
+      "sha256": "0f9b76019790413982b64ebfd7380505bfa1627ec3a8612a890e19012ffa5ee3"
+    },
+    {
+      "artifact": "validation-native5-constraints-sampled-01.json",
+      "sha256": "267a09e54cc4c404b57dfdd8d387027a561937aca7b27e8d6485f0acb9dbcea6"
+    },
+    {
+      "artifact": "validation-native5-decode-compaction-01.json",
+      "sha256": "d3f452360972ff932ebd688c72ac648778dfd3fe2eb70adb5d94aecb18adb9eb"
+    },
+    {
+      "artifact": "validation-native5-image-formats-01.json",
+      "sha256": "beeaf7444a6e27e3a672a9adc4b3a2168544837b607d0282611b7cd8f503153a"
+    },
+    {
+      "artifact": "validation-native5-million-01.json",
+      "sha256": "873f8a3fe5b1261c41167b9cb077dda95a5df21fe4cf10f72cf67caee80f3666"
+    },
+    {
+      "artifact": "validation-native5-parity-greedy-01.json",
+      "sha256": "9f36917f88c938ae8bd02c28ed05909d9242dbb96916edeff4e5380a2fead783"
+    },
+    {
+      "artifact": "validation-native5-parity-sampled-01.json",
+      "sha256": "025bb051e5cc54429816dbe167ff843c2c4af8bd700b92fe6d0c57b1e369e71b"
+    },
+    {
+      "artifact": "validation-native5-partial-compaction-01.json",
+      "sha256": "f906ed035038beb7bbcd8da090081a944c1bb56c683d80b9aa4c67ee62271bc1"
+    },
+    {
+      "artifact": "validation-native5-pool-01.json",
+      "sha256": "83bace18297ee3cffdddef9ce90a89857a3b3cd0990b66e27d2b91708a6d7887"
+    },
+    {
+      "artifact": "validation-native5-pool-queue-01.json",
+      "sha256": "7130548444ecc9d9a1f5f52f490caddd830332b209c090f53ec0e5f464ab6905"
+    },
+    {
+      "artifact": "validation-native5-prefill-01.json",
+      "sha256": "9a805a7dd902326bc820b4ac9fc016570778b23a08618fe522279593d4c77741"
+    },
+    {
+      "artifact": "validation-native5-protocols-01.json",
+      "sha256": "7dde2de4f9ee199d235f66f1c60c934e50a2de784d1d1ca049c289449f0e0efe"
+    },
+    {
+      "artifact": "validation-native5-recovery-01.json",
+      "sha256": "6f8516d431ffabe2b124156479ac75bf680da04cf9ba32c11322fd34f0994adf"
+    },
+    {
+      "artifact": "validation-native5-retention-01.json",
+      "sha256": "964b268d27e356514669f2f2bff32f75d07bd3417c2c8e2e49f89c2b98f0b432"
+    },
+    {
+      "artifact": "validation-native5-sampling-01.json",
+      "sha256": "4a035336a0b5c28994e047c35c6b228f7cb46fc22c890aba2d5bbd47fbabd7f5"
+    },
+    {
+      "artifact": "validation-native5-short-soak-01.json",
+      "sha256": "aaa69fbf0e96da59025108d945cf1bc14df181c63e2c4a9d198ed70da8f2dcd4"
+    },
+    {
+      "artifact": "validation-native5-structured-01.json",
+      "sha256": "84548290859531c6fb34e007e2351d4c88f9dc1b767b7f93f097d16da32ce296"
+    },
+    {
+      "artifact": "benchmark-native5-614k-regression-01.json",
+      "sha256": "041ec5bd7b3d23c29c385e048f8e67c3a61d4e272b5f3ae25718aac139cb0e4a"
+    },
+    {
+      "artifact": "benchmark-native5-alignment-boundaries-01.json",
+      "sha256": "03dea2318ff38a92deb39a4114434cc67b2fe03f472f376463ae858d454d02bb"
+    },
+    {
+      "artifact": "benchmark-native5-c32-confirmation-01.json",
+      "sha256": "c6d68eb01d9574b6dcad9c381884cb4beb49dea98b105739c080a1aabce0c779"
+    },
+    {
+      "artifact": "benchmark-native5-deep-matched-01.json",
+      "sha256": "8e591356826fc299e8233b76727c886a59752e00307e4905235874dd2c8ce66e"
+    },
+    {
+      "artifact": "benchmark-native5-matched-01.json",
+      "sha256": "77cd49127545f92eb4ef7052d4a0421cb29a3f4f7928fd3895dbcb370dfc0c7a"
+    },
+    {
+      "artifact": "benchmark-native5-sampled-matched-01.json",
+      "sha256": "7ba5df5db605bec17b89d5c77f6fe74884d123980462fe351089a62e023b0303"
+    },
+    {
+      "artifact": "matched-benefit-policy.json",
+      "sha256": "565f55acc238fa2ac9fc6edb9a29dbfe94db9833665aab80fc02e6d021a5fd32"
+    },
+    {
+      "artifact": "native5-admission-review-01.json",
+      "sha256": "b864464758fcca3eb567d315fd360713425d1130f77a3e551f2a3b3b6e635214"
+    },
+    {
+      "artifact": "native5-benefit-scope-review-01.json",
+      "sha256": "7fbf28ce16c80bdf6dab40e585990691b65f7c84a4de34a094301b5ceec65040"
+    },
+    {
+      "artifact": "native5-c1-code-variance-01.json",
+      "sha256": "294e4bd078becc7ab38c78233776c3c117c7469aa60b82b466f855f5d57e9f6f"
+    },
+    {
+      "artifact": "native5-c32-capacity-review-01.json",
+      "sha256": "038aed7ed378e754331726d8d9a7132a4f539c53c3d2b5941f4bef7ad71c327a"
+    },
+    {
+      "artifact": "native5-c32-confirmation-execution-01.json",
+      "sha256": "9f6bae55225869e446963bdb73895568d047ce1dbe52349b7496f457feeae587"
+    },
+    {
+      "artifact": "native5-c32-confirmation-memory-01.json",
+      "sha256": "f66097fe24f0b980af5d2f17662555cd55ff5d46ecf6196bc3649aff2beeb7ad"
+    },
+    {
+      "artifact": "native5-c32-confirmation-plan-01.json",
+      "sha256": "52b5b5138a2f194bf149e8cb309399d92597013917166600d3aa41a47888cd04"
+    },
+    {
+      "artifact": "native5-c32-confirmation-review-01.json",
+      "sha256": "bcba166178acc6da20e0cc115246264a90fad5c4c46b94c4a50e5fee27a94bc4"
+    },
+    {
+      "artifact": "native5-c4-c32-diagnostic-execution-01.json",
+      "sha256": "83cf54676fa2b1f49e7e56ad1eb39abc66ef418a96569054c6cf9c5df01f1cec"
+    },
+    {
+      "artifact": "native5-c4-c32-diagnostic-memory-01.json",
+      "sha256": "a5b1a35219c0c024da8368c9f8e3c839306815086f07ab358f5a16b19a3f0197"
+    },
+    {
+      "artifact": "native5-c4-c32-diagnostic-review-01.json",
+      "sha256": "80e2b81736db8b9f3aa45f308254c35c532a4680c5a819a6f74dab8180f7409b"
+    },
+    {
+      "artifact": "native5-c4-c32-long-diagnostic-01.json",
+      "sha256": "f5eb263c3458b1022dc05398dac519c59e5a0b8ab7419d48b8fb1f1dbe8fe11b"
+    },
+    {
+      "artifact": "native5-constraints-review-01.json",
+      "sha256": "8f789de0570d4c100c30d22d14b23f40bb48ef9c0b3edfd8360cd4b3602352e6"
+    },
+    {
+      "artifact": "native5-core-features-review-01.json",
+      "sha256": "0692d48470dc65b002034202349e0272d71ade0697a69d31cfb9a93df7a1586b"
+    },
+    {
+      "artifact": "native5-decode-compaction-review-01.json",
+      "sha256": "440a452f1508314803a89d90be4425d8ed21af28b86ddff62022fb2ab0d30d1d"
+    },
+    {
+      "artifact": "native5-deep-matched-comparison-01.json",
+      "sha256": "fb5dd2eb07ca7618c08e6fc46000d68f5bc7f3a2f7872602055e9008be96cf68"
+    },
+    {
+      "artifact": "native5-deep-matched-memory-01.json",
+      "sha256": "392ddc88d5483c3e8921f3677d57c6d8f86aadac2c086537d549ca74bc615f8c"
+    },
+    {
+      "artifact": "native5-deep-matched-review-01.json",
+      "sha256": "726b2744884982bd591c86d44e2be52bf010c0a2ca4788dbf44a9231d61ca35f"
+    },
+    {
+      "artifact": "native5-gate-plan-01.json",
+      "sha256": "1a4ba5d5fe3efd921faeeb4d097c2c9b7eee766ae414f191ace9637b8742d0ea"
+    },
+    {
+      "artifact": "native5-keys-provenance-review-01.json",
+      "sha256": "85c3969479622514ac29d4f5f4894a49324ff0ac07bdf0035607199c5540056a"
+    },
+    {
+      "artifact": "native5-matched-collection-01.json",
+      "sha256": "ecc19c3d81ed9dd6422186dacd1f0e0ff515b2c8886f24e5fb865a8a9ffda10e"
+    },
+    {
+      "artifact": "native5-matched-evidence-review-01.json",
+      "sha256": "20ee6d5fdb0dc856d8bc77e4f9360403784e94566ad2d28ebdd1ad0589f38956"
+    },
+    {
+      "artifact": "native5-million-review-01.json",
+      "sha256": "f786d3d4ffd60c7301a081bd4e1aad878b64493860ef070559c2ecdda8d2dcda"
+    },
+    {
+      "artifact": "native5-parity-greedy-review-01.json",
+      "sha256": "4f519e16356a0ea60919490e9121c193741c4000cdf1d4da7cd1129fe4763f9c"
+    },
+    {
+      "artifact": "native5-parity-sampled-review-01.json",
+      "sha256": "46e36243d20d0cf45ca1695f6e176f9dac7e1da4d2e1803242a80f9ec15e7018"
+    },
+    {
+      "artifact": "native5-partial-compaction-review-01.json",
+      "sha256": "d852fbce523eb648a3d9a7e31e0c3d95830a94988b5f3f8cb8d3f0dae84db8b8"
+    },
+    {
+      "artifact": "native5-prefill-live-review-01.json",
+      "sha256": "f357a532c4fc2ff72d4f0f2fa3592aa9ef32ae0be62e6ce4851aa2283f4b1b74"
+    },
+    {
+      "artifact": "native5-primary-matched-comparison-01.json",
+      "sha256": "100f4c196501c4a544cc85bf9f636925bbe92a466ec093e4d016062002f3a9db"
+    },
+    {
+      "artifact": "native5-primary-matched-memory-01.json",
+      "sha256": "147ad92b4f37d1cf80bce817f3603996d5b156f80505c9a6f9e1151115fc612f"
+    },
+    {
+      "artifact": "native5-qualification-01.json",
+      "sha256": "56f269cfdb16e426f9f7299c2c27e41a8a8d81fd09513924f190de5ff403f80c"
+    },
+    {
+      "artifact": "native5-retention-review-01.json",
+      "sha256": "93b5e96cdc2ea127d652efd57019b3af3d8af2c6ad0c35335b8b1f154e4eed75"
+    },
+    {
+      "artifact": "native5-sampled-c1-code-variance-01.json",
+      "sha256": "78f9459c5bdd47aebe81876613ae255f5edbb1bf034ecc167ed82e050fdbdae6"
+    },
+    {
+      "artifact": "native5-sampled-matched-comparison-01.json",
+      "sha256": "200832559921390df5fc00cadcc2917ca8b66a3edbb085f7e94fedebeb561db5"
+    },
+    {
+      "artifact": "native5-sampled-matched-memory-01.json",
+      "sha256": "cbbdc98503867bbc8b9d4d8f95400b1332f603d5bbb1e584878c1c2e44219631"
+    },
+    {
+      "artifact": "native5-shared-draft-cost-static-review-01.json",
+      "sha256": "e0e8294a9a0b8c1b30d104b1c8bd58f455f10359f3a1a0751b9345d3fa82ae23"
+    },
+    {
+      "artifact": "native5-short-soak-review-01.json",
+      "sha256": "c1e4dec4f2819a449c1ab78b54de2e2c8e3d596d7ea5032a3efe5b6fbac52ed9"
+    },
+    {
+      "artifact": "python-deep-614k-variance-01.json",
+      "sha256": "30483ae51ad4e792b0c2789d407d4d3e1861dfb566cf0f317e15d0d2bab6a079"
+    },
+    {
+      "artifact": "python-deep-matched-memory-01.json",
+      "sha256": "f3a3a33989598cb84787bdc5f8a4377a3fa571451a52dbce9cec4260ddb5273b"
+    },
+    {
+      "artifact": "python-primary-matched-memory-01.json",
+      "sha256": "667b9d0e48cdd2da1327c73d917458c57262575f8dd3898c1220872f894afe5a"
+    },
+    {
+      "artifact": "python-sampled-c32-variance-01.json",
+      "sha256": "2c3965aeaa3945e8dece1ad310d2980ab3a6e549f5523b3c479e648070bb2fb7"
+    },
+    {
+      "artifact": "python-sampled-matched-memory-01.json",
+      "sha256": "8375aac5c8b5313cc318536f330a857d21ab5d73d45e735b7fe41e01acd11fa1"
+    }
+  ]
+}
