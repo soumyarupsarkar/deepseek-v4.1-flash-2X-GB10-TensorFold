@@ -10,13 +10,13 @@ Run DeepSeek-V4.1-Flash across two NVIDIA GB10s using Mia's EXL3 weights, drowze
 | Concurrent active slots | **32** |
 | Maximum context | **1,048,576 tokens per request**, prompt plus reply |
 | Context aliases | **262,144 / 524,288 / 614,400 / 1,048,576** tokens |
-| C1 end-to-end output | **96.0 / 94.3 tok/s** (greedy / sampled) |
+| C1 code / prose / counting decode | **99.9 / 59.5 / 142.4 output tok/s** |
 | C32 steady decode | **290.1 / 261.3 aggregate output tok/s** (greedy / sampled) |
 | C32 end-to-end output | **149.6 / 140.5 aggregate output tok/s** (greedy / sampled) |
 | Features under qualification | Vision, Keys, strict JSON/schema/tools, random and explicit request seeds |
 | Session KV writes to NVMe | **Off** |
 
-Throughput rows are native-engine medians from three repetitions at temperatures 0 / 1 with fixed seeds and uncached 1,024-token prompts; replies are 1,024 tokens at C1 and 256 at C32. End-to-end includes admission and prefill; steady decode counts intervals at full requested concurrency with no prefill or queued work. [Measurements and methodology](benchmarks/NATIVE-DRAFTING.md).
+C1 is one session; C32 is 32 concurrent sessions. [Native benchmark workloads, timing methods and all repetitions](benchmarks/NATIVE-DECODE.md).
 
 Slots and maximum context are separate limits: 32 slots do not mean 32 simultaneously full million-token histories.
 
@@ -25,8 +25,6 @@ Slots and maximum context are separate limits: 32 slots do not mean 32 simultane
 ## Author's anecdote
 
 I have personally been using this with model aliases suffixed with `-1m` and `-262k` (variants differing only in context window) configured in my coding agent: `-1m` interactively and `-262k` for 32 parallel sessions, and I've been seeing ~140 aggregate tok/s for long-running code review/refactor agent sessions. As far as I know, this is the only dual GB10 recipe for this model that supports this (C32 at full 262k) as of today, 2026-10-08.
-
-This dated observation describes the previous Python deployment. [Native measurements and limits](MIGRATION.md#deep-context-matched-measurements-on-the-corrected-image) are reported separately.
 
 ## Credits
 

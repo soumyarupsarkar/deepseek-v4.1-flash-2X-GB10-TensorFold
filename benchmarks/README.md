@@ -1,5 +1,10 @@
 # Measurement definitions and reproduction
 
+The current [native C1 code/prose/counting measurements](NATIVE-DECODE.md)
+provide the README's single-session headline, with every repetition, actual
+reply length and reproduction commands. That report also explains the separate
+C32 workload and timing definitions used in the hero.
+
 The native [drafting investigation](NATIVE-DRAFTING.md) records the October 10–11
 throughput work, its separate baseline, candidate trials and timing definitions.
 The final image passed the finite performance and serving/capacity checks;
@@ -17,7 +22,7 @@ update, and acceptance timings are not substituted for matched benchmarks.
 
 ## Two distinct methods
 
-**Unchanged upstream kit:** [kit_bench.py](../tools/dsv41/kit_bench.py) uses published set-b prompts. C1 reports `(output tokens - 1) / first-to-last-content time`, allowing EOS with a 384-token maximum. All measured C1 replies reached that maximum. Three repetitions follow per-prompt warm-up, so these are not cold-prefix claims. Cold prefill uses fresh time-seeded word inputs, one output token, and input tokens divided by first-content latency; a wrapper verified zero prefix hits. Model weights and compiled kernels were warm. Burst timing includes complete waves. Sustained timing estimates window tokens from clipped response decode spans, rather than counting each token event at the window boundary.
+**Unchanged upstream kit:** [kit_bench.py](../tools/dsv41/kit_bench.py) uses published set-b prompts. C1 reports `(output tokens - 1) / first-to-last-content time`, allowing EOS with a 384-token maximum. All measured C1 replies in the historical Python runs below reached that maximum. Three repetitions follow per-prompt warm-up, so these are not cold-prefix claims. Cold prefill uses fresh time-seeded word inputs, one output token, and input tokens divided by first-content latency; a wrapper verified zero prefix hits. Model weights and compiled kernels were warm. Burst timing includes complete waves. Sustained timing estimates window tokens from clipped response decode spans, rather than counting each token event at the window boundary.
 
 **Local fixed-input protocol 4:** [benchmark.py](../deployment/scripts/benchmark.py) uses the same prompt corpus where applicable, explicit sampling seeds, and forced output lengths. The suite runs two repetitions with separately retained unscored warm-up, verified zero prefix hits, and exact usage/counter checks. C16/C32 use distinct 1,024-token synthetic prompts and 256 generated tokens per request. Concurrency means observed active decoders, not merely launched HTTP clients. Whole-wave rates include admission, prefill and replies. Sampled steady rates require full requested decode occupancy, no prefill/queued work, adjacent health polls at most three seconds apart, and at least two seconds of eligible observations. Insufficient windows remain null. Engine-only prefill is distinct from input/TTFT.
 
