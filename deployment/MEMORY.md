@@ -63,3 +63,6 @@ On a repeated health/memory failure or stalled progress, the monitor captures bo
 Preserve the fault receipt, both rank logs and memory history before diagnosis. Logs can contain private information and must not be published wholesale. Stop and check host restoration through the same installation's controller, resolve the concrete fault, and restart both ranks together only when appropriate. [Rollback](ROLLBACK.md) retains source, images, assets and the recovery journals.
 
 Short smoke tests establish neither full C32 capacity nor day-long stability. Native capacity, performance, quiet-window growth and endurance receipts are separate gates in [the migration plan](../MIGRATION.md).
+
+The [four-hour stability observation](STABILITY.md) provides an initial mixed-load
+run with matched quiet windows and per-run memory history on the serving image.

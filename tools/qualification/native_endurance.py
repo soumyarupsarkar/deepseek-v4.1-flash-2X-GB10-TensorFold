@@ -1,18 +1,102 @@
 """New, bounded synthetic native qualification. Never resumes an earlier run."""
 import argparse
 import concurrent.futures
+from datetime import datetime, timezone
 import hashlib
 import json
+import math
 from pathlib import Path
 import signal
 import subprocess
 import sys
+import threading
 import time
 
 SOURCE = Path(__file__).resolve().parents[2]
 MAX_EVIDENCE_BYTES = 64 * 2**20
 GATES = {'features', 'parity', 'retention', 'compaction', 'capacity', 'million', 'prefill-responsiveness',
          'recovery', 'matched-benefit'}
+DIAGNOSTIC_FEATURES = {'baseline', 'structured', 'sampling', 'aliases', 'protocols',
+                       'constraints-greedy', 'constraints-sampled', 'retention', 'pool',
+                       'c32-full', 'million'}
+
+
+class TrafficInterference(RuntimeError):
+    """Invalidate an isolated observation without shutting down a healthy server."""
+
+
+def validate_diagnostic(receipt, launch, source):
+    """Finite serving/capacity evidence permits observation, not release qualification."""
+    p = launch['profile']
+    required_capacity = dict(pool_tokens=p['pool_tokens'], max_request_tokens=p['context'],
+                             streams=p['parallel'], round_rows=int(p['environment']['TF_DS_ROUND_ROWS']))
+    features = {r['name'] for r in receipt.get('feature_checks', []) if r.get('status') == 'passed'}
+    full = receipt.get('full_capacity', {})
+    if (receipt.get('status') != 'finite-validation-passed; endurance and production cutover held'
+            or receipt.get('runtime_source') != source or receipt.get('runtime_image') != launch['image']
+            or receipt.get('capacity') != required_capacity or not DIAGNOSTIC_FEATURES <= features
+            or not full.get('cycles') or not full.get('independent_active_extents')
+            or full.get('replay_parity_passed') is not True
+            or any(c.get('peak_decoding') != p['parallel'] for c in full['cycles'])
+            or receipt.get('million', {}).get('usage', {}).get('total_tokens') != p['context']
+            or receipt.get('million', {}).get('retrieval_passphrases_correct') != 3):
+        raise RuntimeError('Diagnostic requires matching finite feature, C32 and million-token evidence')
+
+
+def check_request_delta(before, after, expected):
+    if after - before != expected:
+        raise TrafficInterference(f'Unexpected request-counter delta: {after - before}, expected {expected}')
+
+
+def latest_monitor_sample(path, image, max_age=45):
+    """Read one bounded, complete record, including while the monitor appends."""
+    with path.open('rb') as stream:
+        stream.seek(0, 2)
+        size = stream.tell()
+        stream.seek(max(0, size - 262144))
+        raw = stream.read()
+    lines = raw.split(b'\n')
+    for line in reversed(lines[:-1]):
+        try:
+            row = json.loads(line)
+            break
+        except (ValueError, UnicodeError):
+            continue
+    else:
+        raise RuntimeError('No complete bounded memory-monitor record')
+    age = (datetime.now(timezone.utc) - datetime.fromisoformat(row['time'])).total_seconds()
+    if row.get('image') != image or not 0 <= age <= max_age:
+        raise RuntimeError('Memory-monitor record is stale or belongs to another image')
+    return row
+
+
+def memory_summary(path):
+    """Keep swap, file cache and RSS visible; a falling MemAvailable alone is not a leak."""
+    hosts = {name: dict(samples=0) for name in ('head', 'worker')}
+    errors = 0
+    with path.open() as stream:
+        for line in stream:
+            row = json.loads(line)
+            if 'observer_error' in row:
+                errors += 1
+                continue
+            for host, result in hosts.items():
+                sample = row.get('hosts', {}).get(host, {})
+                mem = sample.get('meminfo', {})
+                if 'MemAvailable' not in mem:
+                    continue
+                values = dict(available_bytes=mem['MemAvailable'],
+                    swap_used_bytes=mem['SwapTotal'] - mem['SwapFree'],
+                    rank_rss_bytes=sample.get('rank_rss_sum_bytes'),
+                    cgroup_anon_bytes=sample.get('cgroup', {}).get('memory.stat', {}).get('anon'),
+                    cgroup_file_bytes=sample.get('cgroup', {}).get('memory.stat', {}).get('file'))
+                if not result['samples']:
+                    result.update(first=values, first_time=row['time'], minimum_available_bytes=mem['MemAvailable'])
+                result.update(last=values, last_time=row['time'], samples=result['samples'] + 1,
+                              minimum_available_bytes=min(result['minimum_available_bytes'], mem['MemAvailable']))
+                result['delta_bytes'] = {k: values[k] - result['first'][k] for k in values
+                    if values[k] is not None and result['first'][k] is not None}
+    return dict(hosts=hosts, observer_errors=errors, interpretation='Review matched quiet windows before attributing growth')
 
 
 def compact_result(result):
@@ -79,25 +163,41 @@ def validate_continuity(pair, expected_launch, expected_epochs, current_launch, 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--record', required=True)
-    p.add_argument('--gates', type=Path, required=True)
+    p.add_argument('--gates', type=Path)
     p.add_argument('--hours', type=float, default=24)
+    p.add_argument('--source', type=Path, default=SOURCE, help='Clean checkout owning the running deployment')
+    p.add_argument('--diagnostic-prerequisites', type=Path,
+                   help='Finite throughput/feature/capacity receipt; selects a diagnostic of at most four hours')
     a = p.parse_args()
-    if not a.record.replace('-', '').isalnum() or not 0 < a.hours <= 24:
+    diagnostic = a.diagnostic_prerequisites is not None
+    if (not a.record.replace('-', '').isalnum() or not math.isfinite(a.hours)
+            or not 0 < a.hours <= (4 if diagnostic else 24)
+            or (diagnostic and a.gates) or (not diagnostic and not a.gates)):
         raise ValueError('Invalid record name or duration')
-    sys.path.insert(0, str(SOURCE / 'tools/qualification'))
+    deployment_source = a.source.resolve()
+    sys.path.insert(0, str(deployment_source / 'tools/qualification'))
     import common
     from cluster import memory
     from configuration import profile, read, STATE
     from engine_health import ready
-    from memory_watch import health_sample
-    from benchmark import wave, wait_idle
+    from memory_watch import health_sample, host_sample
+    from benchmark import wave, wait_idle, evict
     from qualify import post, text, vision
 
-    gates = json.loads(a.gates.read_text())
+    prerequisite_path = a.diagnostic_prerequisites if diagnostic else a.gates
+    gates = json.loads(prerequisite_path.read_text())
     launch = read(STATE / 'launch.json')
-    source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=SOURCE, text=True).strip()
-    validate_gates(gates, launch, source)
-    if common.PAIR.config['api']['bind'] != '127.0.0.1':
+    source = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=deployment_source, text=True).strip()
+    if subprocess.check_output(['git', 'status', '--porcelain'], cwd=deployment_source, text=True).strip():
+        raise RuntimeError('Serving checkout must be clean')
+    build = read(STATE / 'build.json')
+    if build['revision'] != source or build['id'] != launch['image'] or profile() != launch['profile']:
+        raise RuntimeError('Serving source, image or profile differs from the launch')
+    if diagnostic:
+        validate_diagnostic(gates, launch, source)
+    else:
+        validate_gates(gates, launch, source)
+    if not diagnostic and common.PAIR.config['api']['bind'] != '127.0.0.1':
         raise RuntimeError('Require an isolated loopback candidate')
     epochs = rank_epochs(common.PAIR, launch)
     validate_continuity(common.PAIR, launch, epochs, read(STATE / 'launch.json'), read(STATE / 'active.json'))
@@ -105,16 +205,30 @@ def main():
     directory.mkdir(parents=True, mode=0o700, exist_ok=False)
     evidence = directory / 'cycles.jsonl'
     evidence.touch(mode=0o600, exist_ok=False)
+    memory_evidence = directory / 'memory.jsonl'
+    memory_evidence.touch(mode=0o600, exist_ok=False)
     record_path = directory / 'status.json'
     started = time.monotonic()
     deadline, next_quiet = started + a.hours * 3600, started + 3600
     record = dict(started=common.now(), status='running', hours=a.hours, source=source,
-                  image=launch['image'], launch=launch, gates_sha256=hashlib.sha256(a.gates.read_bytes()).hexdigest(),
+                  image=launch['image'], launch=launch, gates_sha256=hashlib.sha256(prerequisite_path.read_bytes()).hexdigest(),
+                  mode='serving-diagnostic' if diagnostic else 'release-qualification',
+                  full_release_qualification=False, memory_review='pending', phase='initializing',
+                  target_finish=datetime.fromtimestamp(time.time() + a.hours * 3600, timezone.utc).isoformat(),
                   rank_epochs=epochs,
                   script_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                   completed_cycles=0, deep_waves=0, quiet_windows=0, cycle_requests=0,
                   evidence_limit_bytes=MAX_EVIDENCE_BYTES, previous_run_resumed=False)
     interrupted = False
+    stop_observer = threading.Event()
+    observer_errors = []
+    last_requests = None
+    frozen_files = [Path(__file__), prerequisite_path,
+        *(deployment_source / name for name in ('tools/qualification/common.py', 'tools/qualification/qualify.py',
+          'deployment/scripts/benchmark.py', 'deployment/scripts/runtime.py', 'deployment/scripts/configuration.py',
+          'deployment/scripts/engine_health.py', 'deployment/scripts/memory_watch.py',
+          'deployment/scripts/memory_probe.py', 'deployment/config/profile.json'))]
+    record['client_inputs'] = {str(path): hashlib.sha256(path.read_bytes()).hexdigest() for path in frozen_files}
 
     def save():
         record['updated'] = common.now()
@@ -131,16 +245,74 @@ def main():
     signal.signal(signal.SIGTERM, stop_signal)
     signal.signal(signal.SIGINT, stop_signal)
 
-    def sample():
+    def sample(expected=0, detail=False):
+        nonlocal last_requests
+        if observer_errors:
+            raise RuntimeError('Memory observer failed: ' + observer_errors[-1])
+        if any(hashlib.sha256(Path(path).read_bytes()).hexdigest() != digest
+               for path, digest in record['client_inputs'].items()):
+            raise RuntimeError('A frozen client or prerequisite file changed')
         validate_continuity(common.PAIR, launch, epochs, read(STATE / 'launch.json'), read(STATE / 'active.json'))
+        subprocess.run(['systemctl', 'is-active', '--quiet', common.PAIR.unit()], check=True, timeout=10)
         health, drain = wait_idle(common.API_BASE)
         if not ready(health, profile()) or health['scheduler']['running'] or health['scheduler']['waiting']:
             raise RuntimeError('Endurance pair is unhealthy or did not become idle')
+        if last_requests is not None:
+            check_request_delta(last_requests, health['completed']['requests'], expected)
+        last_requests = health['completed']['requests']
+        latest_monitor_sample(STATE / 'memory/samples.jsonl', launch['image'])
         rss = next(int(line.split()[1]) * 1024 for line in Path('/proc/self/status').read_text().splitlines()
                    if line.startswith('VmRSS:'))
-        return dict(time=common.now(), health=health_sample(health), client_rss_bytes=rss,
+        result = dict(time=common.now(), health=health_sample(health), client_rss_bytes=rss,
                     post_response_drain_seconds=drain['seconds'],
                     available_bytes={host: memory(host)['MemAvailable'] for host in ('head', 'worker')})
+        if detail:
+            result['hosts'] = {host: host_sample(common.PAIR, host, common.PAIR.containers(host)[0]['State']['Pid'],
+                floor_bytes=int(profile()['minimum_available_gib'] * 2**30), detail=True) for host in ('head', 'worker')}
+        return result
+
+    def observe_memory():
+        previous = None
+        failures = 0
+        while not stop_observer.is_set():
+            try:
+                row = latest_monitor_sample(STATE / 'memory/samples.jsonl', launch['image'])
+                if row['time'] != previous:
+                    append(memory_evidence, row)
+                    previous = row['time']
+                failures = 0
+            except Exception as exc:
+                failures += 1
+                message = type(exc).__name__ + ': ' + str(exc)
+                try:
+                    append(memory_evidence, dict(time=common.now(), observer_error=message))
+                except Exception:
+                    failures = 3
+                if failures >= 3:
+                    observer_errors.append(message)
+                    return
+                # File rotation or an incomplete append must not stop a healthy pair.
+                stop_observer.wait(1)
+                continue
+            stop_observer.wait(10)
+
+    def quiet(label):
+        record['phase'] = 'normalizing-' + label
+        save()
+        normalization = evict(common.API_BASE, 810000 + record['quiet_windows'])
+        before = sample(expected=64, detail=True)
+        record['phase'] = 'quiet-' + label
+        save()
+        time.sleep(120)
+        after = sample(detail=True)
+        append(evidence, dict(kind='quiet', label=label, normalization=normalization, before=before, after=after))
+        record.setdefault('quiet_memory', []).append(dict(label=label, time=after['time'],
+            available_bytes=after['available_bytes'],
+            retained_states=after['health']['native']['retained_states'],
+            snapshot_bytes=after['health']['native']['snapshot_bytes'],
+            graphs=after['health']['native']['round_graphs']))
+        record['quiet_windows'] += 1
+        save()
 
     def canary():
         body = dict(messages=[{'role': 'user', 'content':
@@ -186,10 +358,17 @@ def main():
         return result
 
     save()
+    observer = threading.Thread(target=observe_memory, daemon=True)
+    observer.start()
     try:
-        append(evidence, dict(kind='initial', sample=sample(), canary=canary()))
+        initial = sample(detail=True)
+        initial_canary = canary()
+        append(evidence, dict(kind='initial', sample=initial, canary=initial_canary, after=sample(expected=1)))
+        quiet('baseline')
         while time.monotonic() < deadline:
             cycle = record['completed_cycles']
+            record['phase'] = 'mixed-cycle-' + str(cycle)
+            save()
             with concurrent.futures.ThreadPoolExecutor(max_workers=32) as pool:
                 jobs = [pool.submit(ordinary, cycle, slot) for slot in range(29)]
                 jobs += [pool.submit(schema, cycle), pool.submit(tool),
@@ -200,29 +379,30 @@ def main():
             if any(not text(result).strip() for result in results[:29]):
                 raise AssertionError('Empty table response')
             append(evidence, dict(kind='cycle', cycle=cycle, time=common.now(),
-                requests=[compact_result(result) for result in results], canary=canary(), sample=sample()))
+                requests=[compact_result(result) for result in results], canary=canary(), sample=sample(expected=33)))
             record['completed_cycles'] += 1
             record['cycle_requests'] += 33
             if cycle % 4 == 0 and deadline - time.monotonic() > 900:
                 size = (32768, 131072, 262144, 614400, 1048320)[(cycle // 4) % 5]
                 case = dict(streams=1, prompt_tokens=size, reply_tokens=256, prompt_class='code',
                             cache='cold', mode='default', temperature=0, seed=520000 + cycle)
+                record['phase'] = 'deep-' + str(size)
+                save()
                 row = wave(common.API_BASE, case, 600000 + cycle)
                 append(evidence, dict(kind='deep', cycle=cycle, case=case, summary=row['summary'],
                                      native_graph_captures_during_wave=row.get('native_graph_captures_during_wave'),
-                                     sample=sample()))
+                                     sample=sample(expected=65)))
                 record['deep_waves'] += 1
-            if time.monotonic() >= next_quiet:
-                before = sample()
-                time.sleep(min(120, max(0, deadline - time.monotonic())))
-                append(evidence, dict(kind='quiet', before=before, after=sample()))
-                record['quiet_windows'] += 1
+                del row
+            if next_quiet <= time.monotonic() < deadline - 300:
+                quiet('hourly')
                 next_quiet = time.monotonic() + 3600
             save()
             print('cycle', cycle, 'passed; elapsed', round(record['elapsed_s']), 'seconds', flush=True)
             time.sleep(min(5, max(0, deadline - time.monotonic())))
-        append(evidence, dict(kind='final', canary=canary(), sample=sample()))
-        record['status'] = 'passed'
+        append(evidence, dict(kind='final-canary', canary=canary(), sample=sample(expected=1)))
+        quiet('final')
+        record.update(status='diagnostic-workload-passed' if diagnostic else 'passed', phase='finished')
     except BaseException as exc:
         if not interrupted:
             record.update(status='failed', error=type(exc).__name__ + ': ' + str(exc))
@@ -230,9 +410,11 @@ def main():
             # The controller checks exact ownership. Also refuse to touch a
             # replacement installation if its launch identity changed mid-run.
             try:
-                if read(STATE / 'launch.json')['containers'] == launch['containers']:
+                if isinstance(exc, TrafficInterference):
+                    record['fault_stop_skipped'] = 'Other traffic invalidated the observation; healthy serving left to watchdog'
+                elif read(STATE / 'launch.json')['containers'] == launch['containers']:
                     with (directory / 'fault-stop.log').open('x') as output:
-                        result = subprocess.run(['python3', '-B', 'cluster', 'stop'], cwd=SOURCE,
+                        result = subprocess.run(['python3', '-B', 'cluster', 'stop'], cwd=deployment_source,
                                                 stdout=output, stderr=subprocess.STDOUT, timeout=180)
                     record['fault_stop_exit'] = result.returncode
                 else:
@@ -241,6 +423,9 @@ def main():
                 record['fault_stop_error'] = type(cleanup).__name__ + ': ' + str(cleanup)
         raise
     finally:
+        stop_observer.set()
+        observer.join(timeout=15)
+        record['memory_summary'] = memory_summary(memory_evidence)
         record['finished'] = common.now()
         save()
 
