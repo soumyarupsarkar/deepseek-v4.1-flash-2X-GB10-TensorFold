@@ -4,14 +4,19 @@
 
 Run DeepSeek-V4.1-Flash across two NVIDIA GB10s using Mia's EXL3 weights, drowzeys' Keys overlay and Bertholomus's native Zig TP2 engine. This fork adds the recipe's context aliases, structured output, shared-pool capacity and reversible deployment controls to that engine.
 
-| Configuration target | Setting |
+| Headline | Setting or measured result |
 |---|---|
 | Shared KV pool | **8,650,752 logical tokens** shared by active and retained sessions |
 | Concurrent active slots | **32** |
 | Maximum context | **1,048,576 tokens per request**, prompt plus reply |
 | Context aliases | **262,144 / 524,288 / 614,400 / 1,048,576** tokens |
+| C1 end-to-end output | **96.0 / 94.3 tok/s** (greedy / sampled) |
+| C32 steady decode | **290.1 / 261.3 aggregate output tok/s** (greedy / sampled) |
+| C32 end-to-end output | **149.6 / 140.5 aggregate output tok/s** (greedy / sampled) |
 | Features under qualification | Vision, Keys, strict JSON/schema/tools, random and explicit request seeds |
 | Session KV writes to NVMe | **Off** |
+
+Throughput rows are native-engine medians from three repetitions at temperatures 0 / 1 with fixed seeds and uncached 1,024-token prompts; replies are 1,024 tokens at C1 and 256 at C32. End-to-end includes admission and prefill; steady decode counts intervals at full requested concurrency with no prefill or queued work. [Measurements and methodology](benchmarks/NATIVE-DRAFTING.md).
 
 Slots and maximum context are separate limits: 32 slots do not mean 32 simultaneously full million-token histories.
 
