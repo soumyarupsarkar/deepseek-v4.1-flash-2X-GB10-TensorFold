@@ -1,0 +1,82 @@
+{
+  "schema": 1,
+  "status": "passed",
+  "created": "2026-10-11T17:49:14.492690+00:00",
+  "runtime_source": "6aaec5b3616f4547fabbe2fcc3fb1e779bb75f82",
+  "runtime_image": "sha256:baa3fc8d748766476d694da36f3e79ac501f18bed6b9572e36c1c80c4baa7bc7",
+  "scope": "Operator-authorized startup and finite synthetic serving checks; not endurance qualification.",
+  "startup": {
+    "started": "2026-10-11T17:45:04.527806+00:00",
+    "ready": "2026-10-11T17:47:48.784201+00:00",
+    "paired_monitor_active": true,
+    "both_rank_identities_unchanged_during_checks": true,
+    "rank_restarts_during_checks": 0
+  },
+  "api": {
+    "binding": "operator-authorized LAN",
+    "port": 8000,
+    "authentication_required": false,
+    "worker_lan_reachability": "passed"
+  },
+  "checks": {
+    "baseline_text_vision_draft_parity_prefix_reuse_four_streams": "passed",
+    "structured_outputs": "passed",
+    "aliases": {
+      "DeepSeek-V4.1-Flash-Keys-1m": {
+        "arithmetic_passed": true,
+        "context": 1048576,
+        "over_limit_status": 400
+      },
+      "DeepSeek-V4.1-Flash-Keys-262k": {
+        "arithmetic_passed": true,
+        "context": 262144,
+        "over_limit_status": 400
+      },
+      "DeepSeek-V4.1-Flash-Keys-524k": {
+        "arithmetic_passed": true,
+        "context": 524288,
+        "over_limit_status": 400
+      },
+      "DeepSeek-V4.1-Flash-Keys-614k": {
+        "arithmetic_passed": true,
+        "context": 614400,
+        "over_limit_status": 400
+      }
+    },
+    "sampling": {
+      "random_seeds_differ": true,
+      "returned_seed_replay_full_token_ids_match": true
+    }
+  },
+  "health": {
+    "status": "ok",
+    "warming": false,
+    "runtime_poisoned": false,
+    "rdma_failed": false,
+    "pool_tokens": 8650752,
+    "context_tokens": 1048576,
+    "stream_slots": 32,
+    "graph_limit": 144
+  },
+  "available_host_gib_after_checks": {
+    "head": 3.62847900390625,
+    "worker": 4.6165618896484375
+  },
+  "inputs": {
+    "serving-api-transition-01.json": "c3843ae96e6f3e908dfa34c97ba838c954e28b386bae2e0b92843d8de181b70a",
+    "serving-start-01.json": "39ebba137d84e491f78a381594d98a9553a568ac88a401487d18656d983a15d5",
+    "serving-validation-01.json": "5845388c3e44be266c1afc57284dd2dc97f4a4d159e54bcade93d2745c80eb7f",
+    "serving-baseline-01.json": "1ddfab5507afdfc6b326b64d0de3e42dc5cd4f6e4ac69c44604b4df6db0b6154",
+    "serving-structured-01.json": "e3272273ae911182cead2b2b5cc626bde4e4c3615fb28c7e206c5e19c61f465b",
+    "restore_serving_api01.py": "0a3a69c24c0dc1a010647c9d5adc333349886400d6f776c1e8e709eb2d8938f6",
+    "start_serving01.py": "af0f7b4c5dcd810c98109ff9d880adfce30d06a7ecac078a66ab9abf818d6075",
+    "check_serving01.py": "fe20eca38ab0277b6fce80c81bbd0cc008cca04f9a5d34fd4aa808a6a58ba4c5"
+  },
+  "limitations": [
+    "Synthetic fixtures only; no user inference traffic exported.",
+    "Current runtime is unchanged from the finite throughput campaign. Only installation API settings changed.",
+    "Full capacity, compaction, recovery and endurance were not rerun during this startup.",
+    "Available memory is a post-check observation, not a minimum under full load. The prior finite campaign approached the 2 GiB floor.",
+    "The user-deferred 24-hour endurance run remains stopped."
+  ]
+}

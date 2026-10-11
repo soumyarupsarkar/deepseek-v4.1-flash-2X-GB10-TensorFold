@@ -1,4 +1,12 @@
-# Native engine migration (qualification in progress)
+# Native engine migration (endurance pending)
+
+**Current deployment, 2026-10-11:** the author requested publication and startup
+of tested runtime `6aaec5b` after the finite throughput phase. It is now serving
+on the existing LAN endpoint with the normal paired monitor. Fresh text,
+vision, structured-output, alias and sampling checks passed; see
+[the startup receipt](release/native-serving-check-20261011.json).
+The 24-hour test remains deferred. This is an operator decision to use the
+candidate, not a completed endurance or production-qualification claim.
 
 The native candidate is **not qualified for production**. The pre-optimization
 corrected image `4d48d4ec` passed all 20 functional and capacity checks, including
@@ -11,7 +19,7 @@ A new bounded 24-hour endurance run began on **2026-10-10 at 23:35 UTC** and
 was stopped at the author's request at **23:44 UTC** to review headline results
 before further endurance testing. Its interrupted receipt records five complete
 mixed cycles and one deep wave over 526.5 seconds; this is not an endurance pass.
-No new endurance run or production cutover will begin without renewed direction.
+The later startup request did not resume the endurance run.
 The subsequent [native drafting investigation](benchmarks/NATIVE-DRAFTING.md)
 is complete. Its final image independently passed the 11 serving/capacity gates
 selected for that phase and all finite performance comparisons; it does not

@@ -1,6 +1,45 @@
 # Native release status
 
-This branch is a migration candidate, not a qualified production release.
+The author requested publication and started the tested native image for
+personal LAN use on **2026-10-11**. Finite validation passed; **24-hour endurance
+remains deferred**. Personal use does not establish production qualification.
+
+## Current runtime
+
+Source `6aaec5b3616f4547fabbe2fcc3fb1e779bb75f82`, image
+`sha256:baa3fc8d748766476d694da36f3e79ac501f18bed6b9572e36c1c80c4baa7bc7`.
+Later documentation commits do not change the measured runtime's identity.
+
+The [throughput evidence](native-throughput-policy-20261010.json) records
+315 build tests, seven GPU checks per host, complete prepared-tensor comparisons,
+all 11 serving/capacity gates and matched native performance comparisons.
+Capacity remains an 8,650,752-token shared pool, 32 slots, a 1,048,576-token
+request ceiling and 48 verification rows. Both full-window C32 waves and the
+cold million-token/interleaving check passed.
+
+Repeated short C32 drafted throughput improved 4.2%/4.9% end to end and
+10.7%/11.4% during eligible steady decode at temperatures 0/1. A later repeat
+confirmed the gains. Ordinary decoding still finished those short waves sooner.
+Repeated C1 was essentially unchanged; greedy C4 remained 2.4% below its single
+earlier baseline. The [report](../benchmarks/NATIVE-DRAFTING.md) retains every
+repetition, failed candidates and measurement limits.
+
+The head's minimum available memory was 2.026 GiB, just 26.6 MiB above the
+unchanged 2 GiB floor, with paging observed. No sampled floor crossing or OOM
+occurred on this image. This narrow margin is not an endurance-stability claim.
+The controller's paired health/memory monitor remains enabled.
+
+After the API returned to the authorized LAN endpoint, the
+[fresh serving checks](native-serving-check-20261011.json) passed text, vision,
+structured output, all four aliases, random seeds and explicit-seed replay.
+The worker could reach the API through the head's LAN address. This restart did
+not rerun capacity, compaction, recovery or endurance tests.
+
+## Pre-optimization migration evidence
+
+The following results retain runtime `4d48d4ec` and its earlier image identity;
+recovery and compaction results are not silently transferred to the throughput
+image above.
 
 The corrected image has passed [all 20 functional/capacity clients](native-functional-20261010-r2.json)
 at runtime source `4d48d4ec5f3db83a361c2228088d72e27f487d62`. These cover serving
@@ -18,7 +57,8 @@ passed 293 CPU/server tests, grammar and both hosts' GPU/cache checks. The exact
 cold 614k request now completes with all 1,024 output tokens; its output differs
 from the Python reference. Three adjacent/odd context checks also passed,
 including a 986,895-token cold prompt. The corrected image has completed all
-three matched measurement suites; performance acceptance remains pending.
+three matched measurement suites. The measured-benefit review accepted faster
+deep prefill with the short-workload tradeoffs disclosed in [MIGRATION.md](../MIGRATION.md).
 The earlier failed deep suite completed six of ten waves and must not be
 presented as a passing comparison.
 
@@ -28,9 +68,10 @@ records the previous-image results at runtime source
 The corrected image has also passed the [renewed compaction checks](native-compaction-20261010.json):
 a populated 262k prefill relocated, and all nine surviving reply prefixes matched
 independent zero-cache references. Decoder continuation after relocation passed
-as well. Matched performance and memory acceptance, recovery (including a
-controlled reboot and Python rollback rehearsal), and a new bounded 24-hour
-endurance run remain pending. The corrected image's six-minute requested soak
+as well. Its [paired recovery, controlled reboot and Python rollback rehearsal](native-recovery-20261010.json)
+also passed. Its 24-hour run was stopped at the author's request after 526.5
+seconds, five mixed cycles and one deep wave; it has not been restarted.
+The corrected image's six-minute requested soak
 completed 256 requests without eager graph fallbacks; it is not endurance
 qualification.
 
@@ -47,8 +88,8 @@ throughput is 15.1% higher. C32 steady decode is 4.1% higher, below the declared
 5% benefit threshold; its apparent 11.2% end-to-end gain is affected by a noisy
 Python reference. Full-text digests and reported token hashes match for 98 of
 100 requests; the two prose replies differ. All repetitions remain included,
-including the 12.9% native C1-code end-to-end range. No measured-benefit gate has
-been accepted.
+including the 12.9% native C1-code end-to-end range. The benefit decision rests
+on the separate deep-prefill results rather than this noisy short comparison.
 
 The [longer-reply C4/C32 diagnostic](native-drafting-diagnostic-20261010.json)
 completed 16 waves and 288 requests. All 144 ordinary/default reply comparisons
@@ -57,8 +98,9 @@ decode; at C32 it changed the median by −3.0% at temperature 0 and +0.5% at
 temperature 1. Three graph captures in the first drafted C32 wave remain included.
 This is an internal native comparison, not a replacement Python benchmark.
 Four predeclared additional repetitions of the original C32 temperature-0
-workload are running to investigate its near-threshold regression. The original
-measurements and policy remain intact.
+workload completed, giving a six-run native end-to-end median of 141.18 tok/s
+against the original two-run Python median of 153.22. The original measurements
+and policy remain intact; the later native-to-native protocol is separate.
 
 The [complete ten-wave deep-context comparison](native-deep-comparison-20261010.json)
 now covers 32k, 128k, 256k, 614k and one million total tokens, with two cold C1-code
@@ -79,8 +121,8 @@ See the caveats in
 [benefit policy](native-benefit-policy-20261010.json). These results do not
 establish an overall throughput advantage or production qualification.
 
-The Python reference remains the qualified fallback and is stopped during the
-loopback candidate's hardware qualification. Its benchmark and qualification
+The Python reference remains available as the retained, stopped fallback.
+Its benchmark and qualification
 records are historical; they do not establish native performance or stability.
 See [MIGRATION.md](../MIGRATION.md), [native setup](../deployment/README.md)
 and [migration rollback](../deployment/MIGRATION-ROLLBACK.md).

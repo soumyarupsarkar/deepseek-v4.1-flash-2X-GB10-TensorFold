@@ -4,7 +4,7 @@
 
 Run DeepSeek-V4.1-Flash across two NVIDIA GB10s using Mia's EXL3 weights, drowzeys' Keys overlay and Bertholomus's native Zig TP2 engine. This fork adds the recipe's context aliases, structured output, shared-pool capacity and reversible deployment controls to that engine.
 
-**Native qualification is in progress.** The configured targets below are not native hardware qualification or performance claims. The previous Python deployment remains the rollback reference; see [migration gates](MIGRATION.md).
+**Native endurance qualification is pending.** The author started the tested native image for personal LAN use on 2026-10-11 after the finite performance and serving checks. This does not claim a completed 24-hour endurance test. The settings below are configuration limits; measured results and their scope appear in [migration status](MIGRATION.md). The previous Python deployment remains available for rollback.
 
 | Configuration target | Setting |
 |---|---|
@@ -170,7 +170,9 @@ were essentially unchanged, while greedy C4 remained about 2.4% below its
 single baseline measurement. A later C32 repeat confirmed the improvement at
 149.1/140.9 end-to-end tok/s. The current image passed the serving, full-window
 C32 and million-token checks, but the head came within 26.6 MiB of the 2 GiB
-memory floor. Endurance and production cutover remain held.
+memory floor. The author chose to start this image for personal use on
+2026-10-11; endurance remains deferred. See the
+[fresh startup checks](release/native-serving-check-20261011.json).
 
 This diagnostic uses a different cache protocol from the historical Python
 comparison above. The
