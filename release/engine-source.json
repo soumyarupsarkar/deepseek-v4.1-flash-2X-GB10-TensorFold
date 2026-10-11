@@ -1554,15 +1554,15 @@
     },
     {
       "path": "zig/src/core/lanes/config.zig",
-      "sha256": "7cc9d1d494ca28a0aae980e8d58fbc3d4a7fea0e534628ccf4b91c783fe0a08a"
+      "sha256": "7a07b754436e0c1b33a269f7462ce2d10f53fff3f0ba9dae4f7e0f52fe80fa33"
     },
     {
       "path": "zig/src/core/lanes/depth.zig",
-      "sha256": "10f91a0380bd4d8c2d68778afa4d3aee38ab89c0ade2cc47f1755b4eb3fb426e"
+      "sha256": "ef8aba920388c098c482f8e742aea1a3ae72120a2bc3a55743090dcc16e7f6b4"
     },
     {
       "path": "zig/src/core/lanes/engine.zig",
-      "sha256": "4dda4dc5c4d7b646a882c4884866edc8d2ef9464a3c12eda8efaa09bffcf3eff"
+      "sha256": "3722a5333ae51ec6c9158160fb5757065d60338a70eac297f24537465666774c"
     },
     {
       "path": "zig/src/core/lanes/engine_test.zig",
@@ -2046,7 +2046,7 @@
     },
     {
       "path": "zig/src/families/dsv41/lanes.zig",
-      "sha256": "37d336c4c8ce1c14c90dc4ab6f51961de642b6c657326ea7551dabad7c8d9e8f"
+      "sha256": "59e785c4531505cffe80f926cb9f69871e2c12cac96a88776d25e9a40f66033f"
     },
     {
       "path": "zig/src/families/dsv41/lanes_main.zig",
@@ -2074,7 +2074,7 @@
     },
     {
       "path": "zig/src/families/dsv41/native.zig",
-      "sha256": "46963623e049f69d4b9676ff698312b07b2e37ee54fea6993d6d93b3f043cb04"
+      "sha256": "492c53dfb69294bc513b81dec3bdc5075818b6de3a0efdfde0fa732a5fb975fd"
     },
     {
       "path": "zig/src/families/dsv41/ops.zig",
@@ -3162,7 +3162,7 @@
     },
     {
       "path": "zig/tests/lanes_units.zig",
-      "sha256": "2393d7707b8fd2dadc9b9094130e0927e9eb138a6bd89e4443326ba61b5b4036"
+      "sha256": "7726984c4fe58dc08b4eef0aaeb27dd30994eefcdc3f5653cc361fd11bdeec09"
     },
     {
       "path": "zig/tests/linktest.zig",

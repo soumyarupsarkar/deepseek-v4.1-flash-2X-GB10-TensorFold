@@ -20,6 +20,7 @@ pub const State = struct {
     plain: ?u64 = null,
     wait: ?u64 = null,
     unallocated_rounds: u64 = 0,
+    budget_probe: bool = false, // this budget decision offered a bounded retry
     ms: ?Table = null, // plain_guard: the stream's own round times
 
     pub fn deinit(st: *State, gpa: Allocator) void {
@@ -190,25 +191,35 @@ pub const Rule = struct {
     }
 
     /// Head drafts for the streams of a shared round, sized by allocation over their chain chances.
-    pub fn budgets(r: *Rule, whos: []Who, probe: Probe, out: []i64) !void {
+    pub fn budgets(r: *Rule, whos: []Who, probe: Probe, out: []i64, mandatory_rows: usize) !void {
         if (r.node_probabilities) {
+            var eligible: usize = 0;
+            for (whos) |w| eligible += @intFromBool(!w.finished and !w.forced);
+            // Only ration generation when the verifier cannot offer one extra
+            // row to each eligible head. Small batches and draining tails
+            // should not wait for a stale zero grant to be probed again.
+            const scarce = (@as(usize, r.batch_rows) -| mandatory_rows) < eligible;
             for (whos, out) |*w, *o| {
+                if (w.state.*) |*st| st.budget_probe = false;
                 const inner = try r.headDepth(w, null, probe);
                 const granted: i64 = if (w.granted) |g| g else r.most_drafts;
                 var budget = granted + r.k.draft_slack;
                 // Keep unallocated streams eligible without paying to regenerate
                 // proposals the shared verifier repeatedly declined. A fixed,
                 // per-stream probe interval prevents permanent starvation.
-                if (r.probe_unallocated_drafts and whos.len > 1) {
+                if (r.probe_unallocated_drafts and whos.len > 1 and scarce) {
                     if (inner > 0 and !w.finished and !w.forced and w.granted != null and granted == 0) {
                         _ = try r.rates(w.*);
                         const st = &w.state.*.?;
                         st.unallocated_rounds += 1;
                         if (st.unallocated_rounds >= @max(1, r.k.depth_probe_every)) {
                             st.unallocated_rounds = 0;
+                            st.budget_probe = true;
                             budget = 1;
                         } else budget = 0;
                     } else if (w.state.*) |*st| st.unallocated_rounds = 0;
+                } else if (r.probe_unallocated_drafts) {
+                    if (w.state.*) |*st| st.unallocated_rounds = 0;
                 }
                 o.* = try r.headDepth(w, @min(inner, budget), probe);
             }
@@ -310,11 +321,12 @@ test "zero-grant shared streams skip generation but all receive bounded probes" 
     var out: [32]i64 = undefined;
     var attempts: [32]u32 = @splat(0);
     for (0..25) |round| {
-        try rule.budgets(&whos, probe, &out);
+        try rule.budgets(&whos, probe, &out, 32);
         for (out, 0..) |d, i| {
             attempts[i] += @intFromBool(d > 0);
             const expected: i64 = if (i < 16) 3 else if ((round + 1) % 8 == 0) 1 else 0;
             try std.testing.expectEqual(expected, d);
+            if (i >= 16) try std.testing.expectEqual((round + 1) % 8 == 0, states[i].?.budget_probe);
         }
     }
     for (attempts[0..16]) |n| try std.testing.expectEqual(@as(u32, 25), n);
@@ -322,7 +334,7 @@ test "zero-grant shared streams skip generation but all receive bounded probes" 
     // A newly positive allocation resumes generation immediately; no global
     // C16 cutoff prevents any of the 32 streams from drafting.
     for (&whos) |*w| w.granted = 1;
-    try rule.budgets(&whos, probe, &out);
+    try rule.budgets(&whos, probe, &out, 32);
     for (out) |d| try std.testing.expectEqual(@as(i64, 3), d);
     for (states[16..]) |st| try std.testing.expectEqual(@as(u64, 0), st.?.unallocated_rounds);
 }
@@ -330,7 +342,7 @@ test "zero-grant shared streams skip generation but all receive bounded probes" 
 test "budget probing preserves opt-out solo unknown forced and finished behavior" {
     const gpa = std.testing.allocator;
     const costs: Table = .{};
-    var rule: Rule = .{ .gpa = gpa, .prior = &.{ 0.9, 0.9, 0.9 }, .most_drafts = 3, .family_costs = &costs, .shared_costs = &costs, .mtp_step_ms = 0, .plain_guard = false, .node_probabilities = true, .batch_rows = 48 };
+    var rule: Rule = .{ .gpa = gpa, .prior = &.{ 0.9, 0.9, 0.9 }, .most_drafts = 3, .family_costs = &costs, .shared_costs = &costs, .mtp_step_ms = 0, .plain_guard = false, .node_probabilities = true, .batch_rows = 6 };
     defer rule.deinit();
     var states: [4]?State = @splat(null);
     defer for (&states) |*st| {
@@ -349,13 +361,25 @@ test "budget probing preserves opt-out solo unknown forced and finished behavior
     };
     const probe: Probe = .{ .ptr = &dummy, .copy = no_copy.check };
     var out: [4]i64 = undefined;
-    try rule.budgets(&whos, probe, &out);
+    try rule.budgets(&whos, probe, &out, 5);
     try std.testing.expectEqualSlices(i64, &.{ 2, 3, 0, 0 }, &out);
     rule.probe_unallocated_drafts = true;
     for (0..16) |round| {
-        try rule.budgets(&whos, probe, &out);
+        try rule.budgets(&whos, probe, &out, 5);
         try std.testing.expectEqualSlices(i64, &.{ if ((round + 1) % 8 == 0) 1 else 0, 3, 0, 0 }, &out);
     }
-    try rule.budgets(whos[0..1], probe, out[0..1]);
+    try rule.budgets(whos[0..1], probe, out[0..1], 1);
     try std.testing.expectEqual(@as(i64, 2), out[0]);
+    try rule.budgets(&whos, probe, &out, 5);
+    try std.testing.expectEqual(@as(u64, 1), states[0].?.unallocated_rounds);
+    // Free rows restore generation immediately, including a draining tail.
+    // Mandatory rows from ordinary/forced windows count too: this is a row
+    // budget condition, not a hard concurrency cutoff.
+    rule.batch_rows = 48;
+    try rule.budgets(&whos, probe, &out, 5);
+    try std.testing.expectEqualSlices(i64, &.{ 2, 3, 0, 0 }, &out);
+    try std.testing.expectEqual(@as(u64, 0), states[0].?.unallocated_rounds);
+    try std.testing.expect(!states[0].?.budget_probe);
+    try rule.budgets(&whos, probe, &out, 47);
+    try std.testing.expectEqualSlices(i64, &.{ 0, 3, 0, 0 }, &out);
 }

@@ -24,7 +24,7 @@
 //!                                               no extra GPU synchronization or sampling changes
 //!   TF_DS_ADAPTIVE_DRAFTS=1                     price shared draft generation from committed tokens / wall time;
 //!                                               four valid rounds per probe, retry every 64 settled rounds
-//!   TF_DS_BUDGET_DRAFTS=1                       probe zero-grant shared streams once per eight opportunities
+//!   TF_DS_BUDGET_DRAFTS=1                       when rows are scarce, probe zero-grant shared streams every eight opportunities
 //! The kernel set (TENSORFOLD_CUDA_KERNELS) is the recorded Triton set (aot_pack.py). Each stream reserves its prompt,
 //! max_tokens and round slack in the shared pool. TF_DS_POOL_TOKENS defaults to --context for upstream compatibility.
 //! TF_TP_WORLD=4: the four nodes of the exact 2D split (prompt2d.zig), ranks 1-3 `tf-dsv41-lanes` following on the

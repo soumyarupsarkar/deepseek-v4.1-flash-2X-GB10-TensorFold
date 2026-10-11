@@ -116,7 +116,7 @@ fn depthCase(a: std.mem.Allocator, case: fx.Value) !void {
             const whos = try a.alloc(depth.Who, names.len);
             for (whos, names) |*w, n| w.* = stubs[index(ids, fx.str(n))].who();
             const out = try a.alloc(i64, names.len);
-            try rule.budgets(whos, probe, out);
+            try rule.budgets(whos, probe, out, whos.len);
             try t.expectEqualSlices(i64, try fx.i64s(a, fx.get(op, "result")), out);
         } else if (std.mem.eql(u8, kind, "observe_overhead")) {
             try rule.observeOverhead(@intCast(fx.int(fx.get(op, "streams"))), @intCast(fx.int(fx.get(op, "rows"))), fx.float(fx.get(op, "ms")));

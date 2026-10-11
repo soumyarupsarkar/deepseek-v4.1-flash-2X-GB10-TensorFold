@@ -858,8 +858,12 @@ pub const Lanes = struct {
             if (self.budgeted_generation and requests.len > 1 and self.generation_outgoing != .plain and
                 !r.stream.finished and r.stream.force.items.len == 0 and r.stream.granted == 0)
             {
-                const counter = if (r.depth == 0) &self.generation_budget_skipped_streams else &self.generation_budget_probe_streams;
-                _ = counter.fetchAdd(1, .monotonic);
+                if (r.stream.depth) |st| {
+                    if (r.depth == 0 and st.unallocated_rounds > 0)
+                        _ = self.generation_budget_skipped_streams.fetchAdd(1, .monotonic)
+                    else if (r.depth > 0 and st.budget_probe)
+                        _ = self.generation_budget_probe_streams.fetchAdd(1, .monotonic);
+                }
             }
             if (r.depth == 0) continue;
             if (n == max_streams) return error.TooManyStreams;

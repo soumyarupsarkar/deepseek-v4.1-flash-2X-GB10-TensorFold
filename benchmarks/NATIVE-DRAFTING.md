@@ -95,9 +95,26 @@ rate was 147.78 tok/s and sampled rate 133.19 tok/s. Earlier withdrawal in the
 second candidate gave 144.99 and 133.96 tok/s. These mixed results do not justify
 claiming that the empirical guard is a demonstrated throughput improvement.
 
-The next candidate disables that guard in the deployment profile and enables
-`TF_DS_BUDGET_DRAFTS=1`. It uses the last shared allocation to avoid regenerating
-proposals for a stream granted zero speculative verification rows. Each eligible
+The third candidate disabled that guard in the deployment profile and enabled
+`TF_DS_BUDGET_DRAFTS=1`. Its three-repetition C32 short benchmark preserved all
+192 within-revision pairs and all 384 outputs against the baseline. Median
+steady decode improved about 10.5% at both temperatures (261.98 to 289.62 tok/s
+greedy; 234.60 to 259.17 sampled), while end-to-end throughput changed +0.9% and
+-1.2%. Those are different measures; the cold-wave total did not gain 10.5%.
+Its long C4 greedy pair regressed to 119.75 tok/s from 134.66, with the ordinary
+control essentially unchanged. That trial was stopped after six complete long
+waves to refine the rule; it did not complete the deep or feature gates.
+
+The current candidate applies bounded probes only when mandatory verifier rows
+leave fewer free rows than eligible draft streams. Mandatory rows include
+ordinary target rows and forced continuations. When there is room to offer one
+speculative row to each eligible stream, generation resumes immediately and
+the waiting counters reset. This covers smaller batches and draining tails;
+it is a row-budget condition rather than a fixed concurrency cutoff.
+
+Under that scarcity condition, the policy uses the last shared allocation to
+avoid regenerating proposals for a stream granted zero speculative verification
+rows. Each eligible
 zero-grant stream gets a one-proposal probe every eight shared budget decisions;
 a positive allocation resumes generation immediately. Streams with unknown
 allocation, solo generation and forced closes retain their existing behavior.
@@ -111,8 +128,9 @@ budget allowed two extra proposals even for zero-grant streams. The native
 drafter computes five hidden rows per selected stream regardless of requested
 depth, so avoiding a whole stream's generation can save more work than merely
 shortening its proposed chain. The pass width and GPU kernels are unchanged.
-The bounded-probe policy and guard-off profile form one candidate, not an
-isolated one-variable ablation; hardware results are still pending.
+The bounded-probe policy and guard-off profile formed the third candidate, not
+an isolated one-variable ablation. The scarcity refinement requires renewed
+hardware checks before selecting it as the deployment default.
 
 The health diagnostics report measured drafted/suppressed rounds, probe rounds,
 excluded transitions/captures/prefill, suppressed stream requests and completed draft

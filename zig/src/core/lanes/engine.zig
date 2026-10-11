@@ -326,10 +326,12 @@ pub const Engine = struct {
         const windows = try a.alloc(be.Window, plans.len);
         const out = try a.alloc(be.Verified, plans.len);
         var total: u64 = 0;
+        var mandatory_rows: usize = 0;
         for (plans, windows, out) |p, *w, *o| {
             w.* = try win.build(e, p, false);
             o.* = .{ .sampled = try a.alloc(u32, w.rows()), .drafts = try a.alloc(u32, w.rows() - 1) };
             total += w.rows();
+            mandatory_rows += if (p.kind == .forced) w.rows() else 1;
         }
         try e.backend.verify(windows, out);
         const outcomes = try a.alloc(Outcome, plans.len);
@@ -348,7 +350,7 @@ pub const Engine = struct {
         const whos = try a.alloc(depth.Who, heads.items.len);
         for (whos, heads.items) |*w, i| w.* = win.who(plans[i].stream);
         const budgets = try a.alloc(i64, heads.items.len);
-        try e.rule.budgets(whos, win.probe(e), budgets);
+        try e.rule.budgets(whos, win.probe(e), budgets, mandatory_rows);
         const ids = try a.alloc(ev.Value, heads.items.len);
         for (ids, heads.items) |*id, i| id.* = str(plans[i].stream.id);
         try trail.event(e, &.{ f("ev", str("budgets")), f("streams", .{ .list = ids }), f("depths", .{ .i64s = budgets }) });
