@@ -1,5 +1,10 @@
 # Measurement definitions and reproduction
 
+The native [drafting investigation](NATIVE-DRAFTING.md) records the October 10
+throughput work, its separate baseline, candidate trials and timing definitions.
+The Python measurements below remain historical and are not relabeled as native
+results.
+
 The bundle contains original two-GB10 measurements from 2026-10-07, portable-cutover measurements from 2026-10-08, and the later FP32 correctness update on 2026-10-08 (UTC). Both portable builds reused fully verified model/prepared assets. Current engine fingerprints and historical provenance are in [engine-source.json](../release/engine-source.json). Sanitized summaries retain ranges and source-receipt hashes. Private raw operational receipts, host inventories and logs are not bundled; their hashes are provenance references, not links to downloadable files.
 
 The [October 9 selective update](../deployment/UPSTREAM-V06.md) has separate

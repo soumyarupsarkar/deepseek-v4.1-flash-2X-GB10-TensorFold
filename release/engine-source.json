@@ -2822,7 +2822,7 @@
     },
     {
       "path": "zig/src/server/json_parse.zig",
-      "sha256": "c8b1601849f32b7efef398871cdbca5d60736772e3135fb592cb7729d53b4940"
+      "sha256": "b896928d6e5c19cf9bb9f4387d2e271869cf4effd0b02bbfaadf9ff1c5ca5516"
     },
     {
       "path": "zig/src/server/json_write.zig",

@@ -143,7 +143,15 @@ const Parser = struct {
     }
 
     fn numberAt(p: *Parser, start: usize) Failure!Value {
-        const s = p.s;
+        const number = scanNumber(p.s, start) orelse return p.syntax("Expecting value", start);
+        p.pos = number.end;
+        const text = p.s[start..number.end];
+        if (number.is_float) return .{ .float = std.fmt.parseFloat(f64, text) catch unreachable };
+        return .{ .int = try canonicalInt(p, text) };
+    }
+
+    /// The number prefix accepted by numberAt, without allocating or reporting errors.
+    fn scanNumber(s: []const u8, start: usize) ?struct { end: usize, is_float: bool } {
         var i = start;
         if (i < s.len and s[i] == '-') i += 1;
         if (i < s.len and s[i] >= '1' and s[i] <= '9') {
@@ -151,7 +159,7 @@ const Parser = struct {
             while (i < s.len and std.ascii.isDigit(s[i])) i += 1;
         } else if (i < s.len and s[i] == '0') {
             i += 1;
-        } else return p.syntax("Expecting value", start);
+        } else return null;
         var is_float = false;
         if (i + 1 < s.len and s[i] == '.' and std.ascii.isDigit(s[i + 1])) {
             is_float = true;
@@ -165,10 +173,7 @@ const Parser = struct {
             while (i < s.len and std.ascii.isDigit(s[i])) i += 1;
             if (std.ascii.isDigit(s[i - 1])) is_float = true else i = e_start;
         }
-        p.pos = i;
-        const text = s[start..i];
-        if (is_float) return .{ .float = std.fmt.parseFloat(f64, text) catch unreachable };
-        return .{ .int = try canonicalInt(p, text) };
+        return .{ .end = i, .is_float = is_float };
     }
 
     fn canonicalInt(p: *Parser, text: []const u8) Failure![]const u8 {
@@ -270,6 +275,11 @@ const Parser = struct {
             p.pos = i + 1;
             return .{ .array = &.{} };
         }
+        // Raw completions can contain hundreds of thousands of token IDs.
+        // Growing their Value array in a request arena retains old buffers;
+        // reserve once when an allocation-free scan proves a flat number list.
+        // Mixed/nested/invalid arrays keep the normal parser and its errors.
+        if (p.numberArrayCount(i)) |count| try list.ensureTotalCapacityPrecise(p.a, count);
         while (true) {
             try list.append(p.a, try p.value(i, depth));
             i = p.skip(p.pos);
@@ -281,6 +291,23 @@ const Parser = struct {
             const comma = i;
             i = p.skip(i + 1);
             if (i < p.s.len and p.s[i] == ']') return p.syntax("Illegal trailing comma before end of array", comma);
+        }
+    }
+
+    fn numberArrayCount(p: *const Parser, begin: usize) ?usize {
+        var i = begin;
+        var count: usize = 0;
+        while (true) {
+            const number = scanNumber(p.s, i) orelse return null;
+            // An overlong integer is refused before reserving for its tail.
+            const digits = number.end - i - @intFromBool(p.s[i] == '-');
+            if (!number.is_float and digits > 4300) return null;
+            count += 1;
+            i = p.skip(number.end);
+            if (i >= p.s.len) return null;
+            if (p.s[i] == ']') return count;
+            if (p.s[i] != ',') return null;
+            i = p.skip(i + 1);
         }
     }
 };
@@ -327,10 +354,74 @@ test "python messages" {
         .{ "\"\xe2\x82\"", "'utf-8' codec can't decode bytes in position 1-2: invalid continuation byte" },
         .{ "\xff", "'utf-8' codec can't decode byte 0xff in position 0: invalid start byte" },
         .{ "1.", "Extra data: line 1 column 2 (char 1)" },
+        .{ "[01]", "Expecting ',' delimiter: line 1 column 3 (char 2)" },
+        .{ "[1e+]", "Expecting ',' delimiter: line 1 column 3 (char 2)" },
+        .{ "[1,]", "Illegal trailing comma before end of array: line 1 column 3 (char 2)" },
+        .{ "[-]", "Expecting value: line 1 column 2 (char 1)" },
         .{ "\"\xc3\xa9\\x\"", "Invalid \\escape: line 1 column 3 (char 2)" },
     };
     for (cases) |c| {
         const r = try parse(a, c[0]);
         try std.testing.expectEqualStrings(c[1], r.err);
     }
+}
+
+test "full-window numeric prompts have bounded arena storage" {
+    const gpa = std.testing.allocator;
+    const n = 261120;
+    var body: std.ArrayList(u8) = .empty;
+    defer body.deinit(gpa);
+    try body.appendSlice(gpa, "{\"prompt\":[");
+    for (0..n) |i| {
+        if (i != 0) try body.append(gpa, ',');
+        try body.appendSlice(gpa, "123456");
+    }
+    try body.appendSlice(gpa, "],\"max_tokens\":1024,\"temperature\":1,\"seed\":9000,\"return_token_ids\":true,\"ignore_eos\":true}");
+    var arena: std.heap.ArenaAllocator = .init(gpa);
+    defer arena.deinit();
+    const a = arena.allocator();
+    const raw = try a.dupe(u8, body.items);
+    const prompt = (try parse(a, raw)).ok.get("prompt").?.array;
+    try std.testing.expectEqual(n, prompt.len);
+    const ids = try a.alloc(u32, prompt.len);
+    for (prompt, ids) |v, *id| {
+        try std.testing.expectEqual(@as(?i64, 123456), v.int64());
+        id.* = @intCast(v.int64().?);
+    }
+    // Includes the body, JSON values and typed token IDs. The old arena's
+    // retained growth buffers required 27.9 MB for this one request.
+    try std.testing.expect(arena.queryCapacity() <= 16 * 1024 * 1024);
+}
+
+test "numeric reservation preserves numbers and mixed array parsing" {
+    var arena: std.heap.ArenaAllocator = .init(std.testing.allocator);
+    defer arena.deinit();
+    const a = arena.allocator();
+    const numbers = (try parse(a, "[-0,1,-2,0.25,1e3,-2.5e-2]")).ok.array;
+    try std.testing.expectEqual(@as(usize, 6), numbers.len);
+    try std.testing.expectEqualStrings("0", numbers[0].int);
+    try std.testing.expectEqual(@as(?i64, -2), numbers[2].int64());
+    try std.testing.expectEqual(@as(f64, 0.25), numbers[3].float);
+    try std.testing.expectEqual(@as(f64, 1000), numbers[4].float);
+    try std.testing.expectEqual(@as(f64, -0.025), numbers[5].float);
+    const mixed = (try parse(a, "[1,[2,3],true,\"x\",NaN,Infinity]")).ok.array;
+    try std.testing.expectEqual(@as(usize, 6), mixed.len);
+    try std.testing.expectEqual(@as(?i64, 3), mixed[1].array[1].int64());
+    try std.testing.expect(mixed[2].bool);
+    try std.testing.expectEqualStrings("x", mixed[3].string);
+    try std.testing.expect(std.math.isNan(mixed[4].float));
+    try std.testing.expect(std.math.isInf(mixed[5].float));
+}
+
+test "malformed numeric array cannot force a large reservation" {
+    const gpa = std.testing.allocator;
+    const body = try gpa.alloc(u8, 65536);
+    defer gpa.free(body);
+    @memset(body, ',');
+    body[0] = '[';
+    body[body.len - 1] = ']';
+    var buffer: [4096]u8 = undefined;
+    var limited: std.heap.FixedBufferAllocator = .init(&buffer);
+    const result = try parse(limited.allocator(), body);
+    try std.testing.expectEqualStrings("Expecting value: line 1 column 2 (char 1)", result.err);
 }

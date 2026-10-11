@@ -1,9 +1,99 @@
 # Native drafting investigation
 
 This work investigates the native C32 regression before further endurance
-testing. The policy changes are candidates pending hardware validation. The
-24-hour run remains stopped; these measurements do not qualify a production
-cutover. See [migration status](../MIGRATION.md).
+testing. The measured policy passed the repeated short C32 comparison and the
+long-reply matrix, then failed full-window admission at the head's memory floor.
+A request-memory correction is being qualified before accepting the candidate.
+The 24-hour run remains stopped. See [migration status](../MIGRATION.md).
+
+## Completed short C32 measurements
+
+The measurements in the next two sections belong to source
+`e3b0a9441c2855eb88433c7ac63697a1ff078e0d`, image
+`sha256:4bada8d76afd5838900e423bcc2a2974208c9bb59223270231a9860ee0e69932`.
+Compared with the instrumented baseline below, its three-repetition medians are:
+
+| Temperature | Previous / candidate end-to-end tok/s | Change | Previous / candidate steady decode tok/s | Change |
+| --- | ---: | ---: | ---: | ---: |
+| 0 | 143.50 / 151.09 | +5.3% | 261.98 / 303.28 | +15.8% |
+| 1 | 133.96 / 139.82 | +4.4% | 234.60 / 261.78 | +11.6% |
+
+All 192 ordinary/drafted pairs matched, as did all 384 outputs against the
+baseline. The ordinary controls changed less than 0.5% in both measures.
+Greedy candidate end-to-end repetitions ranged from 150.84 to 151.29 tok/s;
+sampled repetitions ranged from 139.56 to 140.19. These are synthetic 1,024-token
+prompts with 256-token replies at observed C32, fixed seeds and zero actual
+cache hits. Graph construction remains included in wall time.
+
+Steady decode uses health-counter intervals at full requested decoder occupancy,
+with no prefill or queued work. In the first greedy pair the candidate's eligible
+interval was 12.03 seconds of a 54.31-second wave, versus 17.04 seconds of 56.88
+previously. The different occupancy durations are retained with the rates;
+the 15.8% steady improvement is not a whole-request improvement.
+
+This does not make drafting universally faster. In the same candidate run,
+ordinary decoding reached 163.25 greedy and 143.43 sampled end-to-end tok/s,
+finishing these short waves sooner despite the candidate's stronger steady
+decode rate. Longer replies, different concurrency and deep context require
+their own comparisons. These native-to-native results also use a different
+eviction protocol from the historical Python comparison.
+
+## Long replies across concurrency
+
+The complete matrix uses 1,024 prompt and 1,024 reply tokens per request, the
+same synthetic fixtures and fixed seeds, and zero cached tokens. All 195
+ordinary/drafted pairs matched, and all 390 outputs matched the baseline.
+Each shape has one pair, so these are diagnostic observations rather than
+repeated headline estimates. The table reports drafted end-to-end aggregate
+tok/s; ordinary controls are retained in the evidence.
+
+| Streams | Greedy previous / candidate | Sampled previous / candidate |
+| ---: | ---: | ---: |
+| 1 | 95.86 / 94.77 | 93.73 / 94.07 |
+| 4 | 134.66 / 127.87 | 117.11 / 117.95 |
+| 8 | 137.09 / 153.23 | 134.37 / 145.07 |
+| 16 | 179.07 / 181.14 | 176.87 / 177.10 |
+| 24 | 188.33 / 188.17 | 178.04 / 178.97 |
+| 32 | 186.97 / 194.20 | 179.66 / 185.26 |
+
+The extra greedy C12/C13 boundary checks reached 174.28/175.22 tok/s, versus
+169.69/174.50 previously. No cliff appeared in that pair. C8 gained 11.8% greedy
+and 8.0% sampled; C32 gained 3.9% and 3.1%. Greedy C4 regressed 5.0%, with its
+ordinary control essentially unchanged. Separate repeated C1/C4/C8 confirmation
+remains pending after the memory correction and feature validation.
+
+The scarcity rule did not skip generation in that C4 wave. Its changed
+allocation used 358 shared rounds versus 333 before, with verification taking
+26.77 rather than 25.53 seconds. This points to a remaining allocation tradeoff;
+the short-context cost prior is not optimal for every batch. Different windows
+were verified, so these counters are not an isolated kernel-latency comparison.
+
+## Full-window admission memory failure
+
+The ordinary full-window C32 wave completed at 168.23 aggregate wave tok/s.
+During admission of the following drafted wave, the head's available host memory
+fell to 2,044.4 and 2,022.3 MiB in consecutive monitor samples, below the unchanged
+2,048 MiB floor. The monitor stopped both ranks and restored their journaled host
+state. All 32 client requests consequently disconnected; this is a failed deep
+check, not a passing throughput result. The last health sample had no poisoned
+runtime or RoCE fault, and the sampled cgroup had no OOM event.
+
+Head-container anonymous memory rose about 476 MiB while the long requests were
+admitted. A CPU reproduction found avoidable retained growth buffers in the
+JSON parser's request arena: a 261,120-token numeric prompt, its body and typed
+token IDs reserved 27,908,262 bytes. Reserving the flat numeric array once reduced
+that to 16,255,238 bytes, about 355 MiB less across 32 such arenas. This is an
+allocation-footprint measurement, not a demonstrated reduction in total physical
+GPU memory. The buffers are released with the request; this was transient peak
+memory rather than evidence of an unbounded leak.
+
+The correction shares the original numeric scanner, preserves mixed/nested
+array parsing and error messages, and avoids speculative large reservations for
+malformed input. Regression tests cover a real full-window-sized input under a
+16 MiB arena bound, numeric values, mixed arrays and malformed-input behavior.
+The serving memory floor, host reserve, KV pool and context limits are unchanged.
+The corrected image still needs the full hardware checks; the failed receipts
+and images remain preserved.
 
 ## Measured cause
 

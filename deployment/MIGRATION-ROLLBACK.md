@@ -82,3 +82,34 @@ The reference remains the production fallback until the native candidate passes
 feature, capacity, performance, stability and recovery gates. A passing native
 build or GPU primitive test alone does not authorize a cutover claim. Never
 restart a previously user-stopped endurance unit as part of rollback.
+
+## Return from a native drafting-policy trial
+
+The [drafting investigation](../benchmarks/NATIVE-DRAFTING.md) retains the
+pre-optimization native source `4d48d4ec5f3db83a361c2228088d72e27f487d62`
+and its local image
+`sha256:83752d9d3bc7da632fd195332963501e9ca5208a8e2fcf409e781e985049aafd`.
+These identify this installation's fallback, not an image published for download.
+Other operators must preserve their own matching source, images and receipts.
+
+Finish or cancel the owned test clients, then stop both ranks and verify host
+restoration with the current controller before switching source. Require a
+clean serving checkout and retain the trial branch and image. Verify archived
+receipt hashes, the exact image on both hosts and unchanged asset/cache
+identities. Only the matching `build.json`, `native-prepare.json`,
+`precompile.json` and `native-cache-check.json` preparation records may be
+reselected. Run the earlier source's normal startup guards and fresh baseline,
+structured-output and alias checks before claiming restoration complete.
+
+Do not restore an old `active.json`, `launch.json`, host baseline, ownership
+record, monitor state or DRM journal over current recovery state. A new start
+must create a fresh launch. If a fingerprint changed, rerun its corresponding
+verification; do not manufacture a passing receipt. Switching these native
+policies does not require deleting models, pruning images or rebooting.
+
+Policy switches are useful for comparisons but do not reproduce the previous
+source exactly. `TF_DS_BUDGET_DRAFTS=0` disables bounded generation probes;
+`TF_DS_ADAPTIVE_DRAFTS=0` disables the empirical guard. Removing
+`TF_DS_SHARED_ROUND_MS` removes the calibrated shared prior while retaining the
+corrected table extrapolation. Changes to the tracked deployment profile require
+a matching source/image and a coordinated restart of both ranks.
