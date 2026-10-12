@@ -96,9 +96,11 @@ class HistoryTests(unittest.TestCase):
     def test_health_evidence_omits_text_tokens_and_large_nested_extensions(self):
         selected = memory_watch.health_sample(dict(ok=True, prompt='PRIVATE', response='PRIVATE',
             memory=dict(allocated_bytes=123, token_ids=[1, 2], draft_calibration={'body': 'PRIVATE'},
-                        kv_pool=dict(active_requests=2, request='PRIVATE'))))
+                        kv_pool=dict(active_requests=2, request='PRIVATE'),
+                        host_glibc=dict(in_use_bytes=456, free_arena_bytes=78, request='PRIVATE'))))
         self.assertEqual(selected['memory']['allocated_bytes'], 123)
         self.assertEqual(selected['memory']['kv_pool'], {'active_requests': 2})
+        self.assertEqual(selected['memory']['host_glibc'], {'in_use_bytes': 456, 'free_arena_bytes': 78})
         self.assertNotIn('PRIVATE', json.dumps(selected))
         self.assertNotIn('token_ids', selected['memory'])
 

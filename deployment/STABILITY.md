@@ -64,3 +64,44 @@ After normal completion the server stays available. `diagnostic-workload-passed`
 means the workload completed; `memory_review: pending` remains until the quiet
 comparisons and continuous memory history have been reviewed. A lower idle RSS
 caused by more swap is not evidence of reduced memory consumption.
+
+## Initial result and memory investigation
+
+The October 11, 2026 run completed 107 mixed C32 waves, 22 cold deep-context
+waves (including four million-token requests), and 109 matching fixed-seed
+canaries. There were no correctness failures, poisoned runtimes, OOM events or
+rank restarts. Including final normalization and quiet sampling, it took
+4 hours 4 minutes 42 seconds. This was the requested four-hour observation,
+not the separate 24-hour endurance qualification.
+
+Across matched quiet endpoints, the head container's anonymous memory plus
+swap increased by 539 MiB; the worker increased by 21 MiB. The grammar cache
+grew by 170 MiB during warm-up, but head growth continued after it levelled
+off. Snapshot residency stayed at 64 states / 408 MiB. Graph residency stayed
+within its 144-executable limit.
+
+Component controls separated ordinary request handling from grammar churn:
+2,000 health requests, 256 tokenization requests and 256 plain C32 inference
+requests showed little head growth. Repeating one schema was also stable after
+warm-up. Cycling through 128 schemas then added about 113 MiB with essentially
+unchanged grammar-cache size and unchanged graph residency. In a disposable
+CPU-only process using the same pinned grammar library and tokenizer, live
+glibc allocations plateaued while freed arena space grew; an explicit trim
+returned about 82 MiB. This establishes allocator retention as a contributor;
+the grammar-cache byte counter alone does not describe total host memory.
+
+The profile now fixes glibc's automatic trim threshold at 128 KiB. The isolated
+repeat control with that setting stayed near 252 MiB of anonymous memory plus
+swap after warm-up, versus growth to about 310 MiB with defaults. Compiled cache
+contents remained available. Serving validation and its exact scope are recorded
+with the follow-up receipt; this CPU result alone does not establish serving
+performance or indefinite stability.
+
+The CPU control is reproducible with
+[`native_grammar_heap.py`](../tools/qualification/native_grammar_heap.py). Run it
+in a disposable instance of the pinned serving image with no GPU access, a
+read-only `/model` mount and a memory limit. It never contacts the inference
+server. Compare a default process with one launched using
+`MALLOC_TRIM_THRESHOLD_=131072`; `--trim-at-end` optionally measures how much
+this disposable process can return after its repeated work. Output contains
+only synthetic-test metadata, input hashes and numeric memory/cache samples.

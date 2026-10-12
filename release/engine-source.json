@@ -58,7 +58,7 @@
     },
     {
       "path": "deployment/config/profile.json",
-      "sha256": "41c473e57c1e41ebe5da6da996c36aa83813c1558faf99da5e431b1a058fcff1"
+      "sha256": "cff34b2fb753c90a816c965bb05e968a27cdd1ba70e40f1e3a3f4b6d43b55348"
     },
     {
       "path": "deployment/config/requirements-resolved.txt",
@@ -94,7 +94,7 @@
     },
     {
       "path": "deployment/scripts/memory_watch.py",
-      "sha256": "9438a37da95c9efac9ec94c0961ed8784176e0e3006c3c6c60f4457f44b4fd91"
+      "sha256": "50b63e4500a3cd6c841c0c8c34dfca4f8bbcf69b1f62eb0b00acaf9608c3d56d"
     },
     {
       "path": "deployment/scripts/native_assets.py",
@@ -2801,6 +2801,10 @@
       "sha256": "f33ae4bec55cb268d254994cd26875a02dbc1b2ac274ede27cd2a8e20b515728"
     },
     {
+      "path": "zig/src/server/host_heap.zig",
+      "sha256": "ee98a727e4d72a598371e3266074e8e6111b7df3ba1359374f20673047cf8465"
+    },
+    {
       "path": "zig/src/server/http_body.zig",
       "sha256": "142af62203e710c0753bc1f993afd9e617ce2913a195678a2da737be7df66622"
     },
@@ -2898,7 +2902,7 @@
     },
     {
       "path": "zig/src/server/root.zig",
-      "sha256": "04c7ec9650726472766d9405f9f5b2367cb40f47ffd3329b139b1485a0546e02"
+      "sha256": "54f18bb2074fd7e76ce532cfbe249747d67c98a11d092064850013f9993e75bb"
     },
     {
       "path": "zig/src/server/routes.zig",
@@ -2922,7 +2926,7 @@
     },
     {
       "path": "zig/src/server/status_routes.zig",
-      "sha256": "01129922b5a6e337ce060ec4bbb18b45b54ac09c14d5252de3a853f0d8e87f74"
+      "sha256": "5d61915be1fb28f4673a7f4dff9f5a113101300f676a30e869572effee762bb6"
     },
     {
       "path": "zig/src/server/stream_preflight_test.zig",

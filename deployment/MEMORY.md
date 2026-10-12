@@ -12,6 +12,27 @@ The DRM allocator reserves 1,792 MiB of display memory and places eligible whole
 
 CUDA allocation counters are not a complete host-memory measurement. Compare `MemAvailable`, swap, pressure and process RSS/private/PSS data as well. A low CUDA allocation count does not rule out host pressure, driver allocations, page cache or another process. The previous Python allocator investigation is historical and does not establish native stability.
 
+The containers set `MALLOC_TRIM_THRESHOLD_=131072` to encourage glibc to return
+freed heap space after grammar compilation. The explicit threshold also disables
+glibc's dynamic threshold adjustment ([glibc allocator documentation](https://sourceware.org/glibc/manual/latest/html_node/Malloc-Tunable-Parameters.html)). It changes neither grammar-cache capacity
+nor the KV pool, concurrency, graph limit or safety floor. This is a per-process
+environment setting; it installs no host allocator configuration and changes no
+kernel setting. See the [stability investigation](STABILITY.md) for measurements.
+
+On GNU/Linux with glibc 2.33 or newer, `/health` includes `memory.host_glibc`:
+`in_use_bytes` counts allocator in-use blocks plus direct mappings;
+`free_arena_bytes` counts unused arena space. Neither is a physical-memory total:
+free arena space can include discarded pages, and Zig's page-backed allocator,
+CUDA/device allocations and other mappings are outside this accounting. The
+watchdog preserves these numeric counters alongside host samples. Older libc
+runtimes omit this optional section. Reading it never trims memory.
+
+To undo only this allocator policy, stop the owned pair, remove
+`MALLOC_TRIM_THRESHOLD_` from a reviewed profile, and restart both ranks through
+the controller. Changing the environment of an existing process is insufficient.
+The [normal stop and rollback](ROLLBACK.md) procedure restores host operation;
+no host cleanup is required for this setting.
+
 ## Admission, retained prefixes and compaction
 
 A request reserves space for prompt plus allowed reply. Requests can wait for enough contiguous pool space even when a slot is available. The aliases change the request ceiling, not the pool size or model weights.

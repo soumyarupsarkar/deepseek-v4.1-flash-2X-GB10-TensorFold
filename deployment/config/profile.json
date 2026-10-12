@@ -11,6 +11,7 @@
   "description": "Pinned native Zig engine with independently sized shared KV, Keys, vision, grammar constraints and reversible DRM",
   "minimum_available_gib": 2,
   "environment": {
+    "MALLOC_TRIM_THRESHOLD_": "131072",
     "NCCL_MAX_CTAS": "4",
     "NCCL_MIN_CTAS": "4",
     "TENSORFOLD_SEED_MODE": "random",

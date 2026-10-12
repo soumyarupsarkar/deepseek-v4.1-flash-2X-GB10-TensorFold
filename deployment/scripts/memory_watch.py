@@ -34,7 +34,7 @@ def health_sample(health):
             result[key] = numeric(health[key])
     if isinstance(health.get('memory'), dict):
         result['memory'] = numeric(health['memory'])
-        for key in ('kv_pool', 'retention'):
+        for key in ('kv_pool', 'retention', 'host_glibc'):
             if isinstance(health['memory'].get(key), dict):
                 result['memory'][key] = numeric(health['memory'][key])
     return result

@@ -51,6 +51,8 @@ pub fn health(srv: *Server, conn: *Conn, a: Allocator) !void {
     try completed.put(a, "decode_rounds", try json.intValue(a, rounds));
     try o.put(a, "completed", .{ .object = completed });
     const memory = try json.newObject(a);
+    if (@import("host_heap.zig").snapshot()) |heap|
+        try memory.put(a, "host_glibc", try diagnosticValue(a, heap));
     if (srv.engine.memory(std.mem.indexOf(u8, conn.path, "reset_peak=1") != null)) |mem| {
         try memory.put(a, "active", try json.intValue(a, mem.active));
         try memory.put(a, "cache", try json.intValue(a, mem.cache));
