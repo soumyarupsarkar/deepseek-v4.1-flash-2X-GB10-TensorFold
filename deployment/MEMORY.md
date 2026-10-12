@@ -12,6 +12,13 @@ The DRM allocator reserves 1,792 MiB of display memory and places eligible whole
 
 CUDA allocation counters are not a complete host-memory measurement. Compare `MemAvailable`, swap, pressure and process RSS/private/PSS data as well. A low CUDA allocation count does not rule out host pressure, driver allocations, page cache or another process. The previous Python allocator investigation is historical and does not establish native stability.
 
+For host growth, compare the recorded rank-process `RssAnon + VmSwap` alongside
+live allocator and cache counters. Keep the container `anon + swap` indicator
+separate: it includes additional swap charges, and swap-cache pages can be
+accounted against both memory and swap ([Linux cgroup documentation](https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html)).
+Neither sum is the cluster's total physical memory use. The
+[follow-up measurements](STABILITY.md#serving-follow-up) preserve both views.
+
 The containers set `MALLOC_TRIM_THRESHOLD_=131072` to encourage glibc to return
 freed heap space after grammar compilation. The explicit threshold also disables
 glibc's dynamic threshold adjustment ([glibc allocator documentation](https://sourceware.org/glibc/manual/latest/html_node/Malloc-Tunable-Parameters.html)). It changes neither grammar-cache capacity
@@ -28,8 +35,11 @@ watchdog preserves these numeric counters alongside host samples. Older libc
 runtimes omit this optional section. Reading it never trims memory.
 
 To undo only this allocator policy, stop the owned pair, remove
-`MALLOC_TRIM_THRESHOLD_` from a reviewed profile, and restart both ranks through
-the controller. Changing the environment of an existing process is insufficient.
+`MALLOC_TRIM_THRESHOLD_` from a reviewed profile, then commit, build and qualify
+that profile through the normal controller workflow before starting both ranks.
+Alternatively, restore the preserved previous source and matching preparation
+records as described in [rollback](ROLLBACK.md#preserve-an-installation-before-updating-source).
+Changing the environment of an existing process is insufficient.
 The [normal stop and rollback](ROLLBACK.md) procedure restores host operation;
 no host cleanup is required for this setting.
 

@@ -1,4 +1,4 @@
-# Four-hour native stability observation
+# Native stability and host-memory investigation
 
 The initial diagnostic runs the current serving image for four hours, then
 finishes with a matched quiet-memory observation. It preserves the running
@@ -36,10 +36,15 @@ From the recipe checkout containing the updated client:
 ```bash
 python3 -B tools/qualification/native_endurance.py \
   --source /absolute/path/to/serving-checkout \
-  --diagnostic-prerequisites release/native-throughput-policy-20261010.json \
+  --diagnostic-prerequisites /path/to/matching-feature-and-capacity-receipt.json \
   --record native-four-hour-UNIQUE \
   --hours 4
 ```
+
+The initial run used
+[`native-throughput-policy-20261010.json`](../release/native-throughput-policy-20261010.json)
+for runtime `6aaec5b3`. A new image needs its own matching finite prerequisites;
+the client rejects evidence from a different source or image.
 
 Choose a fresh record name. Evidence lives in the serving checkout under
 `deployment/.local/qualification/endurance/<record>/`:
@@ -74,28 +79,42 @@ rank restarts. Including final normalization and quiet sampling, it took
 4 hours 4 minutes 42 seconds. This was the requested four-hour observation,
 not the separate 24-hour endurance qualification.
 
-Across matched quiet endpoints, the head container's anonymous memory plus
-swap increased by 539 MiB; the worker increased by 21 MiB. The grammar cache
-grew by 170 MiB during warm-up, but head growth continued after it levelled
-off. Snapshot residency stayed at 64 states / 408 MiB. Graph residency stayed
-within its 144-executable limit.
+Across matched quiet endpoints, the head rank processes' `RssAnon + VmSwap`
+increased by 311 MiB. The broader container indicator (`memory.stat anon` plus
+`memory.swap.current`) increased by 539 MiB; the worker's container indicator
+increased by 21 MiB. The grammar cache grew by 170 MiB during warm-up, but head
+process growth continued after it levelled off. Snapshot residency stayed at
+64 states / 408 MiB. Graph residency stayed within its 144-executable limit.
+
+These process and container indicators are kept separate. Container swap
+accounting includes additional charges, and swap-cache pages can count against
+both memory and swap usage ([Linux cgroup documentation](https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html)).
+The final review uses the process snapshots already recorded during the tests;
+it does not treat the larger container indicator as live heap bytes or subtract
+swap-cache counters that were not collected at the earlier endpoints.
 
 Component controls separated ordinary request handling from grammar churn:
 2,000 health requests, 256 tokenization requests and 256 plain C32 inference
 requests showed little head growth. Repeating one schema was also stable after
-warm-up. Cycling through 128 schemas then added about 113 MiB with essentially
-unchanged grammar-cache size and unchanged graph residency. In a disposable
+warm-up. The four-hour workload varied a required numeric value between cycles;
+the control used that same schema family. Cycling through 128 schemas then added
+57 MiB of process anonymous memory plus swap (113 MiB in the container indicator),
+with essentially unchanged grammar-cache size and unchanged graph residency.
+In a disposable
 CPU-only process using the same pinned grammar library and tokenizer, live
 glibc allocations plateaued while freed arena space grew; an explicit trim
-returned about 82 MiB. This establishes allocator retention as a contributor;
-the grammar-cache byte counter alone does not describe total host memory.
+returned about 79 MiB in the published reproducer. This establishes allocator
+retention as a contributor; the grammar-cache byte counter alone does not
+describe total host memory.
 
 The profile now fixes glibc's automatic trim threshold at 128 KiB. The isolated
-repeat control with that setting stayed near 252 MiB of anonymous memory plus
-swap after warm-up, versus growth to about 310 MiB with defaults. Compiled cache
-contents remained available. Serving validation and its exact scope are recorded
-with the follow-up receipt; this CPU result alone does not establish serving
-performance or indefinite stability.
+repeat control with that setting stayed at 253.2 MiB of anonymous memory plus
+swap after warm-up, versus growth from 286.2 to 316.8 MiB with defaults over
+1,536 further compilations. Compiled-cache occupancy remained 182.7 MiB in both
+cases. The repeated compilation phase took 7.22 seconds with the setting versus
+1.81 seconds with defaults, so memory reclamation is not free. Serving latency
+and throughput need their own measurements; the CPU result alone does not
+establish serving performance or indefinite stability.
 
 The CPU control is reproducible with
 [`native_grammar_heap.py`](../tools/qualification/native_grammar_heap.py). Run it
@@ -105,3 +124,67 @@ server. Compare a default process with one launched using
 `MALLOC_TRIM_THRESHOLD_=131072`; `--trim-at-end` optionally measures how much
 this disposable process can return after its repeated work. Output contains
 only synthetic-test metadata, input hashes and numeric memory/cache samples.
+
+## Serving follow-up
+
+Runtime `84ae3aaa` passed the fresh text/vision/structured-output checks, two
+waves of 32 full 262k sessions with all fixed-seed token sequences matching,
+and a cold million-token retrieval check. The latter recovered three passphrases
+at 10%, 50% and 90% depth, generated the full 256-token reply and reached
+1,048,576 total tokens in 671 seconds.
+
+The component follow-up completed 64 tokenization and 576 inference requests.
+After warming the same family of 128 schemas, its repeated cycles showed:
+
+| 128-schema cycle | Rank process anon + swap change | Container anon + swap indicator | Grammar-cache growth | New graph captures |
+|---|---:|---:|---:|---:|
+| Previous image, warm control | +57.19 MiB | +113.11 MiB | 0.04 MiB | 0 |
+| Trim policy, first warm repeat | −0.03 MiB | +2.03 MiB | 0 | 0 |
+| Trim policy, second warm repeat | −0.02 MiB | +0.10 MiB | 0 | 0 |
+
+Live glibc allocation growth was only 2,528 and 896 bytes in the two warm
+repeats; free arena space stayed around 2 MiB. Their elapsed times were 68.9 and
+67.9 seconds, compared with 68.2 seconds for the earlier control, including the
+same pauses and memory sampling. These results address the large retention
+pattern reproduced from the four-hour run.
+
+The first varying-schema cycle on the new process warmed 157.3 MiB of grammar
+cache and added 161.6 MiB of process anonymous memory plus swap (151.7 MiB in the
+container indicator). That cold-cache increase is kept separate from the
+warm-repeat comparison above. Reading the new heap
+counters never calls `malloc_trim`; the serving change is the startup
+environment setting alone.
+
+The throughput regression used the existing code, prose and counting fixtures,
+with one warm-up and one scored repetition at each concurrency/temperature:
+
+| Decode check (tok/s) | Code | Prose | Counting |
+|---|---:|---:|---:|
+| C1, greedy | 98.5 | 59.1 | 139.3 |
+| C1, sampled | 100.9 | 62.3 | 135.6 |
+| C32 aggregate, greedy | 309.2 | 268.8 | 378.0 |
+| C32 aggregate, sampled | 267.3 | 247.2 | 364.3 |
+
+All 24 waves and 396 requests passed. Every scored C32 wave reached full
+occupancy; all 12 rates were within 2.7% of the previous three-run medians.
+These single-repetition checks found no material decode regression and remain
+separate from the three-repetition headline benchmark. C1 measures first-to-last
+content decode; C32 uses only full-occupancy steady decode intervals.
+
+The matched quiet endpoints retained 64 histories, 408 MiB of snapshots and
+144 resident graphs. Head process anonymous memory plus swap grew 169.7 MiB,
+closely matching the 169.3 MiB increase in live glibc allocations; grammar-cache
+warm-up accounted for 163.6 MiB of that live growth. Free arena space rose only
+0.2 MiB. The broader head container indicator rose 255.1 MiB, and the worker's
+rose 1.8 MiB. The final two quiet minutes saw head process memory decrease
+slightly. This supports expected cache warm-up plus a resolved allocator-retention
+contributor, rather than attributing every container-accounting change to a leak.
+
+The monitor captured 260 samples with no probe errors, OOM events, poisoned
+runtimes or rank restarts. Minimum available memory was 3.06 GiB on the head
+and 2.25 GiB on the worker; the unchanged 2 GiB watchdog floor remained enforced.
+The server remains available on the authorized LAN endpoint, with the previous
+image and stopped-state backup retained for rollback. The
+[numeric follow-up receipt](../release/native-host-memory-20261011.json) preserves
+both accounting views, input hashes, capacities and every throughput comparison.
+This finite follow-up did not repeat the four-hour workload or start a 24-hour run.

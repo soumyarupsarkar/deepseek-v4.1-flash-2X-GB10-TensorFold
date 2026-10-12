@@ -49,8 +49,10 @@ def main():
     eos = eos if isinstance(eos, list) else [eos]
     stops, error = (c.c_uint32 * len(eos))(*eos), c.create_string_buffer(1024)
     compiler, started = None, time.monotonic()
+    with args.library.open('rb') as stream:
+        library_sha256 = hashlib.file_digest(stream, 'sha256').hexdigest()
     print(json.dumps(dict(kind='inputs', tokenizer_sha256=hashlib.sha256(raw).hexdigest(),
-        library_sha256=hashlib.sha256(args.library.read_bytes()).hexdigest(),
+        library_sha256=library_sha256,
         repeats=args.repeats, schemas=128, compiler_threads=4, cache_bytes_per_vocabulary=256*2**20,
         allocator_environment={k: os.environ.get(k) for k in
             ('MALLOC_ARENA_MAX', 'MALLOC_TRIM_THRESHOLD_', 'MALLOC_MMAP_THRESHOLD_')})), flush=True)

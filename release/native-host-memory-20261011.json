@@ -1,0 +1,3962 @@
+{
+  "schema_version": 1,
+  "status": "targeted-validation-passed",
+  "runtime_source": "84ae3aaa1527515a3cb18236941bf5d4ca565248",
+  "runtime_image": "sha256:f6475856dedbc545a09142e6a8cbb9f4d92f29becfbf3fde6f7534ed9065c3a6",
+  "previous_runtime_source": "6aaec5b3616f4547fabbe2fcc3fb1e779bb75f82",
+  "previous_runtime_image": "sha256:baa3fc8d748766476d694da36f3e79ac501f18bed6b9572e36c1c80c4baa7bc7",
+  "policy": {
+    "environment": {
+      "MALLOC_TRIM_THRESHOLD_": "131072"
+    },
+    "host_allocator_or_kernel_changes": false,
+    "explicit_serving_malloc_trim_calls": false,
+    "heap_health_counter": "memory.host_glibc"
+  },
+  "unchanged_capacity": {
+    "pool_tokens": 8650752,
+    "streams": 32,
+    "max_request_tokens": 1048576,
+    "round_rows": 48,
+    "grammar_cache_bytes_per_vocabulary": 268435456,
+    "host_reserve_gib": 2.5,
+    "watchdog_floor_gib": 2,
+    "graph_limit": 144
+  },
+  "original_four_hour": {
+    "reviewed": "2026-10-12T02:26:23.576875+00:00",
+    "verdict": "workload passed; head host-memory growth needs follow-up",
+    "duration_seconds": 14681.575905448059,
+    "mixed_waves": 107,
+    "deep_waves": 22,
+    "deep_context_counts": {
+      "32768": 5,
+      "131072": 5,
+      "262144": 4,
+      "614400": 4,
+      "1048320": 4
+    },
+    "canary_checks": 109,
+    "all_canary_token_hashes_match": true,
+    "request_counter_deltas": {
+      "requests": 5283,
+      "prompt_tokens": 22361558,
+      "generation_tokens": 325293
+    },
+    "memory_samples": 1468,
+    "quiet_windows": [
+      {
+        "label": "baseline",
+        "time": "2026-10-11T21:48:21.815822+00:00",
+        "available_bytes": {
+          "head": 3160018944,
+          "worker": 3600723968
+        },
+        "grammar_cache_bytes": 46792848,
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "resident_graphs": 141,
+        "hosts": {
+          "head": {
+            "cgroup_anon_bytes": 633090048,
+            "cgroup_swap_bytes": 1691283456,
+            "anon_plus_swap_bytes": 2324373504,
+            "rank_rss_bytes": 819904512,
+            "host_swap_used_bytes": 2781364224
+          },
+          "worker": {
+            "cgroup_anon_bytes": 1862438912,
+            "cgroup_swap_bytes": 0,
+            "anon_plus_swap_bytes": 1862438912,
+            "rank_rss_bytes": 2254815232,
+            "host_swap_used_bytes": 30105600
+          }
+        }
+      },
+      {
+        "label": "hourly",
+        "time": "2026-10-11T22:52:11.390499+00:00",
+        "available_bytes": {
+          "head": 3056599040,
+          "worker": 3541508096
+        },
+        "grammar_cache_bytes": 218394908,
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "resident_graphs": 144,
+        "hosts": {
+          "head": {
+            "cgroup_anon_bytes": 718356480,
+            "cgroup_swap_bytes": 1923715072,
+            "anon_plus_swap_bytes": 2642071552,
+            "rank_rss_bytes": 907669504,
+            "host_swap_used_bytes": 3027931136
+          },
+          "worker": {
+            "cgroup_anon_bytes": 1880444928,
+            "cgroup_swap_bytes": 0,
+            "anon_plus_swap_bytes": 1880444928,
+            "rank_rss_bytes": 2260500480,
+            "host_swap_used_bytes": 30048256
+          }
+        }
+      },
+      {
+        "label": "hourly",
+        "time": "2026-10-12T00:04:56.413450+00:00",
+        "available_bytes": {
+          "head": 3026259968,
+          "worker": 3545300992
+        },
+        "grammar_cache_bytes": 224857144,
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "resident_graphs": 144,
+        "hosts": {
+          "head": {
+            "cgroup_anon_bytes": 765644800,
+            "cgroup_swap_bytes": 2016329728,
+            "anon_plus_swap_bytes": 2781974528,
+            "rank_rss_bytes": 955240448,
+            "host_swap_used_bytes": 3138158592
+          },
+          "worker": {
+            "cgroup_anon_bytes": 1881554944,
+            "cgroup_swap_bytes": 0,
+            "anon_plus_swap_bytes": 1881554944,
+            "rank_rss_bytes": 2261610496,
+            "host_swap_used_bytes": 30023680
+          }
+        }
+      },
+      {
+        "label": "hourly",
+        "time": "2026-10-12T01:15:06.933308+00:00",
+        "available_bytes": {
+          "head": 2940866560,
+          "worker": 3521622016
+        },
+        "grammar_cache_bytes": 224899096,
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "resident_graphs": 144,
+        "hosts": {
+          "head": {
+            "cgroup_anon_bytes": 832962560,
+            "cgroup_swap_bytes": 2016284672,
+            "anon_plus_swap_bytes": 2849247232,
+            "rank_rss_bytes": 1022754816,
+            "host_swap_used_bytes": 3136565248
+          },
+          "worker": {
+            "cgroup_anon_bytes": 1883176960,
+            "cgroup_swap_bytes": 0,
+            "anon_plus_swap_bytes": 1883176960,
+            "rank_rss_bytes": 2263232512,
+            "host_swap_used_bytes": 30011392
+          }
+        }
+      },
+      {
+        "label": "final",
+        "time": "2026-10-12T01:48:31.123779+00:00",
+        "available_bytes": {
+          "head": 2949996544,
+          "worker": 3525316608
+        },
+        "grammar_cache_bytes": 224953020,
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "resident_graphs": 144,
+        "hosts": {
+          "head": {
+            "cgroup_anon_bytes": 821321728,
+            "cgroup_swap_bytes": 2068189184,
+            "anon_plus_swap_bytes": 2889510912,
+            "rank_rss_bytes": 1008984064,
+            "host_swap_used_bytes": 3203796992
+          },
+          "worker": {
+            "cgroup_anon_bytes": 1884295168,
+            "cgroup_swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884295168,
+            "rank_rss_bytes": 2264350720,
+            "host_swap_used_bytes": 30011392
+          }
+        }
+      }
+    ],
+    "hosts": {
+      "head": {
+        "minimum_sampled_available_bytes": 2602377216,
+        "quiet_available_start_bytes": 3160018944,
+        "quiet_available_final_bytes": 2949996544,
+        "quiet_available_delta_bytes": -210022400,
+        "quiet_anon_plus_swap_delta_bytes": 565137408,
+        "late_anon_plus_swap_delta_bytes": 107536384,
+        "oom_counter_increases": 0,
+        "host_probe_errors": 0
+      },
+      "worker": {
+        "minimum_sampled_available_bytes": 2934288384,
+        "quiet_available_start_bytes": 3600723968,
+        "quiet_available_final_bytes": 3525316608,
+        "quiet_available_delta_bytes": -75407360,
+        "quiet_anon_plus_swap_delta_bytes": 21856256,
+        "late_anon_plus_swap_delta_bytes": 2740224,
+        "oom_counter_increases": 0,
+        "host_probe_errors": 0
+      }
+    },
+    "watchdog_failure_samples": 0,
+    "observed_poisoned_or_rdma_failed_samples": 0,
+    "maximum_memory_sample_gap_seconds": 10.832333,
+    "grammar_cache_growth_bytes": 178160172,
+    "interpretation": [
+      "The four-hour workload and correctness checks passed.",
+      "Retained states and snapshot bytes match across quiet endpoints; resident graph count grew from 141 to its configured limit of 144.",
+      "Grammar-cache warm-up accounts for an observed category of head memory growth, but does not establish allocation-level attribution.",
+      "Head anonymous-plus-swap memory continued growing after grammar-cache size was nearly flat; this is not a leak-free endurance finding.",
+      "Worker anonymous-plus-swap change was small. No sampled OOM, memory-floor, health, or progress failure occurred.",
+      "Container anonymous memory plus swap is a host-memory indicator, not total model or GPU memory."
+    ],
+    "source_receipts": {
+      "status.json": "832a5fd76d1046f6cb0609ba3148e199e11733e3a2350ea19564c39ee3999712",
+      "cycles.jsonl": "449593e6913c8784d7be78cc8855fb21940e65ab2df1b4af1074335026875222",
+      "memory.jsonl": "f788274cb7573ba0d1bcb70f461369cc9863d91248f2c496474713a32c6278a7"
+    }
+  },
+  "original_four_hour_process_accounting": {
+    "quiet_windows": [
+      {
+        "label": "baseline",
+        "time": "2026-10-11T21:48:21.815822+00:00",
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 633090048,
+            "swap_bytes": 1691283456,
+            "anon_plus_swap_bytes": 2324373504,
+            "rank_rss_anon_bytes": 633090048,
+            "rank_vm_swap_bytes": 1620480000,
+            "rank_process_anon_plus_swap_bytes": 2253570048,
+            "available_bytes": 3156144128,
+            "rank_rss_bytes": 819904512,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1862438912,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1862438912,
+            "rank_rss_anon_bytes": 1862438912,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1862438912,
+            "available_bytes": 3575971840,
+            "rank_rss_bytes": 2254815232,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        }
+      },
+      {
+        "label": "hourly",
+        "time": "2026-10-11T22:52:11.390499+00:00",
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 718356480,
+            "swap_bytes": 1923715072,
+            "anon_plus_swap_bytes": 2642071552,
+            "rank_rss_anon_bytes": 718356480,
+            "rank_vm_swap_bytes": 1731395584,
+            "rank_process_anon_plus_swap_bytes": 2449752064,
+            "available_bytes": 3054477312,
+            "rank_rss_bytes": 907669504,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1880444928,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1880444928,
+            "rank_rss_anon_bytes": 1880444928,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1880444928,
+            "available_bytes": 3520557056,
+            "rank_rss_bytes": 2260500480,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        }
+      },
+      {
+        "label": "hourly",
+        "time": "2026-10-12T00:04:56.413450+00:00",
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 765644800,
+            "swap_bytes": 2016329728,
+            "anon_plus_swap_bytes": 2781974528,
+            "rank_rss_anon_bytes": 765644800,
+            "rank_vm_swap_bytes": 1756762112,
+            "rank_process_anon_plus_swap_bytes": 2522406912,
+            "available_bytes": 3019747328,
+            "rank_rss_bytes": 955240448,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1881554944,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1881554944,
+            "rank_rss_anon_bytes": 1881554944,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1881554944,
+            "available_bytes": 3528044544,
+            "rank_rss_bytes": 2261610496,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        }
+      },
+      {
+        "label": "hourly",
+        "time": "2026-10-12T01:15:06.933308+00:00",
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 832962560,
+            "swap_bytes": 2016284672,
+            "anon_plus_swap_bytes": 2849247232,
+            "rank_rss_anon_bytes": 832962560,
+            "rank_vm_swap_bytes": 1727864832,
+            "rank_process_anon_plus_swap_bytes": 2560827392,
+            "available_bytes": 2928766976,
+            "rank_rss_bytes": 1022754816,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1883176960,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1883176960,
+            "rank_rss_anon_bytes": 1883176960,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1883176960,
+            "available_bytes": 3527774208,
+            "rank_rss_bytes": 2263232512,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        }
+      },
+      {
+        "label": "final",
+        "time": "2026-10-12T01:48:31.123779+00:00",
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 821321728,
+            "swap_bytes": 2068189184,
+            "anon_plus_swap_bytes": 2889510912,
+            "rank_rss_anon_bytes": 821321728,
+            "rank_vm_swap_bytes": 1758126080,
+            "rank_process_anon_plus_swap_bytes": 2579447808,
+            "available_bytes": 2948022272,
+            "rank_rss_bytes": 1008984064,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1884295168,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884295168,
+            "rank_rss_anon_bytes": 1884295168,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1884295168,
+            "available_bytes": 3533561856,
+            "rank_rss_bytes": 2264350720,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        }
+      }
+    ],
+    "delta_bytes": {
+      "head": 325877760,
+      "worker": 21856256
+    }
+  },
+  "accounting": {
+    "primary_process_indicator": "Sum of RssAnon + VmSwap over the rank processes, from the preserved /proc snapshots.",
+    "cgroup_indicator": "memory.stat anon + memory.swap.current includes additional swap charges; it is not a count of live allocator bytes.",
+    "swapcache_reference": "https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html",
+    "later_swapcache_probe": {
+      "time": "2026-10-12T04:04:22.500671+00:00",
+      "hosts": {
+        "head": {
+          "stats": {
+            "anon": 262418432,
+            "file": 133582848,
+            "shmem": 128409600,
+            "swapcached": 92237824,
+            "anon_thp": 0
+          },
+          "swap_bytes": 2334642176
+        },
+        "worker": {
+          "stats": {
+            "anon": 1894744064,
+            "file": 172204032,
+            "shmem": 162148352,
+            "swapcached": 479232,
+            "anon_thp": 0
+          },
+          "swap_bytes": 23863296
+        }
+      }
+    },
+    "limitation": "Swap-cache counters were sampled after the campaign, not at both quiet endpoints; no retroactive swap-cache subtraction is claimed."
+  },
+  "baseline": {
+    "components": [
+      {
+        "time": "2026-10-12T02:37:04.038677+00:00",
+        "grammar_cache_bytes": 224953020,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 369,
+          "graph_evictions": 225
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 714895360,
+            "swap_bytes": 2122481664,
+            "anon_plus_swap_bytes": 2837377024,
+            "rank_rss_anon_bytes": 714895360,
+            "rank_vm_swap_bytes": 1864609792,
+            "rank_process_anon_plus_swap_bytes": 2579505152,
+            "available_bytes": 3025203200,
+            "rank_rss_bytes": 899563520,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1884295168,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884295168,
+            "rank_rss_anon_bytes": 1884295168,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1884295168,
+            "available_bytes": 3543379968,
+            "rank_rss_bytes": 2264350720,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "baseline",
+        "elapsed_s": 0.049338349141180515
+      },
+      {
+        "time": "2026-10-12T02:37:06.559028+00:00",
+        "grammar_cache_bytes": 224953020,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 369,
+          "graph_evictions": 225
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 715411456,
+            "swap_bytes": 2122481664,
+            "anon_plus_swap_bytes": 2837893120,
+            "rank_rss_anon_bytes": 715513856,
+            "rank_vm_swap_bytes": 1864609792,
+            "rank_process_anon_plus_swap_bytes": 2580123648,
+            "available_bytes": 2959302656,
+            "rank_rss_bytes": 900182016,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1884295168,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884295168,
+            "rank_rss_anon_bytes": 1884295168,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1884295168,
+            "available_bytes": 3542421504,
+            "rank_rss_bytes": 2264350720,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "tokenize-64",
+        "elapsed_s": 2.569691719021648
+      },
+      {
+        "time": "2026-10-12T02:37:09.145180+00:00",
+        "grammar_cache_bytes": 224953020,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 369,
+          "graph_evictions": 225
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 715255808,
+            "swap_bytes": 2122481664,
+            "anon_plus_swap_bytes": 2837737472,
+            "rank_rss_anon_bytes": 715350016,
+            "rank_vm_swap_bytes": 1864609792,
+            "rank_process_anon_plus_swap_bytes": 2579959808,
+            "available_bytes": 2922086400,
+            "rank_rss_bytes": 900018176,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1884295168,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884295168,
+            "rank_rss_anon_bytes": 1884295168,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1884295168,
+            "available_bytes": 3520954368,
+            "rank_rss_bytes": 2264350720,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "tokenize-128",
+        "elapsed_s": 5.1558382119983435
+      },
+      {
+        "time": "2026-10-12T02:37:11.663235+00:00",
+        "grammar_cache_bytes": 224953020,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 369,
+          "graph_evictions": 225
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 715386880,
+            "swap_bytes": 2122481664,
+            "anon_plus_swap_bytes": 2837868544,
+            "rank_rss_anon_bytes": 715460608,
+            "rank_vm_swap_bytes": 1864609792,
+            "rank_process_anon_plus_swap_bytes": 2580070400,
+            "available_bytes": 3089723392,
+            "rank_rss_bytes": 900128768,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1884295168,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884295168,
+            "rank_rss_anon_bytes": 1884295168,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1884295168,
+            "available_bytes": 3526696960,
+            "rank_rss_bytes": 2264350720,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "tokenize-192",
+        "elapsed_s": 7.673898916924372
+      },
+      {
+        "time": "2026-10-12T02:37:14.222493+00:00",
+        "grammar_cache_bytes": 224953020,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 369,
+          "graph_evictions": 225
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 715362304,
+            "swap_bytes": 2122481664,
+            "anon_plus_swap_bytes": 2837843968,
+            "rank_rss_anon_bytes": 715362304,
+            "rank_vm_swap_bytes": 1864609792,
+            "rank_process_anon_plus_swap_bytes": 2579972096,
+            "available_bytes": 3067899904,
+            "rank_rss_bytes": 900030464,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1884295168,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884295168,
+            "rank_rss_anon_bytes": 1884295168,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1884295168,
+            "available_bytes": 3542413312,
+            "rank_rss_bytes": 2264350720,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "tokenize-256",
+        "elapsed_s": 10.233151667984203
+      },
+      {
+        "time": "2026-10-12T02:38:10.241150+00:00",
+        "grammar_cache_bytes": 224953020,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 369,
+          "graph_evictions": 225
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 715800576,
+            "swap_bytes": 2122481664,
+            "anon_plus_swap_bytes": 2838282240,
+            "rank_rss_anon_bytes": 715800576,
+            "rank_vm_swap_bytes": 1864486912,
+            "rank_process_anon_plus_swap_bytes": 2580287488,
+            "available_bytes": 2977275904,
+            "rank_rss_bytes": 902873088,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1884303360,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884303360,
+            "rank_rss_anon_bytes": 1884303360,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1884303360,
+            "available_bytes": 3542478848,
+            "rank_rss_bytes": 2264358912,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "plain-32",
+        "elapsed_s": 66.25180957396515
+      },
+      {
+        "time": "2026-10-12T02:39:07.421971+00:00",
+        "grammar_cache_bytes": 224953020,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 369,
+          "graph_evictions": 225
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 716230656,
+            "swap_bytes": 2122481664,
+            "anon_plus_swap_bytes": 2838712320,
+            "rank_rss_anon_bytes": 716230656,
+            "rank_vm_swap_bytes": 1864437760,
+            "rank_process_anon_plus_swap_bytes": 2580668416,
+            "available_bytes": 3029524480,
+            "rank_rss_bytes": 903303168,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1884303360,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884303360,
+            "rank_rss_anon_bytes": 1884303360,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1884303360,
+            "available_bytes": 3495833600,
+            "rank_rss_bytes": 2264358912,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "plain-64",
+        "elapsed_s": 123.43262983998284
+      },
+      {
+        "time": "2026-10-12T02:40:03.802869+00:00",
+        "grammar_cache_bytes": 224953020,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 369,
+          "graph_evictions": 225
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 716832768,
+            "swap_bytes": 2122481664,
+            "anon_plus_swap_bytes": 2839314432,
+            "rank_rss_anon_bytes": 716832768,
+            "rank_vm_swap_bytes": 1864437760,
+            "rank_process_anon_plus_swap_bytes": 2581270528,
+            "available_bytes": 2989518848,
+            "rank_rss_bytes": 903905280,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1884282880,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884282880,
+            "rank_rss_anon_bytes": 1884282880,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1884282880,
+            "available_bytes": 3523096576,
+            "rank_rss_bytes": 2264338432,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "plain-96",
+        "elapsed_s": 179.81353008910082
+      },
+      {
+        "time": "2026-10-12T02:41:00.819015+00:00",
+        "grammar_cache_bytes": 224953020,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 369,
+          "graph_evictions": 225
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 717287424,
+            "swap_bytes": 2122481664,
+            "anon_plus_swap_bytes": 2839769088,
+            "rank_rss_anon_bytes": 717287424,
+            "rank_vm_swap_bytes": 1864437760,
+            "rank_process_anon_plus_swap_bytes": 2581725184,
+            "available_bytes": 3031732224,
+            "rank_rss_bytes": 904359936,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1884319744,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884319744,
+            "rank_rss_anon_bytes": 1884319744,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1884319744,
+            "available_bytes": 2810126336,
+            "rank_rss_bytes": 2264375296,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "plain-128",
+        "elapsed_s": 236.82967460900545
+      },
+      {
+        "time": "2026-10-12T02:41:57.814152+00:00",
+        "grammar_cache_bytes": 224953020,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 369,
+          "graph_evictions": 225
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 717254656,
+            "swap_bytes": 2122481664,
+            "anon_plus_swap_bytes": 2839736320,
+            "rank_rss_anon_bytes": 717357056,
+            "rank_vm_swap_bytes": 1864437760,
+            "rank_process_anon_plus_swap_bytes": 2581794816,
+            "available_bytes": 3087310848,
+            "rank_rss_bytes": 904429568,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1884315648,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884315648,
+            "rank_rss_anon_bytes": 1884315648,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1884315648,
+            "available_bytes": 2733715456,
+            "rank_rss_bytes": 2264371200,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "plain-160",
+        "elapsed_s": 293.82481610798277
+      },
+      {
+        "time": "2026-10-12T02:42:54.964113+00:00",
+        "grammar_cache_bytes": 224953020,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 369,
+          "graph_evictions": 225
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 717508608,
+            "swap_bytes": 2122481664,
+            "anon_plus_swap_bytes": 2839990272,
+            "rank_rss_anon_bytes": 717508608,
+            "rank_vm_swap_bytes": 1864437760,
+            "rank_process_anon_plus_swap_bytes": 2581946368,
+            "available_bytes": 2987786240,
+            "rank_rss_bytes": 904581120,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1884303360,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884303360,
+            "rank_rss_anon_bytes": 1884303360,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1884303360,
+            "available_bytes": 2926321664,
+            "rank_rss_bytes": 2264358912,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "plain-192",
+        "elapsed_s": 350.9747750100214
+      },
+      {
+        "time": "2026-10-12T02:43:51.832865+00:00",
+        "grammar_cache_bytes": 224953020,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 369,
+          "graph_evictions": 225
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 717152256,
+            "swap_bytes": 2122481664,
+            "anon_plus_swap_bytes": 2839633920,
+            "rank_rss_anon_bytes": 717189120,
+            "rank_vm_swap_bytes": 1864433664,
+            "rank_process_anon_plus_swap_bytes": 2581622784,
+            "available_bytes": 3017261056,
+            "rank_rss_bytes": 904261632,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1884295168,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884295168,
+            "rank_rss_anon_bytes": 1884295168,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1884295168,
+            "available_bytes": 2949529600,
+            "rank_rss_bytes": 2264350720,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "plain-224",
+        "elapsed_s": 407.8435242520645
+      },
+      {
+        "time": "2026-10-12T02:44:48.616260+00:00",
+        "grammar_cache_bytes": 224953020,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 369,
+          "graph_evictions": 225
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 716783616,
+            "swap_bytes": 2122481664,
+            "anon_plus_swap_bytes": 2839265280,
+            "rank_rss_anon_bytes": 716742656,
+            "rank_vm_swap_bytes": 1864429568,
+            "rank_process_anon_plus_swap_bytes": 2581172224,
+            "available_bytes": 2969743360,
+            "rank_rss_bytes": 903815168,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1884278784,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884278784,
+            "rank_rss_anon_bytes": 1884278784,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1884278784,
+            "available_bytes": 2947997696,
+            "rank_rss_bytes": 2261975040,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "plain-256",
+        "elapsed_s": 464.6269191929605
+      },
+      {
+        "time": "2026-10-12T02:45:04.919083+00:00",
+        "grammar_cache_bytes": 224952784,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 372,
+          "graph_evictions": 228
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 722722816,
+            "swap_bytes": 2122481664,
+            "anon_plus_swap_bytes": 2845204480,
+            "rank_rss_anon_bytes": 722722816,
+            "rank_vm_swap_bytes": 1858781184,
+            "rank_process_anon_plus_swap_bytes": 2581504000,
+            "available_bytes": 2984509440,
+            "rank_rss_bytes": 909824000,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1884311552,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884311552,
+            "rank_rss_anon_bytes": 1884311552,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1884311552,
+            "available_bytes": 2961346560,
+            "rank_rss_bytes": 2262007808,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-hot-32",
+        "elapsed_s": 480.929744516965
+      },
+      {
+        "time": "2026-10-12T02:45:20.934154+00:00",
+        "grammar_cache_bytes": 224952784,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 372,
+          "graph_evictions": 228
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 722706432,
+            "swap_bytes": 2122481664,
+            "anon_plus_swap_bytes": 2845188096,
+            "rank_rss_anon_bytes": 722706432,
+            "rank_vm_swap_bytes": 1858781184,
+            "rank_process_anon_plus_swap_bytes": 2581487616,
+            "available_bytes": 2920181760,
+            "rank_rss_bytes": 909807616,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1884311552,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884311552,
+            "rank_rss_anon_bytes": 1884311552,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1884311552,
+            "available_bytes": 2965544960,
+            "rank_rss_bytes": 2262007808,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-hot-64",
+        "elapsed_s": 496.9448155181017
+      },
+      {
+        "time": "2026-10-12T02:45:36.845147+00:00",
+        "grammar_cache_bytes": 224952784,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 372,
+          "graph_evictions": 228
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 722685952,
+            "swap_bytes": 2122481664,
+            "anon_plus_swap_bytes": 2845167616,
+            "rank_rss_anon_bytes": 722685952,
+            "rank_vm_swap_bytes": 1858781184,
+            "rank_process_anon_plus_swap_bytes": 2581467136,
+            "available_bytes": 3002920960,
+            "rank_rss_bytes": 909787136,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1884311552,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884311552,
+            "rank_rss_anon_bytes": 1884311552,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1884311552,
+            "available_bytes": 2988675072,
+            "rank_rss_bytes": 2262007808,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-hot-96",
+        "elapsed_s": 512.855806539068
+      },
+      {
+        "time": "2026-10-12T02:45:52.711347+00:00",
+        "grammar_cache_bytes": 224952784,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 372,
+          "graph_evictions": 228
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 722731008,
+            "swap_bytes": 2122481664,
+            "anon_plus_swap_bytes": 2845212672,
+            "rank_rss_anon_bytes": 722731008,
+            "rank_vm_swap_bytes": 1858781184,
+            "rank_process_anon_plus_swap_bytes": 2581512192,
+            "available_bytes": 3009208320,
+            "rank_rss_bytes": 909832192,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1884311552,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884311552,
+            "rank_rss_anon_bytes": 1884311552,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1884311552,
+            "available_bytes": 2943950848,
+            "rank_rss_bytes": 2262007808,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-hot-128",
+        "elapsed_s": 528.722005805932
+      },
+      {
+        "time": "2026-10-12T02:46:10.233432+00:00",
+        "grammar_cache_bytes": 224950204,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 372,
+          "graph_evictions": 228
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 806883328,
+            "swap_bytes": 2122477568,
+            "anon_plus_swap_bytes": 2929360896,
+            "rank_rss_anon_bytes": 806883328,
+            "rank_vm_swap_bytes": 1804836864,
+            "rank_process_anon_plus_swap_bytes": 2611720192,
+            "available_bytes": 2680893440,
+            "rank_rss_bytes": 993984512,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1884315648,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884315648,
+            "rank_rss_anon_bytes": 1884315648,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1884315648,
+            "available_bytes": 2975551488,
+            "rank_rss_bytes": 2262011904,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-churn-32",
+        "elapsed_s": 546.2440936961211
+      },
+      {
+        "time": "2026-10-12T02:46:27.008540+00:00",
+        "grammar_cache_bytes": 224951620,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 372,
+          "graph_evictions": 228
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 826138624,
+            "swap_bytes": 2122477568,
+            "anon_plus_swap_bytes": 2948616192,
+            "rank_rss_anon_bytes": 826109952,
+            "rank_vm_swap_bytes": 1801338880,
+            "rank_process_anon_plus_swap_bytes": 2627448832,
+            "available_bytes": 2880839680,
+            "rank_rss_bytes": 1013211136,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1884315648,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884315648,
+            "rank_rss_anon_bytes": 1884315648,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1884315648,
+            "available_bytes": 2975363072,
+            "rank_rss_bytes": 2262011904,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-churn-64",
+        "elapsed_s": 563.0192018591333
+      },
+      {
+        "time": "2026-10-12T02:46:43.660156+00:00",
+        "grammar_cache_bytes": 224951620,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 372,
+          "graph_evictions": 228
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 837758976,
+            "swap_bytes": 2122477568,
+            "anon_plus_swap_bytes": 2960236544,
+            "rank_rss_anon_bytes": 837730304,
+            "rank_vm_swap_bytes": 1800679424,
+            "rank_process_anon_plus_swap_bytes": 2638409728,
+            "available_bytes": 2933628928,
+            "rank_rss_bytes": 1024831488,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1884311552,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884311552,
+            "rank_rss_anon_bytes": 1884311552,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1884311552,
+            "available_bytes": 2981511168,
+            "rank_rss_bytes": 2262007808,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-churn-96",
+        "elapsed_s": 579.6708150440827
+      },
+      {
+        "time": "2026-10-12T02:47:00.944290+00:00",
+        "grammar_cache_bytes": 224994180,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 372,
+          "graph_evictions": 228
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 841342976,
+            "swap_bytes": 2122477568,
+            "anon_plus_swap_bytes": 2963820544,
+            "rank_rss_anon_bytes": 841342976,
+            "rank_vm_swap_bytes": 1800134656,
+            "rank_process_anon_plus_swap_bytes": 2641477632,
+            "available_bytes": 2634596352,
+            "rank_rss_bytes": 1028116480,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1884323840,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884323840,
+            "rank_rss_anon_bytes": 1884323840,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1884323840,
+            "available_bytes": 2935181312,
+            "rank_rss_bytes": 2262020096,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-churn-128",
+        "elapsed_s": 596.9549505000468
+      },
+      {
+        "time": "2026-10-12T02:47:31.687643+00:00",
+        "grammar_cache_bytes": 224994180,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 372,
+          "graph_evictions": 228
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 841342976,
+            "swap_bytes": 2122477568,
+            "anon_plus_swap_bytes": 2963820544,
+            "rank_rss_anon_bytes": 841342976,
+            "rank_vm_swap_bytes": 1800134656,
+            "rank_process_anon_plus_swap_bytes": 2641477632,
+            "available_bytes": 2864631808,
+            "rank_rss_bytes": 1028116480,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1884323840,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1884323840,
+            "rank_rss_anon_bytes": 1884323840,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1884323840,
+            "available_bytes": 2971860992,
+            "rank_rss_bytes": 2262020096,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "quiet-final",
+        "elapsed_s": 627.6983018610626
+      }
+    ],
+    "component_deltas": [
+      {
+        "component": "tokenization",
+        "seconds": 10.183813318843022,
+        "hosts": {
+          "head": {
+            "before_bytes": 2837377024,
+            "after_bytes": 2837843968,
+            "delta_bytes": 466944
+          },
+          "worker": {
+            "before_bytes": 1884295168,
+            "after_bytes": 1884295168,
+            "delta_bytes": 0
+          }
+        },
+        "grammar_cache_delta_bytes": 0,
+        "capture_delta": 0
+      },
+      {
+        "component": "plain-c32",
+        "seconds": 454.3937675249763,
+        "hosts": {
+          "head": {
+            "before_bytes": 2837843968,
+            "after_bytes": 2839265280,
+            "delta_bytes": 1421312
+          },
+          "worker": {
+            "before_bytes": 1884295168,
+            "after_bytes": 1884278784,
+            "delta_bytes": -16384
+          }
+        },
+        "grammar_cache_delta_bytes": 0,
+        "capture_delta": 0
+      },
+      {
+        "component": "one-schema",
+        "seconds": 64.0950866129715,
+        "hosts": {
+          "head": {
+            "before_bytes": 2839265280,
+            "after_bytes": 2845212672,
+            "delta_bytes": 5947392
+          },
+          "worker": {
+            "before_bytes": 1884278784,
+            "after_bytes": 1884311552,
+            "delta_bytes": 32768
+          }
+        },
+        "grammar_cache_delta_bytes": -236,
+        "capture_delta": 3
+      },
+      {
+        "component": "schema-churn",
+        "seconds": 68.23294469411485,
+        "hosts": {
+          "head": {
+            "before_bytes": 2845212672,
+            "after_bytes": 2963820544,
+            "delta_bytes": 118607872
+          },
+          "worker": {
+            "before_bytes": 1884311552,
+            "after_bytes": 1884323840,
+            "delta_bytes": 12288
+          }
+        },
+        "grammar_cache_delta_bytes": 41396,
+        "capture_delta": 0
+      }
+    ],
+    "warm_schema_cycle": {
+      "start": "schema-hot-128",
+      "end": "schema-churn-128",
+      "seconds": 68.23294469411485,
+      "hosts": {
+        "head": {
+          "anon_plus_swap_delta_bytes": 118607872,
+          "rank_process_anon_plus_swap_delta_bytes": 59965440
+        },
+        "worker": {
+          "anon_plus_swap_delta_bytes": 12288,
+          "rank_process_anon_plus_swap_delta_bytes": 12288
+        }
+      },
+      "grammar_cache_delta_bytes": 41396,
+      "graph_capture_delta": 0,
+      "glibc_delta_bytes": {}
+    },
+    "health_control": {
+      "requests": 2000,
+      "anon_plus_swap_delta_bytes": {
+        "head": 57344,
+        "worker": 0
+      }
+    }
+  },
+  "isolated_cpu_control": {
+    "provenance": {
+      "image": "sha256:baa3fc8d748766476d694da36f3e79ac501f18bed6b9572e36c1c80c4baa7bc7",
+      "script_sha256": "13cd306c519acfc4290de66b934ba57dbabe8f83becae3ce5c80d246ee789919",
+      "cases": [
+        "default",
+        "trim128k"
+      ]
+    },
+    "cases": {
+      "default": {
+        "inputs": {
+          "kind": "inputs",
+          "tokenizer_sha256": "c90dfa01249db1be4245780a052ede752e1361c612ac6d08e2bdada7d599476b",
+          "library_sha256": "5141ffbffe56ab46117f0947119c126302f4df05ab3a5ca4c83cfc5d81b33bd2",
+          "repeats": 12,
+          "schemas": 128,
+          "compiler_threads": 4,
+          "cache_bytes_per_vocabulary": 268435456,
+          "allocator_environment": {
+            "MALLOC_ARENA_MAX": null,
+            "MALLOC_TRIM_THRESHOLD_": null,
+            "MALLOC_MMAP_THRESHOLD_": null
+          }
+        },
+        "samples": [
+          {
+            "label": "before-compiler",
+            "seconds": 0.004699066994362511,
+            "cache_bytes": 0,
+            "anon_plus_swap_bytes": 13295616,
+            "allocator_in_use_bytes": 8870112,
+            "allocator_free_arena_bytes": 136992
+          },
+          {
+            "label": "compiler",
+            "seconds": 0.17376242100726813,
+            "cache_bytes": 0,
+            "anon_plus_swap_bytes": 71147520,
+            "allocator_in_use_bytes": 30770992,
+            "allocator_free_arena_bytes": 36210896
+          },
+          {
+            "label": "hot-128",
+            "seconds": 0.18455897900275886,
+            "cache_bytes": 13171240,
+            "anon_plus_swap_bytes": 92016640,
+            "allocator_in_use_bytes": 43992304,
+            "allocator_free_arena_bytes": 44096272
+          },
+          {
+            "label": "distinct-32",
+            "seconds": 0.254936387995258,
+            "cache_bytes": 191349944,
+            "anon_plus_swap_bytes": 272842752,
+            "allocator_in_use_bytes": 222887728,
+            "allocator_free_arena_bytes": 45736144
+          },
+          {
+            "label": "distinct-64",
+            "seconds": 0.2904180890036514,
+            "cache_bytes": 191407296,
+            "anon_plus_swap_bytes": 284749824,
+            "allocator_in_use_bytes": 223250448,
+            "allocator_free_arena_bytes": 57280496
+          },
+          {
+            "label": "distinct-96",
+            "seconds": 0.31758051400538534,
+            "cache_bytes": 191463232,
+            "anon_plus_swap_bytes": 292753408,
+            "allocator_in_use_bytes": 223597536,
+            "allocator_free_arena_bytes": 64936992
+          },
+          {
+            "label": "distinct-128",
+            "seconds": 0.3527188570005819,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 300150784,
+            "allocator_in_use_bytes": 223908336,
+            "allocator_free_arena_bytes": 72023568
+          },
+          {
+            "label": "repeat-128",
+            "seconds": 0.4597274039988406,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 314925056,
+            "allocator_in_use_bytes": 223918736,
+            "allocator_free_arena_bytes": 86787440
+          },
+          {
+            "label": "repeat-256",
+            "seconds": 0.5844440009968821,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 315547648,
+            "allocator_in_use_bytes": 223921264,
+            "allocator_free_arena_bytes": 87407504
+          },
+          {
+            "label": "repeat-384",
+            "seconds": 0.703600376000395,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 318619648,
+            "allocator_in_use_bytes": 223921872,
+            "allocator_free_arena_bytes": 90478896
+          },
+          {
+            "label": "repeat-512",
+            "seconds": 0.8633529590006219,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 323346432,
+            "allocator_in_use_bytes": 223922736,
+            "allocator_free_arena_bytes": 95204816
+          },
+          {
+            "label": "repeat-640",
+            "seconds": 1.0323614660010207,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 327659520,
+            "allocator_in_use_bytes": 223922272,
+            "allocator_free_arena_bytes": 99518368
+          },
+          {
+            "label": "repeat-768",
+            "seconds": 1.193957199997385,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 328273920,
+            "allocator_in_use_bytes": 223923248,
+            "allocator_free_arena_bytes": 100131792
+          },
+          {
+            "label": "repeat-896",
+            "seconds": 1.3503834790026303,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 328478720,
+            "allocator_in_use_bytes": 223922912,
+            "allocator_free_arena_bytes": 100336928
+          },
+          {
+            "label": "repeat-1024",
+            "seconds": 1.5004091529990546,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 329093120,
+            "allocator_in_use_bytes": 223922624,
+            "allocator_free_arena_bytes": 100951616
+          },
+          {
+            "label": "repeat-1152",
+            "seconds": 1.6656189820059808,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 330735616,
+            "allocator_in_use_bytes": 223922160,
+            "allocator_free_arena_bytes": 102594576
+          },
+          {
+            "label": "repeat-1280",
+            "seconds": 1.8308776119956747,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 332169216,
+            "allocator_in_use_bytes": 223922912,
+            "allocator_free_arena_bytes": 104027424
+          },
+          {
+            "label": "repeat-1408",
+            "seconds": 1.994630685003358,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 332169216,
+            "allocator_in_use_bytes": 223922896,
+            "allocator_free_arena_bytes": 104027440
+          },
+          {
+            "label": "repeat-1536",
+            "seconds": 2.160866158999852,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 332169216,
+            "allocator_in_use_bytes": 223923168,
+            "allocator_free_arena_bytes": 104027168
+          },
+          {
+            "label": "after-trim",
+            "seconds": 2.168860171994311,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 248819712,
+            "allocator_in_use_bytes": 223923168,
+            "allocator_free_arena_bytes": 103896096
+          },
+          {
+            "label": "destroyed",
+            "seconds": 2.17716402199585,
+            "cache_bytes": 0,
+            "anon_plus_swap_bytes": 193892352,
+            "allocator_in_use_bytes": 8951232,
+            "allocator_free_arena_bytes": 309549632
+          }
+        ]
+      },
+      "trim128k": {
+        "inputs": {
+          "kind": "inputs",
+          "tokenizer_sha256": "c90dfa01249db1be4245780a052ede752e1361c612ac6d08e2bdada7d599476b",
+          "library_sha256": "5141ffbffe56ab46117f0947119c126302f4df05ab3a5ca4c83cfc5d81b33bd2",
+          "repeats": 12,
+          "schemas": 128,
+          "compiler_threads": 4,
+          "cache_bytes_per_vocabulary": 268435456,
+          "allocator_environment": {
+            "MALLOC_ARENA_MAX": null,
+            "MALLOC_TRIM_THRESHOLD_": "131072",
+            "MALLOC_MMAP_THRESHOLD_": null
+          }
+        },
+        "samples": [
+          {
+            "label": "before-compiler",
+            "seconds": 0.004114306997507811,
+            "cache_bytes": 0,
+            "anon_plus_swap_bytes": 13291520,
+            "allocator_in_use_bytes": 8870672,
+            "allocator_free_arena_bytes": 136432
+          },
+          {
+            "label": "compiler",
+            "seconds": 0.20815498699084856,
+            "cache_bytes": 0,
+            "anon_plus_swap_bytes": 69349376,
+            "allocator_in_use_bytes": 30777632,
+            "allocator_free_arena_bytes": 34410208
+          },
+          {
+            "label": "hot-128",
+            "seconds": 0.21967264299746603,
+            "cache_bytes": 13171240,
+            "anon_plus_swap_bytes": 83431424,
+            "allocator_in_use_bytes": 44242608,
+            "allocator_free_arena_bytes": 34978128
+          },
+          {
+            "label": "distinct-32",
+            "seconds": 0.33634651100146584,
+            "cache_bytes": 191349944,
+            "anon_plus_swap_bytes": 264450048,
+            "allocator_in_use_bytes": 226432480,
+            "allocator_free_arena_bytes": 33843744
+          },
+          {
+            "label": "distinct-64",
+            "seconds": 0.4728901729977224,
+            "cache_bytes": 191407296,
+            "anon_plus_swap_bytes": 264835072,
+            "allocator_in_use_bytes": 226796048,
+            "allocator_free_arena_bytes": 33910256
+          },
+          {
+            "label": "distinct-96",
+            "seconds": 0.608979113996611,
+            "cache_bytes": 191463232,
+            "anon_plus_swap_bytes": 265207808,
+            "allocator_in_use_bytes": 227140288,
+            "allocator_free_arena_bytes": 33930560
+          },
+          {
+            "label": "distinct-128",
+            "seconds": 0.7552307610021671,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 265535488,
+            "allocator_in_use_bytes": 227450272,
+            "allocator_free_arena_bytes": 34005600
+          },
+          {
+            "label": "repeat-128",
+            "seconds": 1.35528760899615,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 265551872,
+            "allocator_in_use_bytes": 227459264,
+            "allocator_free_arena_bytes": 34012992
+          },
+          {
+            "label": "repeat-256",
+            "seconds": 1.9187693209969439,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 265551872,
+            "allocator_in_use_bytes": 227461040,
+            "allocator_free_arena_bytes": 34011216
+          },
+          {
+            "label": "repeat-384",
+            "seconds": 2.515132114000153,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 265551872,
+            "allocator_in_use_bytes": 227462288,
+            "allocator_free_arena_bytes": 34009968
+          },
+          {
+            "label": "repeat-512",
+            "seconds": 3.109766342997318,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 265551872,
+            "allocator_in_use_bytes": 227462272,
+            "allocator_free_arena_bytes": 34009984
+          },
+          {
+            "label": "repeat-640",
+            "seconds": 3.7093948099936824,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 265551872,
+            "allocator_in_use_bytes": 227463040,
+            "allocator_free_arena_bytes": 34009216
+          },
+          {
+            "label": "repeat-768",
+            "seconds": 4.305905891989823,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 265551872,
+            "allocator_in_use_bytes": 227462912,
+            "allocator_free_arena_bytes": 34009344
+          },
+          {
+            "label": "repeat-896",
+            "seconds": 4.916410662990529,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 265551872,
+            "allocator_in_use_bytes": 227462544,
+            "allocator_free_arena_bytes": 34009712
+          },
+          {
+            "label": "repeat-1024",
+            "seconds": 5.531336555999587,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 265551872,
+            "allocator_in_use_bytes": 227462448,
+            "allocator_free_arena_bytes": 34009808
+          },
+          {
+            "label": "repeat-1152",
+            "seconds": 6.136731755002984,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 265551872,
+            "allocator_in_use_bytes": 227462448,
+            "allocator_free_arena_bytes": 34009808
+          },
+          {
+            "label": "repeat-1280",
+            "seconds": 6.728001112001948,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 265551872,
+            "allocator_in_use_bytes": 227462448,
+            "allocator_free_arena_bytes": 34009808
+          },
+          {
+            "label": "repeat-1408",
+            "seconds": 7.349145719999797,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 265551872,
+            "allocator_in_use_bytes": 227462688,
+            "allocator_free_arena_bytes": 34009568
+          },
+          {
+            "label": "repeat-1536",
+            "seconds": 7.971162014000583,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 265551872,
+            "allocator_in_use_bytes": 227462560,
+            "allocator_free_arena_bytes": 34009696
+          },
+          {
+            "label": "after-trim",
+            "seconds": 7.975180266992538,
+            "cache_bytes": 191525104,
+            "anon_plus_swap_bytes": 232001536,
+            "allocator_in_use_bytes": 227462560,
+            "allocator_free_arena_bytes": 33890912
+          },
+          {
+            "label": "destroyed",
+            "seconds": 8.004941847000737,
+            "cache_bytes": 0,
+            "anon_plus_swap_bytes": 14458880,
+            "allocator_in_use_bytes": 8953680,
+            "allocator_free_arena_bytes": 43630768
+          }
+        ]
+      }
+    },
+    "candidate_library_identity": {
+      "head": {
+        "grammar_library_sha256": "5141ffbffe56ab46117f0947119c126302f4df05ab3a5ca4c83cfc5d81b33bd2",
+        "allocator": [
+          "MALLOC_TRIM_THRESHOLD_=131072"
+        ],
+        "image": "sha256:f6475856dedbc545a09142e6a8cbb9f4d92f29becfbf3fde6f7534ed9065c3a6",
+        "restart_count": 0
+      },
+      "worker": {
+        "grammar_library_sha256": "5141ffbffe56ab46117f0947119c126302f4df05ab3a5ca4c83cfc5d81b33bd2",
+        "allocator": [
+          "MALLOC_TRIM_THRESHOLD_=131072"
+        ],
+        "image": "sha256:f6475856dedbc545a09142e6a8cbb9f4d92f29becfbf3fde6f7534ed9065c3a6",
+        "restart_count": 0
+      }
+    },
+    "scope": "Disposable CPU-only container; no GPU or serving-process trim. Compare anonymous memory plus swap, not RSS alone."
+  },
+  "build_validation": {
+    "native_tests": 316,
+    "publication_tests": 82,
+    "controller_tests": 14,
+    "gpu_checks": {
+      "head": 7,
+      "worker": 7
+    },
+    "prepared_caches": {
+      "head": {
+        "byte_mismatches": 0,
+        "bytes": 106107109192,
+        "compared": 143770,
+        "compared_bytes": 106107109192,
+        "entries": 143770,
+        "file": "rank0of2-119a98d084245f02f719.bin",
+        "index_at": 106107109192,
+        "layout_mismatches": 0,
+        "mismatches": 0,
+        "ok": true,
+        "planned": 143770
+      },
+      "worker": {
+        "byte_mismatches": 0,
+        "bytes": 106107109192,
+        "compared": 143770,
+        "compared_bytes": 106107109192,
+        "entries": 143770,
+        "file": "rank1of2-6d086c8eafcc81f5c0f1.bin",
+        "index_at": 106107109192,
+        "layout_mismatches": 0,
+        "mismatches": 0,
+        "ok": true,
+        "planned": 143770
+      }
+    }
+  },
+  "serving_features": {
+    "requests": 25,
+    "checks": {
+      "baseline": "passed",
+      "structured": "passed"
+    },
+    "rank_restarts": 0,
+    "request_counter_isolation": true
+  },
+  "full_c32": {
+    "requests": 66,
+    "wall_seconds": 503.372,
+    "cycles": [
+      {
+        "cycle": 0,
+        "seconds": 194.845,
+        "peak_decoding": 32,
+        "requests": 32,
+        "usage_per_request": {
+          "completion_tokens": 1024,
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "prompt_tokens": 261120,
+          "prompt_tokens_details": {
+            "cached_tokens": 260096
+          },
+          "total_tokens": 262144
+        },
+        "replay_parity_passed": null
+      },
+      {
+        "cycle": 1,
+        "seconds": 190.215,
+        "peak_decoding": 32,
+        "requests": 32,
+        "usage_per_request": {
+          "completion_tokens": 1024,
+          "completion_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "prompt_tokens": 261120,
+          "prompt_tokens_details": {
+            "cached_tokens": 260096
+          },
+          "total_tokens": 262144
+        },
+        "replay_parity_passed": true
+      }
+    ],
+    "fixed_seed_token_id_matches": 32,
+    "shared_input_document": true,
+    "separate_active_sessions": true
+  },
+  "million": {
+    "requests": 2,
+    "wall_seconds": 671.007,
+    "usage": {
+      "completion_tokens": 256,
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "prompt_tokens": 1048320,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      },
+      "total_tokens": 1048576
+    },
+    "passphrases_recalled": 3,
+    "record_depths": [
+      0.1,
+      0.5,
+      0.9
+    ],
+    "request_seconds": 669.926
+  },
+  "followup": {
+    "component_points": [
+      {
+        "time": "2026-10-12T03:43:21.563516+00:00",
+        "grammar_cache_bytes": 46792848,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 195,
+          "graph_evictions": 51
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 173211648,
+            "swap_bytes": 2159742976,
+            "anon_plus_swap_bytes": 2332954624,
+            "rank_rss_anon_bytes": 173211648,
+            "rank_vm_swap_bytes": 2121281536,
+            "rank_process_anon_plus_swap_bytes": 2294493184,
+            "available_bytes": 3838386176,
+            "rank_rss_bytes": 323883008,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1916723200,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1916723200,
+            "rank_rss_anon_bytes": 1916723200,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1916723200,
+            "available_bytes": 2923241472,
+            "rank_rss_bytes": 2289451008,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "baseline",
+        "elapsed_s": 0.051879421109333634,
+        "host_glibc": {
+          "in_use_bytes": 1597535024,
+          "free_arena_bytes": 1830096,
+          "arena_bytes": 323461120,
+          "mmap_bytes": 1275904000
+        }
+      },
+      {
+        "time": "2026-10-12T03:43:24.228988+00:00",
+        "grammar_cache_bytes": 46792848,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 195,
+          "graph_evictions": 51
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 178774016,
+            "swap_bytes": 2158854144,
+            "anon_plus_swap_bytes": 2337628160,
+            "rank_rss_anon_bytes": 178774016,
+            "rank_vm_swap_bytes": 2116358144,
+            "rank_process_anon_plus_swap_bytes": 2295132160,
+            "available_bytes": 3923058688,
+            "rank_rss_bytes": 329457664,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1916723200,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1916723200,
+            "rank_rss_anon_bytes": 1916723200,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1916723200,
+            "available_bytes": 2933035008,
+            "rank_rss_bytes": 2289451008,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "tokenize-64",
+        "elapsed_s": 2.7173499120399356,
+        "host_glibc": {
+          "in_use_bytes": 1597535792,
+          "free_arena_bytes": 1829328,
+          "arena_bytes": 323461120,
+          "mmap_bytes": 1275904000
+        }
+      },
+      {
+        "time": "2026-10-12T03:44:24.434480+00:00",
+        "grammar_cache_bytes": 46792848,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 267,
+          "graph_evictions": 123
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 470106112,
+            "swap_bytes": 2125848576,
+            "anon_plus_swap_bytes": 2595954688,
+            "rank_rss_anon_bytes": 470106112,
+            "rank_vm_swap_bytes": 1822924800,
+            "rank_process_anon_plus_swap_bytes": 2293030912,
+            "available_bytes": 3642904576,
+            "rank_rss_bytes": 643268608,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1914617856,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1914617856,
+            "rank_rss_anon_bytes": 1914617856,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1914617856,
+            "available_bytes": 2995249152,
+            "rank_rss_bytes": 2287345664,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "plain-32",
+        "elapsed_s": 62.9232339549344,
+        "host_glibc": {
+          "in_use_bytes": 1594951024,
+          "free_arena_bytes": 2062992,
+          "arena_bytes": 325087232,
+          "mmap_bytes": 1271926784
+        }
+      },
+      {
+        "time": "2026-10-12T03:45:23.048186+00:00",
+        "grammar_cache_bytes": 46792848,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 288,
+          "graph_evictions": 144
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 335716352,
+            "swap_bytes": 2150105088,
+            "anon_plus_swap_bytes": 2485821440,
+            "rank_rss_anon_bytes": 336048128,
+            "rank_vm_swap_bytes": 1958346752,
+            "rank_process_anon_plus_swap_bytes": 2294394880,
+            "available_bytes": 3695665152,
+            "rank_rss_bytes": 495759360,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1915465728,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1915465728,
+            "rank_rss_anon_bytes": 1915465728,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1915465728,
+            "available_bytes": 3017347072,
+            "rank_rss_bytes": 2288193536,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "plain-64",
+        "elapsed_s": 121.53693921212107,
+        "host_glibc": {
+          "in_use_bytes": 1596024912,
+          "free_arena_bytes": 1812400,
+          "arena_bytes": 325877760,
+          "mmap_bytes": 1271959552
+        }
+      },
+      {
+        "time": "2026-10-12T03:45:39.895319+00:00",
+        "grammar_cache_bytes": 53391576,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 291,
+          "graph_evictions": 147
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 284663808,
+            "swap_bytes": 2160418816,
+            "anon_plus_swap_bytes": 2445082624,
+            "rank_rss_anon_bytes": 284741632,
+            "rank_vm_swap_bytes": 2016837632,
+            "rank_process_anon_plus_swap_bytes": 2301579264,
+            "available_bytes": 3835437056,
+            "rank_rss_bytes": 440025088,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1915707392,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1915707392,
+            "rank_rss_anon_bytes": 1915707392,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1915707392,
+            "available_bytes": 2947600384,
+            "rank_rss_bytes": 2288435200,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-hot-32",
+        "elapsed_s": 138.38388003013097,
+        "host_glibc": {
+          "in_use_bytes": 1602746016,
+          "free_arena_bytes": 2013536,
+          "arena_bytes": 325996544,
+          "mmap_bytes": 1278763008
+        }
+      },
+      {
+        "time": "2026-10-12T03:45:56.076156+00:00",
+        "grammar_cache_bytes": 53391576,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 291,
+          "graph_evictions": 147
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 284844032,
+            "swap_bytes": 2160418816,
+            "anon_plus_swap_bytes": 2445262848,
+            "rank_rss_anon_bytes": 284876800,
+            "rank_vm_swap_bytes": 2016739328,
+            "rank_process_anon_plus_swap_bytes": 2301616128,
+            "available_bytes": 3792150528,
+            "rank_rss_bytes": 441524224,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1915707392,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1915707392,
+            "rank_rss_anon_bytes": 1915707392,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1915707392,
+            "available_bytes": 2911977472,
+            "rank_rss_bytes": 2288435200,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-hot-64",
+        "elapsed_s": 154.56451868498698,
+        "host_glibc": {
+          "in_use_bytes": 1602745760,
+          "free_arena_bytes": 2013792,
+          "arena_bytes": 325996544,
+          "mmap_bytes": 1278763008
+        }
+      },
+      {
+        "time": "2026-10-12T03:46:12.092411+00:00",
+        "grammar_cache_bytes": 53391576,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 291,
+          "graph_evictions": 147
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 245161984,
+            "swap_bytes": 2163838976,
+            "anon_plus_swap_bytes": 2409000960,
+            "rank_rss_anon_bytes": 245137408,
+            "rank_vm_swap_bytes": 2056425472,
+            "rank_process_anon_plus_swap_bytes": 2301562880,
+            "available_bytes": 3817152512,
+            "rank_rss_bytes": 400564224,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1915707392,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1915707392,
+            "rank_rss_anon_bytes": 1915707392,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1915707392,
+            "available_bytes": 2878246912,
+            "rank_rss_bytes": 2288435200,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-hot-96",
+        "elapsed_s": 170.58076993515715,
+        "host_glibc": {
+          "in_use_bytes": 1602746016,
+          "free_arena_bytes": 2013536,
+          "arena_bytes": 325996544,
+          "mmap_bytes": 1278763008
+        }
+      },
+      {
+        "time": "2026-10-12T03:46:28.158769+00:00",
+        "grammar_cache_bytes": 53391576,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 291,
+          "graph_evictions": 147
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 245571584,
+            "swap_bytes": 2163838976,
+            "anon_plus_swap_bytes": 2409410560,
+            "rank_rss_anon_bytes": 245575680,
+            "rank_vm_swap_bytes": 2056003584,
+            "rank_process_anon_plus_swap_bytes": 2301579264,
+            "available_bytes": 3870257152,
+            "rank_rss_bytes": 402370560,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1915707392,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1915707392,
+            "rank_rss_anon_bytes": 1915707392,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1915707392,
+            "available_bytes": 2861125632,
+            "rank_rss_bytes": 2288435200,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-hot-128",
+        "elapsed_s": 186.6471356691327,
+        "host_glibc": {
+          "in_use_bytes": 1602745760,
+          "free_arena_bytes": 2013792,
+          "arena_bytes": 325996544,
+          "mmap_bytes": 1278763008
+        }
+      },
+      {
+        "time": "2026-10-12T03:46:45.114807+00:00",
+        "grammar_cache_bytes": 218191168,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 291,
+          "graph_evictions": 147
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 424316928,
+            "swap_bytes": 2144514048,
+            "anon_plus_swap_bytes": 2568830976,
+            "rank_rss_anon_bytes": 424292352,
+            "rank_vm_swap_bytes": 2045616128,
+            "rank_process_anon_plus_swap_bytes": 2469908480,
+            "available_bytes": 3669651456,
+            "rank_rss_bytes": 581496832,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1915711488,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1915711488,
+            "rank_rss_anon_bytes": 1915711488,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1915711488,
+            "available_bytes": 2769985536,
+            "rank_rss_bytes": 2288439296,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-churn-32",
+        "elapsed_s": 203.60316712898202,
+        "host_glibc": {
+          "in_use_bytes": 1771288496,
+          "free_arena_bytes": 1980496,
+          "arena_bytes": 327389184,
+          "mmap_bytes": 1445879808
+        }
+      },
+      {
+        "time": "2026-10-12T03:47:02.226123+00:00",
+        "grammar_cache_bytes": 218246772,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 291,
+          "graph_evictions": 147
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 426139648,
+            "swap_bytes": 2144514048,
+            "anon_plus_swap_bytes": 2570653696,
+            "rank_rss_anon_bytes": 426172416,
+            "rank_vm_swap_bytes": 2044125184,
+            "rank_process_anon_plus_swap_bytes": 2470297600,
+            "available_bytes": 3645042688,
+            "rank_rss_bytes": 584613888,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1915711488,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1915711488,
+            "rank_rss_anon_bytes": 1915711488,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1915711488,
+            "available_bytes": 2744225792,
+            "rank_rss_bytes": 2288439296,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-churn-64",
+        "elapsed_s": 220.71471920702606,
+        "host_glibc": {
+          "in_use_bytes": 1771609520,
+          "free_arena_bytes": 2056784,
+          "arena_bytes": 327786496,
+          "mmap_bytes": 1445879808
+        }
+      },
+      {
+        "time": "2026-10-12T03:47:19.183721+00:00",
+        "grammar_cache_bytes": 218302708,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 291,
+          "graph_evictions": 147
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 424992768,
+            "swap_bytes": 2144575488,
+            "anon_plus_swap_bytes": 2569568256,
+            "rank_rss_anon_bytes": 425025536,
+            "rank_vm_swap_bytes": 2045562880,
+            "rank_process_anon_plus_swap_bytes": 2470588416,
+            "available_bytes": 3713445888,
+            "rank_rss_bytes": 574828544,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1915707392,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1915707392,
+            "rank_rss_anon_bytes": 1915707392,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1915707392,
+            "available_bytes": 2712133632,
+            "rank_rss_bytes": 2288435200,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-churn-96",
+        "elapsed_s": 237.67208114196546,
+        "host_glibc": {
+          "in_use_bytes": 1771932336,
+          "free_arena_bytes": 2041168,
+          "arena_bytes": 328093696,
+          "mmap_bytes": 1445879808
+        }
+      },
+      {
+        "time": "2026-10-12T03:47:36.727280+00:00",
+        "grammar_cache_bytes": 218364580,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 291,
+          "graph_evictions": 147
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 424214528,
+            "swap_bytes": 2144305152,
+            "anon_plus_swap_bytes": 2568519680,
+            "rank_rss_anon_bytes": 424214528,
+            "rank_vm_swap_bytes": 2046767104,
+            "rank_process_anon_plus_swap_bytes": 2470981632,
+            "available_bytes": 3712524288,
+            "rank_rss_bytes": 573599744,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1915719680,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1915719680,
+            "rank_rss_anon_bytes": 1915719680,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1915719680,
+            "available_bytes": 2642784256,
+            "rank_rss_bytes": 2288447488,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-churn-128",
+        "elapsed_s": 255.2156513670925,
+        "host_glibc": {
+          "in_use_bytes": 1772369568,
+          "free_arena_bytes": 2095456,
+          "arena_bytes": 328585216,
+          "mmap_bytes": 1445879808
+        }
+      },
+      {
+        "time": "2026-10-12T03:47:53.982660+00:00",
+        "grammar_cache_bytes": 218357564,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 291,
+          "graph_evictions": 147
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 335482880,
+            "swap_bytes": 2230579200,
+            "anon_plus_swap_bytes": 2566062080,
+            "rank_rss_anon_bytes": 335519744,
+            "rank_vm_swap_bytes": 2135416832,
+            "rank_process_anon_plus_swap_bytes": 2470936576,
+            "available_bytes": 3806756864,
+            "rank_rss_bytes": 483487744,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1915711488,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1915711488,
+            "rank_rss_anon_bytes": 1915711488,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1915711488,
+            "available_bytes": 2608234496,
+            "rank_rss_bytes": 2288439296,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-repeat1-32",
+        "elapsed_s": 272.47132176114246,
+        "host_glibc": {
+          "in_use_bytes": 1772361264,
+          "free_arena_bytes": 2103760,
+          "arena_bytes": 328585216,
+          "mmap_bytes": 1445879808
+        }
+      },
+      {
+        "time": "2026-10-12T03:48:11.345365+00:00",
+        "grammar_cache_bytes": 218358980,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 291,
+          "graph_evictions": 147
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 423223296,
+            "swap_bytes": 2145517568,
+            "anon_plus_swap_bytes": 2568740864,
+            "rank_rss_anon_bytes": 423198720,
+            "rank_vm_swap_bytes": 2047819776,
+            "rank_process_anon_plus_swap_bytes": 2471018496,
+            "available_bytes": 3662393344,
+            "rank_rss_bytes": 573190144,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1915711488,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1915711488,
+            "rank_rss_anon_bytes": 1915711488,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1915711488,
+            "available_bytes": 2630754304,
+            "rank_rss_bytes": 2288439296,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-repeat1-64",
+        "elapsed_s": 289.8337249760516,
+        "host_glibc": {
+          "in_use_bytes": 1772364416,
+          "free_arena_bytes": 2100608,
+          "arena_bytes": 328585216,
+          "mmap_bytes": 1445879808
+        }
+      },
+      {
+        "time": "2026-10-12T03:48:28.202006+00:00",
+        "grammar_cache_bytes": 218358980,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 291,
+          "graph_evictions": 147
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 423964672,
+            "swap_bytes": 2145820672,
+            "anon_plus_swap_bytes": 2569785344,
+            "rank_rss_anon_bytes": 423964672,
+            "rank_vm_swap_bytes": 2046963712,
+            "rank_process_anon_plus_swap_bytes": 2470928384,
+            "available_bytes": 3678310400,
+            "rank_rss_bytes": 575414272,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1915707392,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1915707392,
+            "rank_rss_anon_bytes": 1915707392,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1915707392,
+            "available_bytes": 2649718784,
+            "rank_rss_bytes": 2288435200,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-repeat1-96",
+        "elapsed_s": 306.69036892894655,
+        "host_glibc": {
+          "in_use_bytes": 1772364256,
+          "free_arena_bytes": 2100768,
+          "arena_bytes": 328585216,
+          "mmap_bytes": 1445879808
+        }
+      },
+      {
+        "time": "2026-10-12T03:48:45.661094+00:00",
+        "grammar_cache_bytes": 218364580,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 291,
+          "graph_evictions": 147
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 424828928,
+            "swap_bytes": 2145820672,
+            "anon_plus_swap_bytes": 2570649600,
+            "rank_rss_anon_bytes": 424804352,
+            "rank_vm_swap_bytes": 2046148608,
+            "rank_process_anon_plus_swap_bytes": 2470952960,
+            "available_bytes": 3615801344,
+            "rank_rss_bytes": 577785856,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1915719680,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1915719680,
+            "rank_rss_anon_bytes": 1915719680,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1915719680,
+            "available_bytes": 2759233536,
+            "rank_rss_bytes": 2288447488,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-repeat1-128",
+        "elapsed_s": 324.14945572195575,
+        "host_glibc": {
+          "in_use_bytes": 1772372096,
+          "free_arena_bytes": 2092928,
+          "arena_bytes": 328585216,
+          "mmap_bytes": 1445879808
+        }
+      },
+      {
+        "time": "2026-10-12T03:49:02.263919+00:00",
+        "grammar_cache_bytes": 218357564,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 291,
+          "graph_evictions": 147
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 424906752,
+            "swap_bytes": 2145828864,
+            "anon_plus_swap_bytes": 2570735616,
+            "rank_rss_anon_bytes": 424939520,
+            "rank_vm_swap_bytes": 2046005248,
+            "rank_process_anon_plus_swap_bytes": 2470944768,
+            "available_bytes": 3623886848,
+            "rank_rss_bytes": 579194880,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1915711488,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1915711488,
+            "rank_rss_anon_bytes": 1915711488,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1915711488,
+            "available_bytes": 2719166464,
+            "rank_rss_bytes": 2288439296,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-repeat2-32",
+        "elapsed_s": 340.7522794159595,
+        "host_glibc": {
+          "in_use_bytes": 1772362784,
+          "free_arena_bytes": 2102240,
+          "arena_bytes": 328585216,
+          "mmap_bytes": 1445879808
+        }
+      },
+      {
+        "time": "2026-10-12T03:49:19.278803+00:00",
+        "grammar_cache_bytes": 218358980,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 291,
+          "graph_evictions": 147
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 424787968,
+            "swap_bytes": 2145832960,
+            "anon_plus_swap_bytes": 2570620928,
+            "rank_rss_anon_bytes": 424804352,
+            "rank_vm_swap_bytes": 2046140416,
+            "rank_process_anon_plus_swap_bytes": 2470944768,
+            "available_bytes": 3636666368,
+            "rank_rss_bytes": 580476928,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1915711488,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1915711488,
+            "rank_rss_anon_bytes": 1915711488,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1915711488,
+            "available_bytes": 2693758976,
+            "rank_rss_bytes": 2288439296,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-repeat2-64",
+        "elapsed_s": 357.76716271112673,
+        "host_glibc": {
+          "in_use_bytes": 1772365248,
+          "free_arena_bytes": 2099776,
+          "arena_bytes": 328585216,
+          "mmap_bytes": 1445879808
+        }
+      },
+      {
+        "time": "2026-10-12T03:49:36.081873+00:00",
+        "grammar_cache_bytes": 218358980,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 291,
+          "graph_evictions": 147
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 424845312,
+            "swap_bytes": 2145832960,
+            "anon_plus_swap_bytes": 2570678272,
+            "rank_rss_anon_bytes": 424882176,
+            "rank_vm_swap_bytes": 2046058496,
+            "rank_process_anon_plus_swap_bytes": 2470940672,
+            "available_bytes": 3575480320,
+            "rank_rss_bytes": 581795840,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1915707392,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1915707392,
+            "rank_rss_anon_bytes": 1915707392,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1915707392,
+            "available_bytes": 2678976512,
+            "rank_rss_bytes": 2288435200,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-repeat2-96",
+        "elapsed_s": 374.57023294712417,
+        "host_glibc": {
+          "in_use_bytes": 1772365264,
+          "free_arena_bytes": 2099760,
+          "arena_bytes": 328585216,
+          "mmap_bytes": 1445879808
+        }
+      },
+      {
+        "time": "2026-10-12T03:49:53.514599+00:00",
+        "grammar_cache_bytes": 218364580,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 291,
+          "graph_evictions": 147
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 424919040,
+            "swap_bytes": 2145832960,
+            "anon_plus_swap_bytes": 2570752000,
+            "rank_rss_anon_bytes": 424955904,
+            "rank_vm_swap_bytes": 2045980672,
+            "rank_process_anon_plus_swap_bytes": 2470936576,
+            "available_bytes": 3608018944,
+            "rank_rss_bytes": 582643712,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1915719680,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1915719680,
+            "rank_rss_anon_bytes": 1915719680,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1915719680,
+            "available_bytes": 2691997696,
+            "rank_rss_bytes": 2288447488,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "schema-repeat2-128",
+        "elapsed_s": 392.0029582809657,
+        "host_glibc": {
+          "in_use_bytes": 1772372992,
+          "free_arena_bytes": 2092032,
+          "arena_bytes": 328585216,
+          "mmap_bytes": 1445879808
+        }
+      },
+      {
+        "time": "2026-10-12T03:50:24.137517+00:00",
+        "grammar_cache_bytes": 218364580,
+        "graphs": {
+          "round_graphs": 144,
+          "graph_captures": 291,
+          "graph_evictions": 147
+        },
+        "retained_states": 64,
+        "snapshot_bytes": 427819008,
+        "hosts": {
+          "head": {
+            "anonymous_bytes": 424374272,
+            "swap_bytes": 2146037760,
+            "anon_plus_swap_bytes": 2570412032,
+            "rank_rss_anon_bytes": 424374272,
+            "rank_vm_swap_bytes": 2046562304,
+            "rank_process_anon_plus_swap_bytes": 2470936576,
+            "available_bytes": 3575103488,
+            "rank_rss_bytes": 580632576,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          },
+          "worker": {
+            "anonymous_bytes": 1915719680,
+            "swap_bytes": 0,
+            "anon_plus_swap_bytes": 1915719680,
+            "rank_rss_anon_bytes": 1915719680,
+            "rank_vm_swap_bytes": 0,
+            "rank_process_anon_plus_swap_bytes": 1915719680,
+            "available_bytes": 2756210688,
+            "rank_rss_bytes": 2288447488,
+            "oom": 0,
+            "oom_kill": 0,
+            "host_probe_errors": 0
+          }
+        },
+        "label": "quiet-final",
+        "elapsed_s": 422.6261755831074,
+        "host_glibc": {
+          "in_use_bytes": 1772373056,
+          "free_arena_bytes": 2091968,
+          "arena_bytes": 328585216,
+          "mmap_bytes": 1445879808
+        }
+      }
+    ],
+    "component_deltas": [
+      {
+        "start": "baseline",
+        "end": "tokenize-64",
+        "seconds": 2.665470490930602,
+        "hosts": {
+          "head": {
+            "anon_plus_swap_delta_bytes": 4673536,
+            "rank_process_anon_plus_swap_delta_bytes": 638976
+          },
+          "worker": {
+            "anon_plus_swap_delta_bytes": 0,
+            "rank_process_anon_plus_swap_delta_bytes": 0
+          }
+        },
+        "grammar_cache_delta_bytes": 0,
+        "graph_capture_delta": 0,
+        "glibc_delta_bytes": {
+          "in_use_bytes": 768,
+          "free_arena_bytes": -768,
+          "arena_bytes": 0,
+          "mmap_bytes": 0
+        }
+      },
+      {
+        "start": "tokenize-64",
+        "end": "plain-64",
+        "seconds": 118.81958930008113,
+        "hosts": {
+          "head": {
+            "anon_plus_swap_delta_bytes": 148193280,
+            "rank_process_anon_plus_swap_delta_bytes": -737280
+          },
+          "worker": {
+            "anon_plus_swap_delta_bytes": -1257472,
+            "rank_process_anon_plus_swap_delta_bytes": -1257472
+          }
+        },
+        "grammar_cache_delta_bytes": 0,
+        "graph_capture_delta": 93,
+        "glibc_delta_bytes": {
+          "in_use_bytes": -1510880,
+          "free_arena_bytes": -16928,
+          "arena_bytes": 2416640,
+          "mmap_bytes": -3944448
+        }
+      },
+      {
+        "start": "plain-64",
+        "end": "schema-hot-128",
+        "seconds": 65.11019645701163,
+        "hosts": {
+          "head": {
+            "anon_plus_swap_delta_bytes": -76410880,
+            "rank_process_anon_plus_swap_delta_bytes": 7184384
+          },
+          "worker": {
+            "anon_plus_swap_delta_bytes": 241664,
+            "rank_process_anon_plus_swap_delta_bytes": 241664
+          }
+        },
+        "grammar_cache_delta_bytes": 6598728,
+        "graph_capture_delta": 3,
+        "glibc_delta_bytes": {
+          "in_use_bytes": 6720848,
+          "free_arena_bytes": 201392,
+          "arena_bytes": 118784,
+          "mmap_bytes": 6803456
+        }
+      },
+      {
+        "start": "schema-hot-128",
+        "end": "schema-churn-128",
+        "seconds": 68.56851569795981,
+        "hosts": {
+          "head": {
+            "anon_plus_swap_delta_bytes": 159109120,
+            "rank_process_anon_plus_swap_delta_bytes": 169402368
+          },
+          "worker": {
+            "anon_plus_swap_delta_bytes": 12288,
+            "rank_process_anon_plus_swap_delta_bytes": 12288
+          }
+        },
+        "grammar_cache_delta_bytes": 164973004,
+        "graph_capture_delta": 0,
+        "glibc_delta_bytes": {
+          "in_use_bytes": 169623808,
+          "free_arena_bytes": 81664,
+          "arena_bytes": 2588672,
+          "mmap_bytes": 167116800
+        }
+      },
+      {
+        "start": "schema-churn-128",
+        "end": "schema-repeat1-128",
+        "seconds": 68.93380435486324,
+        "hosts": {
+          "head": {
+            "anon_plus_swap_delta_bytes": 2129920,
+            "rank_process_anon_plus_swap_delta_bytes": -28672
+          },
+          "worker": {
+            "anon_plus_swap_delta_bytes": 0,
+            "rank_process_anon_plus_swap_delta_bytes": 0
+          }
+        },
+        "grammar_cache_delta_bytes": 0,
+        "graph_capture_delta": 0,
+        "glibc_delta_bytes": {
+          "in_use_bytes": 2528,
+          "free_arena_bytes": -2528,
+          "arena_bytes": 0,
+          "mmap_bytes": 0
+        }
+      },
+      {
+        "start": "schema-repeat1-128",
+        "end": "schema-repeat2-128",
+        "seconds": 67.85350255900994,
+        "hosts": {
+          "head": {
+            "anon_plus_swap_delta_bytes": 102400,
+            "rank_process_anon_plus_swap_delta_bytes": -16384
+          },
+          "worker": {
+            "anon_plus_swap_delta_bytes": 0,
+            "rank_process_anon_plus_swap_delta_bytes": 0
+          }
+        },
+        "grammar_cache_delta_bytes": 0,
+        "graph_capture_delta": 0,
+        "glibc_delta_bytes": {
+          "in_use_bytes": 896,
+          "free_arena_bytes": -896,
+          "arena_bytes": 0,
+          "mmap_bytes": 0
+        }
+      },
+      {
+        "start": "schema-repeat2-128",
+        "end": "quiet-final",
+        "seconds": 30.62321730214171,
+        "hosts": {
+          "head": {
+            "anon_plus_swap_delta_bytes": -339968,
+            "rank_process_anon_plus_swap_delta_bytes": 0
+          },
+          "worker": {
+            "anon_plus_swap_delta_bytes": 0,
+            "rank_process_anon_plus_swap_delta_bytes": 0
+          }
+        },
+        "grammar_cache_delta_bytes": 0,
+        "graph_capture_delta": 0,
+        "glibc_delta_bytes": {
+          "in_use_bytes": 64,
+          "free_arena_bytes": -64,
+          "arena_bytes": 0,
+          "mmap_bytes": 0
+        }
+      }
+    ],
+    "quiet": [
+      {
+        "label": "initial",
+        "normalization": {
+          "insertions": 64,
+          "protocol": "native-retained-state-lru-4096-v1",
+          "states_after": 64,
+          "tokens_per_insertion": 4096
+        },
+        "before": {
+          "time": "2026-10-12T03:41:17.879347+00:00",
+          "grammar_cache_bytes": 46792848,
+          "graphs": {
+            "round_graphs": 144,
+            "graph_captures": 195,
+            "graph_evictions": 51
+          },
+          "retained_states": 64,
+          "snapshot_bytes": 427819008,
+          "hosts": {
+            "head": {
+              "anonymous_bytes": 254783488,
+              "swap_bytes": 2154770432,
+              "anon_plus_swap_bytes": 2409553920,
+              "rank_rss_anon_bytes": 254783488,
+              "rank_vm_swap_bytes": 2039709696,
+              "rank_process_anon_plus_swap_bytes": 2294493184,
+              "available_bytes": 3925729280,
+              "rank_rss_bytes": 411832320,
+              "oom": 0,
+              "oom_kill": 0,
+              "host_probe_errors": 0
+            },
+            "worker": {
+              "anonymous_bytes": 1916723200,
+              "swap_bytes": 0,
+              "anon_plus_swap_bytes": 1916723200,
+              "rank_rss_anon_bytes": 1916723200,
+              "rank_vm_swap_bytes": 0,
+              "rank_process_anon_plus_swap_bytes": 1916723200,
+              "available_bytes": 3527495680,
+              "rank_rss_bytes": 2289451008,
+              "oom": 0,
+              "oom_kill": 0,
+              "host_probe_errors": 0
+            }
+          },
+          "host_glibc": {
+            "arena_bytes": 323461120,
+            "free_arena_bytes": 1830096,
+            "in_use_bytes": 1597535024,
+            "mmap_bytes": 1275904000
+          }
+        },
+        "after": {
+          "time": "2026-10-12T03:43:19.775586+00:00",
+          "grammar_cache_bytes": 46792848,
+          "graphs": {
+            "round_graphs": 144,
+            "graph_captures": 195,
+            "graph_evictions": 51
+          },
+          "retained_states": 64,
+          "snapshot_bytes": 427819008,
+          "hosts": {
+            "head": {
+              "anonymous_bytes": 173211648,
+              "swap_bytes": 2159742976,
+              "anon_plus_swap_bytes": 2332954624,
+              "rank_rss_anon_bytes": 173211648,
+              "rank_vm_swap_bytes": 2121281536,
+              "rank_process_anon_plus_swap_bytes": 2294493184,
+              "available_bytes": 3943927808,
+              "rank_rss_bytes": 323883008,
+              "oom": 0,
+              "oom_kill": 0,
+              "host_probe_errors": 0
+            },
+            "worker": {
+              "anonymous_bytes": 1916723200,
+              "swap_bytes": 0,
+              "anon_plus_swap_bytes": 1916723200,
+              "rank_rss_anon_bytes": 1916723200,
+              "rank_vm_swap_bytes": 0,
+              "rank_process_anon_plus_swap_bytes": 1916723200,
+              "available_bytes": 2956005376,
+              "rank_rss_bytes": 2289451008,
+              "oom": 0,
+              "oom_kill": 0,
+              "host_probe_errors": 0
+            }
+          },
+          "host_glibc": {
+            "arena_bytes": 323461120,
+            "free_arena_bytes": 1830096,
+            "in_use_bytes": 1597535024,
+            "mmap_bytes": 1275904000
+          }
+        }
+      },
+      {
+        "label": "final",
+        "normalization": {
+          "insertions": 64,
+          "protocol": "native-retained-state-lru-4096-v1",
+          "states_after": 64,
+          "tokens_per_insertion": 4096
+        },
+        "before": {
+          "time": "2026-10-12T03:59:24.113020+00:00",
+          "grammar_cache_bytes": 218364580,
+          "graphs": {
+            "round_graphs": 144,
+            "graph_captures": 327,
+            "graph_evictions": 183
+          },
+          "retained_states": 64,
+          "snapshot_bytes": 427819008,
+          "hosts": {
+            "head": {
+              "anonymous_bytes": 309952512,
+              "swap_bytes": 2332393472,
+              "anon_plus_swap_bytes": 2642345984,
+              "rank_rss_anon_bytes": 309952512,
+              "rank_vm_swap_bytes": 2162483200,
+              "rank_process_anon_plus_swap_bytes": 2472435712,
+              "available_bytes": 3751358464,
+              "rank_rss_bytes": 467480576,
+              "oom": 0,
+              "oom_kill": 0,
+              "host_probe_errors": 0
+            },
+            "worker": {
+              "anonymous_bytes": 1894785024,
+              "swap_bytes": 23863296,
+              "anon_plus_swap_bytes": 1918648320,
+              "rank_rss_anon_bytes": 1894785024,
+              "rank_vm_swap_bytes": 23638016,
+              "rank_process_anon_plus_swap_bytes": 1918423040,
+              "available_bytes": 3513876480,
+              "rank_rss_bytes": 2216562688,
+              "oom": 0,
+              "oom_kill": 0,
+              "host_probe_errors": 0
+            }
+          },
+          "host_glibc": {
+            "arena_bytes": 330530816,
+            "free_arena_bytes": 2038688,
+            "in_use_bytes": 1775035488,
+            "mmap_bytes": 1446543360
+          }
+        },
+        "after": {
+          "time": "2026-10-12T04:01:25.546240+00:00",
+          "grammar_cache_bytes": 218364580,
+          "graphs": {
+            "round_graphs": 144,
+            "graph_captures": 327,
+            "graph_evictions": 183
+          },
+          "retained_states": 64,
+          "snapshot_bytes": 427819008,
+          "hosts": {
+            "head": {
+              "anonymous_bytes": 266723328,
+              "swap_bytes": 2333704192,
+              "anon_plus_swap_bytes": 2600427520,
+              "rank_rss_anon_bytes": 266723328,
+              "rank_vm_swap_bytes": 2205679616,
+              "rank_process_anon_plus_swap_bytes": 2472402944,
+              "available_bytes": 3735150592,
+              "rank_rss_bytes": 422158336,
+              "oom": 0,
+              "oom_kill": 0,
+              "host_probe_errors": 0
+            },
+            "worker": {
+              "anonymous_bytes": 1894785024,
+              "swap_bytes": 23863296,
+              "anon_plus_swap_bytes": 1918648320,
+              "rank_rss_anon_bytes": 1894785024,
+              "rank_vm_swap_bytes": 23638016,
+              "rank_process_anon_plus_swap_bytes": 1918423040,
+              "available_bytes": 3489923072,
+              "rank_rss_bytes": 2216431616,
+              "oom": 0,
+              "oom_kill": 0,
+              "host_probe_errors": 0
+            }
+          },
+          "host_glibc": {
+            "arena_bytes": 330530816,
+            "free_arena_bytes": 2038752,
+            "in_use_bytes": 1775035424,
+            "mmap_bytes": 1446543360
+          }
+        }
+      }
+    ]
+  },
+  "performance": {
+    "protocol": {
+      "tasks": [
+        "code",
+        "prose",
+        "counting"
+      ],
+      "streams": [
+        1,
+        32
+      ],
+      "temperatures": [
+        0,
+        1
+      ],
+      "repetitions": 1,
+      "maximum_reply_tokens": 384,
+      "eos_allowed": true,
+      "thinking": false,
+      "input_padding": false,
+      "c32_variant_suffix": " (variant N), N=0..31",
+      "sampling_seeds": "42000 + request index, repeated across repetitions",
+      "warmup": "One unscored wave per shape, 32 output tokens at C1 and 64 at C32",
+      "order": "Temperature, task, concurrency; warmup then one scored repetition",
+      "c1_rate": "(output tokens - 1) / first-to-last-content seconds",
+      "c32_rate": "health-counter output tokens / eligible full-occupancy decode seconds",
+      "health_poll_seconds": 0.25,
+      "minimum_steady_seconds": 2,
+      "end_to_end": "all output tokens / earliest request start to latest response end",
+      "cache_scope": "Warm per shape; no cold-prefix claim"
+    },
+    "groups": [
+      {
+        "streams": 1,
+        "temperature": 0,
+        "task": "code",
+        "repetitions": 1,
+        "metrics": {
+          "c1_content_decode_tps": {
+            "all": [
+              98.48058780225736
+            ],
+            "median": 98.48058780225736,
+            "min": 98.48058780225736,
+            "max": 98.48058780225736
+          },
+          "aggregate_steady_decode_tps": {
+            "all": [
+              97.94010481333575
+            ],
+            "median": 97.94010481333575,
+            "min": 97.94010481333575,
+            "max": 97.94010481333575
+          },
+          "aggregate_end_to_end_tps": {
+            "all": [
+              94.81739485748763
+            ],
+            "median": 94.81739485748763,
+            "min": 94.81739485748763,
+            "max": 94.81739485748763
+          }
+        },
+        "output_tokens_per_wave": [
+          384
+        ]
+      },
+      {
+        "streams": 1,
+        "temperature": 0,
+        "task": "counting",
+        "repetitions": 1,
+        "metrics": {
+          "c1_content_decode_tps": {
+            "all": [
+              139.29098993617663
+            ],
+            "median": 139.29098993617663,
+            "min": 139.29098993617663,
+            "max": 139.29098993617663
+          },
+          "aggregate_steady_decode_tps": {
+            "all": [
+              139.74391561323
+            ],
+            "median": 139.74391561323,
+            "min": 139.74391561323,
+            "max": 139.74391561323
+          },
+          "aggregate_end_to_end_tps": {
+            "all": [
+              134.22355539736267
+            ],
+            "median": 134.22355539736267,
+            "min": 134.22355539736267,
+            "max": 134.22355539736267
+          }
+        },
+        "output_tokens_per_wave": [
+          384
+        ]
+      },
+      {
+        "streams": 1,
+        "temperature": 0,
+        "task": "prose",
+        "repetitions": 1,
+        "metrics": {
+          "c1_content_decode_tps": {
+            "all": [
+              59.089774016057284
+            ],
+            "median": 59.089774016057284,
+            "min": 59.089774016057284,
+            "max": 59.089774016057284
+          },
+          "aggregate_steady_decode_tps": {
+            "all": [
+              59.63034173298656
+            ],
+            "median": 59.63034173298656,
+            "min": 59.63034173298656,
+            "max": 59.63034173298656
+          },
+          "aggregate_end_to_end_tps": {
+            "all": [
+              57.96246849336511
+            ],
+            "median": 57.96246849336511,
+            "min": 57.96246849336511,
+            "max": 57.96246849336511
+          }
+        },
+        "output_tokens_per_wave": [
+          299
+        ]
+      },
+      {
+        "streams": 1,
+        "temperature": 1,
+        "task": "code",
+        "repetitions": 1,
+        "metrics": {
+          "c1_content_decode_tps": {
+            "all": [
+              100.85696012805776
+            ],
+            "median": 100.85696012805776,
+            "min": 100.85696012805776,
+            "max": 100.85696012805776
+          },
+          "aggregate_steady_decode_tps": {
+            "all": [
+              100.7851687167501
+            ],
+            "median": 100.7851687167501,
+            "min": 100.7851687167501,
+            "max": 100.7851687167501
+          },
+          "aggregate_end_to_end_tps": {
+            "all": [
+              96.96422615397354
+            ],
+            "median": 96.96422615397354,
+            "min": 96.96422615397354,
+            "max": 96.96422615397354
+          }
+        },
+        "output_tokens_per_wave": [
+          384
+        ]
+      },
+      {
+        "streams": 1,
+        "temperature": 1,
+        "task": "counting",
+        "repetitions": 1,
+        "metrics": {
+          "c1_content_decode_tps": {
+            "all": [
+              135.60639650716158
+            ],
+            "median": 135.60639650716158,
+            "min": 135.60639650716158,
+            "max": 135.60639650716158
+          },
+          "aggregate_steady_decode_tps": {
+            "all": [
+              135.31775988719843
+            ],
+            "median": 135.31775988719843,
+            "min": 135.31775988719843,
+            "max": 135.31775988719843
+          },
+          "aggregate_end_to_end_tps": {
+            "all": [
+              130.4457232561714
+            ],
+            "median": 130.4457232561714,
+            "min": 130.4457232561714,
+            "max": 130.4457232561714
+          }
+        },
+        "output_tokens_per_wave": [
+          384
+        ]
+      },
+      {
+        "streams": 1,
+        "temperature": 1,
+        "task": "prose",
+        "repetitions": 1,
+        "metrics": {
+          "c1_content_decode_tps": {
+            "all": [
+              62.30074065880425
+            ],
+            "median": 62.30074065880425,
+            "min": 62.30074065880425,
+            "max": 62.30074065880425
+          },
+          "aggregate_steady_decode_tps": {
+            "all": [
+              62.62258248461509
+            ],
+            "median": 62.62258248461509,
+            "min": 62.62258248461509,
+            "max": 62.62258248461509
+          },
+          "aggregate_end_to_end_tps": {
+            "all": [
+              61.16920377848611
+            ],
+            "median": 61.16920377848611,
+            "min": 61.16920377848611,
+            "max": 61.16920377848611
+          }
+        },
+        "output_tokens_per_wave": [
+          384
+        ]
+      },
+      {
+        "streams": 32,
+        "temperature": 0,
+        "task": "code",
+        "repetitions": 1,
+        "metrics": {
+          "c1_content_decode_tps": {
+            "all": [
+              null
+            ],
+            "median": null,
+            "min": null,
+            "max": null
+          },
+          "aggregate_steady_decode_tps": {
+            "all": [
+              309.19828546418245
+            ],
+            "median": 309.19828546418245,
+            "min": 309.19828546418245,
+            "max": 309.19828546418245
+          },
+          "aggregate_end_to_end_tps": {
+            "all": [
+              268.93796054689045
+            ],
+            "median": 268.93796054689045,
+            "min": 268.93796054689045,
+            "max": 268.93796054689045
+          }
+        },
+        "output_tokens_per_wave": [
+          12288
+        ]
+      },
+      {
+        "streams": 32,
+        "temperature": 0,
+        "task": "counting",
+        "repetitions": 1,
+        "metrics": {
+          "c1_content_decode_tps": {
+            "all": [
+              null
+            ],
+            "median": null,
+            "min": null,
+            "max": null
+          },
+          "aggregate_steady_decode_tps": {
+            "all": [
+              377.99777671208255
+            ],
+            "median": 377.99777671208255,
+            "min": 377.99777671208255,
+            "max": 377.99777671208255
+          },
+          "aggregate_end_to_end_tps": {
+            "all": [
+              335.64013070980496
+            ],
+            "median": 335.64013070980496,
+            "min": 335.64013070980496,
+            "max": 335.64013070980496
+          }
+        },
+        "output_tokens_per_wave": [
+          12288
+        ]
+      },
+      {
+        "streams": 32,
+        "temperature": 0,
+        "task": "prose",
+        "repetitions": 1,
+        "metrics": {
+          "c1_content_decode_tps": {
+            "all": [
+              null
+            ],
+            "median": null,
+            "min": null,
+            "max": null
+          },
+          "aggregate_steady_decode_tps": {
+            "all": [
+              268.7548330116561
+            ],
+            "median": 268.7548330116561,
+            "min": 268.7548330116561,
+            "max": 268.7548330116561
+          },
+          "aggregate_end_to_end_tps": {
+            "all": [
+              241.95451595894036
+            ],
+            "median": 241.95451595894036,
+            "min": 241.95451595894036,
+            "max": 241.95451595894036
+          }
+        },
+        "output_tokens_per_wave": [
+          12227
+        ]
+      },
+      {
+        "streams": 32,
+        "temperature": 1,
+        "task": "code",
+        "repetitions": 1,
+        "metrics": {
+          "c1_content_decode_tps": {
+            "all": [
+              null
+            ],
+            "median": null,
+            "min": null,
+            "max": null
+          },
+          "aggregate_steady_decode_tps": {
+            "all": [
+              267.27330303470467
+            ],
+            "median": 267.27330303470467,
+            "min": 267.27330303470467,
+            "max": 267.27330303470467
+          },
+          "aggregate_end_to_end_tps": {
+            "all": [
+              236.74009507261349
+            ],
+            "median": 236.74009507261349,
+            "min": 236.74009507261349,
+            "max": 236.74009507261349
+          }
+        },
+        "output_tokens_per_wave": [
+          12288
+        ]
+      },
+      {
+        "streams": 32,
+        "temperature": 1,
+        "task": "counting",
+        "repetitions": 1,
+        "metrics": {
+          "c1_content_decode_tps": {
+            "all": [
+              null
+            ],
+            "median": null,
+            "min": null,
+            "max": null
+          },
+          "aggregate_steady_decode_tps": {
+            "all": [
+              364.339753314226
+            ],
+            "median": 364.339753314226,
+            "min": 364.339753314226,
+            "max": 364.339753314226
+          },
+          "aggregate_end_to_end_tps": {
+            "all": [
+              324.5165152043799
+            ],
+            "median": 324.5165152043799,
+            "min": 324.5165152043799,
+            "max": 324.5165152043799
+          }
+        },
+        "output_tokens_per_wave": [
+          12288
+        ]
+      },
+      {
+        "streams": 32,
+        "temperature": 1,
+        "task": "prose",
+        "repetitions": 1,
+        "metrics": {
+          "c1_content_decode_tps": {
+            "all": [
+              null
+            ],
+            "median": null,
+            "min": null,
+            "max": null
+          },
+          "aggregate_steady_decode_tps": {
+            "all": [
+              247.1885851954945
+            ],
+            "median": 247.1885851954945,
+            "min": 247.1885851954945,
+            "max": 247.1885851954945
+          },
+          "aggregate_end_to_end_tps": {
+            "all": [
+              225.23578417553895
+            ],
+            "median": 225.23578417553895,
+            "min": 225.23578417553895,
+            "max": 225.23578417553895
+          }
+        },
+        "output_tokens_per_wave": [
+          12229
+        ]
+      }
+    ],
+    "comparisons": [
+      {
+        "streams": 1,
+        "temperature": 0,
+        "task": "code",
+        "metric": "c1_content_decode_tps",
+        "baseline_three_run_median_tps": 100.24407165057589,
+        "candidate_one_run_tps": 98.48058780225736,
+        "change_percent": -1.759190163848856
+      },
+      {
+        "streams": 1,
+        "temperature": 0,
+        "task": "counting",
+        "metric": "c1_content_decode_tps",
+        "baseline_three_run_median_tps": 140.55379239694236,
+        "candidate_one_run_tps": 139.29098993617663,
+        "change_percent": -0.8984478036703658
+      },
+      {
+        "streams": 1,
+        "temperature": 0,
+        "task": "prose",
+        "metric": "c1_content_decode_tps",
+        "baseline_three_run_median_tps": 59.30119235956215,
+        "candidate_one_run_tps": 59.089774016057284,
+        "change_percent": -0.3565161763071645
+      },
+      {
+        "streams": 1,
+        "temperature": 1,
+        "task": "code",
+        "metric": "c1_content_decode_tps",
+        "baseline_three_run_median_tps": 98.61296411942475,
+        "candidate_one_run_tps": 100.85696012805776,
+        "change_percent": 2.2755588260336967
+      },
+      {
+        "streams": 1,
+        "temperature": 1,
+        "task": "counting",
+        "metric": "c1_content_decode_tps",
+        "baseline_three_run_median_tps": 139.30781211431773,
+        "candidate_one_run_tps": 135.60639650716158,
+        "change_percent": -2.657005053039463
+      },
+      {
+        "streams": 1,
+        "temperature": 1,
+        "task": "prose",
+        "metric": "c1_content_decode_tps",
+        "baseline_three_run_median_tps": 62.50141137028516,
+        "candidate_one_run_tps": 62.30074065880425,
+        "change_percent": -0.32106588808379355
+      },
+      {
+        "streams": 32,
+        "temperature": 0,
+        "task": "code",
+        "metric": "aggregate_steady_decode_tps",
+        "baseline_three_run_median_tps": 313.41118615111594,
+        "candidate_one_run_tps": 309.19828546418245,
+        "change_percent": -1.3442087816553538
+      },
+      {
+        "streams": 32,
+        "temperature": 0,
+        "task": "counting",
+        "metric": "aggregate_steady_decode_tps",
+        "baseline_three_run_median_tps": 376.9734854535317,
+        "candidate_one_run_tps": 377.99777671208255,
+        "change_percent": 0.2717144038177022
+      },
+      {
+        "streams": 32,
+        "temperature": 0,
+        "task": "prose",
+        "metric": "aggregate_steady_decode_tps",
+        "baseline_three_run_median_tps": 268.6274699285256,
+        "candidate_one_run_tps": 268.7548330116561,
+        "change_percent": 0.047412531251689316
+      },
+      {
+        "streams": 32,
+        "temperature": 1,
+        "task": "code",
+        "metric": "aggregate_steady_decode_tps",
+        "baseline_three_run_median_tps": 268.85418935943056,
+        "candidate_one_run_tps": 267.27330303470467,
+        "change_percent": -0.5880088119484039
+      },
+      {
+        "streams": 32,
+        "temperature": 1,
+        "task": "counting",
+        "metric": "aggregate_steady_decode_tps",
+        "baseline_three_run_median_tps": 366.5132385969217,
+        "candidate_one_run_tps": 364.339753314226,
+        "change_percent": -0.5930168555483006
+      },
+      {
+        "streams": 32,
+        "temperature": 1,
+        "task": "prose",
+        "metric": "aggregate_steady_decode_tps",
+        "baseline_three_run_median_tps": 251.05036667486513,
+        "candidate_one_run_tps": 247.1885851954945,
+        "change_percent": -1.538249686913229
+      }
+    ],
+    "wave_count": 24,
+    "request_count": 396,
+    "checks": {
+      "owned_rank_identity": true,
+      "exact_request_and_token_counters": true,
+      "all_scored_c32_waves_reached_full_occupancy": true,
+      "all_repetitions_retained": true,
+      "no_host_or_server_configuration_changes": true
+    },
+    "baseline_receipt": "benchmarks/evidence/native-workloads-20261011.json",
+    "scope": "One scored repetition per shape plus warmup, compared with the earlier three-run median; not a replacement hero benchmark."
+  },
+  "monitor": {
+    "hosts": {
+      "head": {
+        "samples": 260,
+        "minimum_available_bytes": 3283243008,
+        "oom_delta": 0,
+        "oom_kill_delta": 0,
+        "host_probe_errors": 0
+      },
+      "worker": {
+        "samples": 260,
+        "minimum_available_bytes": 2414149632,
+        "oom_delta": 0,
+        "oom_kill_delta": 0,
+        "host_probe_errors": 0
+      }
+    },
+    "observer_errors": 0,
+    "first": "2026-10-12T03:18:13.586327+00:00",
+    "last": "2026-10-12T04:01:23.642854+00:00"
+  },
+  "final_serving": {
+    "time": "2026-10-12T04:01:58.436691+00:00",
+    "status": "passed",
+    "source": "84ae3aaa1527515a3cb18236941bf5d4ca565248",
+    "image": "sha256:f6475856dedbc545a09142e6a8cbb9f4d92f29becfbf3fde6f7534ed9065c3a6",
+    "lan_smoke": {
+      "reachable": true,
+      "aliases_validated": 4,
+      "completion_correct": true,
+      "usage": {
+        "prompt_tokens": 12,
+        "completion_tokens": 4,
+        "total_tokens": 16,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      }
+    },
+    "healthy": true,
+    "rank_restarts": 0,
+    "owned_launch_unchanged": true,
+    "monitor_active": true,
+    "allocator_policy_verified_on_both_hosts": true,
+    "random_sampling_default": true,
+    "previous_image_present_on_both_hosts": true,
+    "whole_campaign_requests": 1193,
+    "final_canary_requests": 1
+  },
+  "limits": [
+    "Targeted finite regression after the original four-hour run; a second four-hour or 24-hour run was not performed.",
+    "Allocator retention is an established contributor, not proof that every future memory-growth source is eliminated.",
+    "glibc counters exclude Zig page allocations, CUDA/device allocations and other mappings; free arenas may contain discarded pages."
+  ],
+  "raw_evidence_sha256": {
+    "deployment/.local/qualification/host-memory-20261011/after/campaign.json": "5d17b562f259ed4c276fe9d0a61f59e9abd0533d7495889840ed7fffc8a8c984",
+    "deployment/.local/qualification/host-memory-20261011/after/features.json": "79d84f027e8f4cfd1251ae4f20f5bddcaa5ed43d441a034192e8f5ff9c850974",
+    "deployment/.local/qualification/host-memory-20261011/after/capacity.json": "d42be737b2deff2c62afffaf124d05d19e4dee794a1d8a0dd0e510766b04acd8",
+    "deployment/.local/qualification/host-memory-20261011/after/million.json": "19a11aafeee9be402649828af1f601b37cbdabc55c3399bae6eab8cde1271c6c",
+    "deployment/.local/qualification/records/validation-host-memory-capacity-20261011.json": "8ba36e1561be78e943d74fbb89878f7be922a6aa0193438276f235118b37dc98",
+    "deployment/.local/qualification/records/validation-host-memory-million-20261011.json": "a4412a52252478ec1b6fa295260607bea6146dacb1dde663cc6f1376a5cd2125",
+    "deployment/.local/qualification/host-memory-20261011/after/workloads.json": "5778fc4c76c13f44a8fb13496fca9a61045323526dcae3ae55654c3a3dbb5a38",
+    "deployment/.local/qualification/host-memory-20261011/after/terminal.json": "48b48ddbaac728dd358d77af94ad4fca40c832b27e1f366b5000ed6a136582fa",
+    "deployment/.local/qualification/host-memory-20261011/after/quiet-initial.json": "450277e8bd9e5c22b7768628fcd5155420c5475762ce118da8b9d5cfa97b0a6d",
+    "deployment/.local/qualification/host-memory-20261011/after/quiet-final.json": "b7aa39181360d039e462a1bc5cc9b504e8d5f4a0f4d89413f8b424280d3868ed",
+    "deployment/.local/qualification/host-memory-20261011/components.json": "9dcc6c650582d96e204cf4049218667d77fef69128d4acf93998b21f26adafb4",
+    "deployment/.local/qualification/host-memory-20261011/after/components.json": "03bd758e12e097fcd1eb6c2f5fa32f70104843a6f45249cf0c98e4439deb584f",
+    "deployment/.local/qualification/host-memory-20261011/public-grammar-default.jsonl": "d810aa4277a8e42a29da353672099d3ec660c1b300b317a16870b2be909d3e7f",
+    "deployment/.local/qualification/host-memory-20261011/public-grammar-trim128k.jsonl": "51b6c6663072e7cd41cb0e8ba3e84674e2a631104913db5d27fb0e25a7689df0",
+    "deployment/.local/qualification/host-memory-20261011/after/allocator-identity.json": "f118b170f4e19cb809b12e235ffa4373acc7b584dc4bd8223bccf2b43bd4065f",
+    "deployment/.local/qualification/host-memory-20261011/after/memory.jsonl": "21de9bf8f0a57cf45c1e5db0ce78bbfe207c49f3ee5e4eb38d4a417d2209b4f0",
+    "deployment/.local/qualification/endurance/native-four-hour-20261011-01/memory-review.json": "87a50f2ab479e6c764abb8a3d27bc99e7491b2102c0fdcd48e181f23a6b40b00",
+    "deployment/.local/qualification/endurance/native-four-hour-20261011-01/cycles.jsonl": "449593e6913c8784d7be78cc8855fb21940e65ab2df1b4af1074335026875222",
+    "deployment/.local/qualification/host-memory-20261011/health-only.json": "d039c991ef0c96b8433f6cb46ab612b4f43b0cbd72d9fe8779bfc96dc6791db9",
+    "deployment/.local/precompile.json": "24a68b7e77706f7c2b76265995476196c2792ab502ad29ba5c8e8af2ea1ea6d8",
+    "deployment/.local/native-cache-check.json": "66f24dc465ce5aeffb3b9939566335b55b0c2f5079b3b02811123b17c7a74c4d",
+    "deployment/.local/build.json": "8be816a02cc2c3d7e0fd7e9345df8c61504b008a37647460b59f756cebd1dbcb",
+    "deployment/.local/qualification/host-memory-20261011/after/swap-accounting.json": "44a2d8baf4300fc87d57419d3d9254a2afa4dcd48e804d61508d089ad73b4772",
+    "deployment/.local/qualification/host-memory-20261011/component-summary.json": "433c795b527dc6abfa037e800e5db5a33e0dd325a4fb7804484fb9ad2a65b349",
+    "deployment/.local/qualification/host-memory-20261011/public-grammar-provenance.json": "d59776e780bf00f8bf8db4a31f6bc53e62f3a37a38d7a953990f05c60f08953d"
+  }
+}

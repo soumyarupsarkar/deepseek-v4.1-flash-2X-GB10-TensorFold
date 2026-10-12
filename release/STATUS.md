@@ -6,6 +6,41 @@ remains deferred**. Personal use does not establish production qualification.
 
 ## Current runtime
 
+Source `84ae3aaa1527515a3cb18236941bf5d4ca565248`, image
+`sha256:f6475856dedbc545a09142e6a8cbb9f4d92f29becfbf3fde6f7534ed9065c3a6`.
+Later documentation and diagnostic-client commits do not change this runtime.
+
+The [host-memory investigation](../deployment/STABILITY.md) identified freed
+glibc arena retention during varying-schema compilation. The profile now sets
+`MALLOC_TRIM_THRESHOLD_=131072` inside both containers, and `/health` exposes
+optional numeric glibc heap accounting. No host allocator or kernel setting
+changes. The KV pool, C32 slots, context ceiling, grammar cache, graph limit and
+paired watchdog floor are unchanged.
+
+The rebuilt image passed 316 native tests, 82 publication tests, 14 controller
+tests, seven GPU checks per host and full prepared-cache byte comparisons on
+both hosts. Fresh serving checks passed text, vision, strict JSON, tool calls,
+streaming and drafted/ordinary parity. Both full-window C32 waves reached 32
+decoding sessions, and all 32 fixed-seed token sequences matched on replay.
+The cold million-token request recovered all three passphrases and reached
+1,048,576 total tokens.
+
+The [numeric follow-up](native-host-memory-20261011.json) records the complete
+comparison. A warm 128-schema cycle previously grew rank-process anonymous
+memory plus swap by 57.2 MiB; two post-change cycles were flat. The matched
+quiet-window increase closely tracked live cache warm-up. All 24 code/prose/
+counting throughput waves passed, with all 12 C1/C32 rates within 2.7% of the
+earlier three-run medians. This was a single-repetition performance regression
+check per shape.
+
+The paired monitor recorded no OOM, poison, rank restart or probe error across
+260 samples. Minimum available memory was 3.06 GiB on the head and 2.25 GiB on
+the worker. LAN serving and the retained previous image were verified after the
+checks. The original image's four-hour observation is documented separately;
+this finite follow-up did not repeat that run or start a 24-hour test.
+
+## Throughput baseline
+
 Source `6aaec5b3616f4547fabbe2fcc3fb1e779bb75f82`, image
 `sha256:baa3fc8d748766476d694da36f3e79ac501f18bed6b9572e36c1c80c4baa7bc7`.
 Later documentation commits do not change the measured runtime's identity.

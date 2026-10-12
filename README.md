@@ -170,11 +170,17 @@ Steady rates use only full-occupancy decode intervals. Ordinary decoding still
 finished these short waves sooner than drafting. Repeated long-reply C1 results
 were essentially unchanged, while greedy C4 remained about 2.4% below its
 single baseline measurement. A later C32 repeat confirmed the improvement at
-149.1/140.9 end-to-end tok/s. The current image passed the serving, full-window
+149.1/140.9 end-to-end tok/s. That measured image passed the serving, full-window
 C32 and million-token checks, but the head came within 26.6 MiB of the 2 GiB
 memory floor. The author chose to start this image for personal use on
-2026-10-11; endurance remains deferred. See the
+2026-10-11. See the
 [fresh startup checks](release/native-serving-check-20261011.json).
+
+A subsequent four-hour observation completed successfully and led to a fix for
+host allocator retention during structured-output compilation. The
+[stability and memory investigation](deployment/STABILITY.md) records the
+reproduction, fix and fresh capacity/performance checks;
+[release status](release/STATUS.md) identifies the currently deployed image.
 
 This diagnostic uses a different cache protocol from the historical Python
 comparison above. The
