@@ -1,7 +1,8 @@
 # Native stability and host-memory investigation
 
-The initial diagnostic runs the current serving image for four hours, then
-finishes with a matched quiet-memory observation. It preserves the running
+The bounded diagnostic runs the current serving image for up to twelve hours,
+then finishes with a matched quiet-memory observation. The initial run used
+four hours; the secondary observation uses twelve. It preserves the running
 ranks, model settings and LAN endpoint. Leave other inference clients idle:
 unexpected completed requests invalidate a wave or quiet interval.
 
@@ -37,8 +38,8 @@ From the recipe checkout containing the updated client:
 python3 -B tools/qualification/native_endurance.py \
   --source /absolute/path/to/serving-checkout \
   --diagnostic-prerequisites /path/to/matching-feature-and-capacity-receipt.json \
-  --record native-four-hour-UNIQUE \
-  --hours 4
+  --record native-twelve-hour-UNIQUE \
+  --hours 12
 ```
 
 The initial run used
@@ -54,9 +55,9 @@ Choose a fresh record name. Evidence lives in the serving checkout under
 - `memory.jsonl`: bounded numeric samples copied from the watchdog.
 
 For an unattended run, use a transient systemd service with `Restart=no`,
-`RuntimeMaxSec=4h20m` and `TimeoutStopSec=30s`, running as the deployment user.
+`RuntimeMaxSec=12h20m` and `TimeoutStopSec=30s`, running as the deployment user.
 The extra service allowance covers an in-flight wave and final quiet sampling;
-it does not start a second test or extend the four-hour workload schedule.
+it does not start a second test or extend the twelve-hour workload schedule.
 Record the exact unit name and command alongside the receipt before launch.
 
 Stopping that test unit interrupts only its client. The inference watchdog
@@ -69,6 +70,13 @@ After normal completion the server stays available. `diagnostic-workload-passed`
 means the workload completed; `memory_review: pending` remains until the quiet
 comparisons and continuous memory history have been reviewed. A lower idle RSS
 caused by more swap is not evidence of reduced memory consumption.
+
+Review rank-process `RssAnon + VmSwap` alongside live glibc allocations,
+grammar-cache bytes and matched snapshot/graph occupancy. Allow cache warm-up;
+look for a sustained plateau afterward. Keep the cgroup counters separate:
+anonymous memory plus cgroup swap charges is not a live-heap measurement.
+The twelve-hour run adds confidence in sustained mixed-load stability and
+keeps the same image, capacity, watchdog floor and failure behavior.
 
 ## Initial result and memory investigation
 

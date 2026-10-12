@@ -14,6 +14,7 @@ import time
 
 SOURCE = Path(__file__).resolve().parents[2]
 MAX_EVIDENCE_BYTES = 64 * 2**20
+MAX_DIAGNOSTIC_HOURS = 12
 GATES = {'features', 'parity', 'retention', 'compaction', 'capacity', 'million', 'prefill-responsiveness',
          'recovery', 'matched-benefit'}
 DIAGNOSTIC_FEATURES = {'baseline', 'structured', 'sampling', 'aliases', 'protocols',
@@ -32,7 +33,8 @@ def validate_diagnostic(receipt, launch, source):
                              streams=p['parallel'], round_rows=int(p['environment']['TF_DS_ROUND_ROWS']))
     features = {r['name'] for r in receipt.get('feature_checks', []) if r.get('status') == 'passed'}
     full = receipt.get('full_capacity', {})
-    if (receipt.get('status') != 'finite-validation-passed; endurance and production cutover held'
+    if (receipt.get('status') not in ('finite-validation-passed',
+                                    'finite-validation-passed; endurance and production cutover held')
             or receipt.get('runtime_source') != source or receipt.get('runtime_image') != launch['image']
             or receipt.get('capacity') != required_capacity or not DIAGNOSTIC_FEATURES <= features
             or not full.get('cycles') or not full.get('independent_active_extents')
@@ -41,6 +43,14 @@ def validate_diagnostic(receipt, launch, source):
             or receipt.get('million', {}).get('usage', {}).get('total_tokens') != p['context']
             or receipt.get('million', {}).get('retrieval_passphrases_correct') != 3):
         raise RuntimeError('Diagnostic requires matching finite feature, C32 and million-token evidence')
+    for item in receipt.get('receipts', []):
+        if hashlib.sha256(Path(item['path']).read_bytes()).hexdigest() != item['sha256']:
+            raise RuntimeError('A diagnostic prerequisite receipt changed')
+
+
+def validate_duration(hours, diagnostic):
+    if not math.isfinite(hours) or not 0 < hours <= (MAX_DIAGNOSTIC_HOURS if diagnostic else 24):
+        raise ValueError('Invalid endurance duration')
 
 
 def check_request_delta(before, after, expected):
@@ -167,11 +177,11 @@ def main():
     p.add_argument('--hours', type=float, default=24)
     p.add_argument('--source', type=Path, default=SOURCE, help='Clean checkout owning the running deployment')
     p.add_argument('--diagnostic-prerequisites', type=Path,
-                   help='Finite throughput/feature/capacity receipt; selects a diagnostic of at most four hours')
+                   help='Finite feature/capacity receipt; selects a diagnostic of at most twelve hours')
     a = p.parse_args()
     diagnostic = a.diagnostic_prerequisites is not None
-    if (not a.record.replace('-', '').isalnum() or not math.isfinite(a.hours)
-            or not 0 < a.hours <= (4 if diagnostic else 24)
+    validate_duration(a.hours, diagnostic)
+    if (not a.record.replace('-', '').isalnum()
             or (diagnostic and a.gates) or (not diagnostic and not a.gates)):
         raise ValueError('Invalid record name or duration')
     deployment_source = a.source.resolve()

@@ -16,6 +16,16 @@ SPEC.loader.exec_module(endurance)
 
 
 class NativeEndurance(unittest.TestCase):
+    def test_diagnostic_duration_is_bounded_to_twelve_hours(self):
+        for hours in (4, 12):
+            endurance.validate_duration(hours, True)
+        for hours in (0, -1, 12.01, 24, float('inf'), float('nan')):
+            with self.subTest(hours=hours), self.assertRaises(ValueError):
+                endurance.validate_duration(hours, True)
+        endurance.validate_duration(24, False)
+        with self.assertRaises(ValueError):
+            endurance.validate_duration(24.01, False)
+
     def ranks(self):
         launch = dict(image='candidate-image', containers={'head': 'head-id', 'worker': 'worker-id'})
         rows = {host: [dict(Id=ident, Image=launch['image'], RestartCount=0,
@@ -161,6 +171,18 @@ class NativeEndurance(unittest.TestCase):
         # The limited diagnostic evidence still cannot pass release gates.
         with self.assertRaises(RuntimeError):
             endurance.validate_gates(receipt, launch, 'current-source')
+
+    def test_diagnostic_accepts_finite_status_and_checks_preserved_receipts(self):
+        receipt, launch = self.diagnostic()
+        receipt['status'] = 'finite-validation-passed'
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'prerequisite.json'
+            path.write_text('{"status":"passed"}')
+            receipt['receipts'] = [dict(path=str(path), sha256=hashlib.sha256(path.read_bytes()).hexdigest())]
+            endurance.validate_diagnostic(receipt, launch, 'current-source')
+            path.write_text('{"status":"failed"}')
+            with self.assertRaisesRegex(RuntimeError, 'receipt changed'):
+                endurance.validate_diagnostic(receipt, launch, 'current-source')
 
     def test_extra_traffic_or_counter_reset_invalidates_quiet_windows(self):
         endurance.check_request_delta(100, 133, 33)
