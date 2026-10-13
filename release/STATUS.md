@@ -6,6 +6,40 @@ remains deferred**. Personal use does not establish production qualification.
 
 ## Current runtime
 
+Source `0d39dfcfc856756ac889d369f687115c71bdfe2b`, image
+`sha256:dbe678e719b1e827535dc2e7cc26aae140c79f673609e7208dbcbca807fe2a6e`.
+Later documentation commits do not change this runtime.
+
+The [request-memory investigation](../deployment/REQUEST-MEMORY.md) reproduced
+temporary tokenizer/template buffers being retained for the full inference
+request. Independent scratch allocation and bounded CPU prompt preparation
+reduce the controlled C32/17.6k-text reproduction from 1,153 to 160 MiB peak
+RSS. Decode and GPU scheduling do not acquire the preparation lock. Capacity,
+features, sampling and the 2 GiB watchdog floor are unchanged.
+
+The [numeric report](native-request-memory-20261012.json) records 318 native
+build tests, 84 publication tests, 14 controller tests, seven GPU checks per
+host and full prepared-cache byte comparisons. Live checks completed 556
+synthetic requests, including features, two long-text C32 waves, two full-262k
+C32 waves with matching replay sequences, throughput and LAN access. Minimum
+observed available memory was 3.18 GiB on the head and 3.40 GiB on the worker,
+with no OOM, poison, RDMA failure, rank restart or watchdog probe error.
+
+All six C32 code/prose/counting rates were within 2.1% of the previous image's
+single-run comparison. Greedy C1 code initially measured 93.5 tok/s with six
+new graph captures; three follow-up repetitions measured 99.7–100.8 tok/s
+with none. The combined four-run median was 99.8 tok/s, within 0.5% of the
+headline baseline. All results remain recorded; this regression check does
+not replace the three-repetition hero measurements.
+
+The previous source/image is retained on both hosts. This corrected image has
+not repeated the twelve-hour observation. The preceding image completed that
+observation successfully but later crossed the watchdog floor during concurrent
+long text requests; both outcomes are documented in the
+[stability report](../deployment/STABILITY.md#twelve-hour-result-and-subsequent-incident).
+
+## Previous allocator correction
+
 Source `84ae3aaa1527515a3cb18236941bf5d4ca565248`, image
 `sha256:f6475856dedbc545a09142e6a8cbb9f4d92f29becfbf3fde6f7534ed9065c3a6`.
 Later documentation and diagnostic-client commits do not change this runtime.

@@ -78,6 +78,21 @@ anonymous memory plus cgroup swap charges is not a live-heap measurement.
 The twelve-hour run adds confidence in sustained mixed-load stability and
 keeps the same image, capacity, watchdog floor and failure behavior.
 
+## Twelve-hour result and subsequent incident
+
+The subsequent twelve-hour run on runtime `84ae3aaa` completed in 12 hours
+5 minutes 12 seconds: 14,662 requests, 66.3 million input tokens, 880,523 output
+tokens, 289 mixed C32 waves, 67 cold deep-context waves and 291 matching canaries.
+Matched quiet endpoints grew by 4.29 MiB on the head and 2.92 MiB on the worker.
+There were no OOMs, poisoned runtimes, RoCE failures or rank restarts. Minimum
+available memory was 2.85 GiB and 3.16 GiB, respectively.
+
+Later concurrent agent traffic triggered a protective low-memory shutdown.
+The [text-prompt investigation](REQUEST-MEMORY.md) reproduces a separate
+request-arena retention problem and documents its correction. The twelve-hour
+result covers its stated workload; it does not establish that long concurrent
+text prompts have the same CPU-memory requirements as token-array inputs.
+
 ## Initial result and memory investigation
 
 The October 11, 2026 run completed 107 mixed C32 waves, 22 cold deep-context

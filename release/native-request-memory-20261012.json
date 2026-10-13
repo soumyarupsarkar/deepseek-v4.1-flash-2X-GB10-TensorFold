@@ -1,0 +1,537 @@
+{
+  "schema_version": 1,
+  "status": "passed",
+  "runtime_source": "0d39dfcfc856756ac889d369f687115c71bdfe2b",
+  "runtime_image": "sha256:dbe678e719b1e827535dc2e7cc26aae140c79f673609e7208dbcbca807fe2a6e",
+  "incident": {
+    "time": "2026-10-13T03:58:42.834181+00:00",
+    "reason": "head: host memory floor crossed",
+    "minimum_available_bytes": 2147483648,
+    "head_available_bytes": 1902288896,
+    "last_health_age_seconds": 10.384,
+    "watchdog_failure_count": 2,
+    "runtime_crash_observed": false,
+    "oom_observed": false,
+    "rdma_failure_observed": false
+  },
+  "preceding_twelve_hour_observation": {
+    "runtime_source": "84ae3aaa1527515a3cb18236941bf5d4ca565248",
+    "runtime_image": "sha256:f6475856dedbc545a09142e6a8cbb9f4d92f29becfbf3fde6f7534ed9065c3a6",
+    "started": "2026-10-12T05:59:08.511020+00:00",
+    "finished": "2026-10-12T18:04:20.036421+00:00",
+    "elapsed_seconds": 43511.525424483,
+    "usage": {
+      "requests": 14662,
+      "prompt_tokens": 66298150,
+      "generation_tokens": 880523,
+      "decode_rounds": 588944
+    },
+    "mixed_c32_waves": 289,
+    "cold_deep_waves": 67,
+    "fixed_seed_canaries": 291,
+    "hosts": {
+      "head": {
+        "matched_anon_plus_swap_delta_bytes": 4497408,
+        "matched_anon_plus_swap_delta_mib": 4.2890625,
+        "late_window_start_hours": 3.1984307766666666,
+        "late_anon_plus_swap_delta_bytes": 1781760,
+        "minimum_available_bytes": 3054874624,
+        "minimum_available_gib": 2.845073699951172
+      },
+      "worker": {
+        "matched_anon_plus_swap_delta_bytes": 3059712,
+        "matched_anon_plus_swap_delta_mib": 2.91796875,
+        "late_window_start_hours": 3.1984307766666666,
+        "late_anon_plus_swap_delta_bytes": 1187840,
+        "minimum_available_bytes": 3392552960,
+        "minimum_available_gib": 3.1595611572265625
+      }
+    },
+    "quiet_windows": 12,
+    "memory_samples": 4350,
+    "no_ooms_or_observer_errors": true,
+    "no_poison_or_rdma_failure_samples": true
+  },
+  "cause": "Request-backed tokenizer/template scratch retained until the entire inference request ends; unbounded concurrent preparation also multiplies temporary scratch.",
+  "correction": "Independent general-allocator scratch, copy only results and diagnostics into request arenas; serialize CPU encoding/rendering per model, without locking decode or GPU scheduling.",
+  "unchanged": {
+    "parallel": 32,
+    "pool_tokens": 8650752,
+    "max_context": 1048576,
+    "watchdog_floor_bytes": 2147483648,
+    "vision": true,
+    "keys_overlay": true,
+    "structured_output": true,
+    "sampling_seed_mode": "random",
+    "nvme_sessions": false,
+    "container_glibc_trim_threshold_bytes": 131072
+  },
+  "cpu_cases": [
+    {
+      "name": "control-c32",
+      "status": "passed",
+      "error": null,
+      "parallel": 32,
+      "stream": true,
+      "prompt_tokens_per_request": 17613,
+      "output_tokens_per_request": 4,
+      "requests": 32,
+      "peak_rss_bytes": 1208848384,
+      "baseline_anon_plus_swap_bytes": 94199808,
+      "peak_sample_anon_plus_swap_bytes": 1207488512,
+      "final_anon_plus_swap_bytes": 95129600,
+      "elapsed_s": 28.110306641785428,
+      "binary_sha256": "ddd8aeceaf9c68e7d15d1773ebe4c500843f4ae11fc7841760d3df986b975338",
+      "client_sha256": "f7c869e2a74d674c81b010092e3fb2be35bb547e6c6daf25cc6c817c9529dc45",
+      "tokenizer_sha256": "c90dfa01249db1be4245780a052ede752e1361c612ac6d08e2bdada7d599476b",
+      "output_token_digest": "73f9ceb34f03",
+      "receipt_sha256": "2fd27c3d415be2222219a31960bbeabc2277b37d493a011a2eb8c54102c441dd"
+    },
+    {
+      "name": "fixed-c32",
+      "status": "passed",
+      "error": null,
+      "parallel": 32,
+      "stream": true,
+      "prompt_tokens_per_request": 17613,
+      "output_tokens_per_request": 4,
+      "requests": 32,
+      "peak_rss_bytes": 167354368,
+      "baseline_anon_plus_swap_bytes": 94195712,
+      "peak_sample_anon_plus_swap_bytes": 159940608,
+      "final_anon_plus_swap_bytes": 95023104,
+      "elapsed_s": 28.74499897006899,
+      "binary_sha256": "243eae3a3daef78054b4d036e2a0ac6aa9f924f554e4e31979fdc4644a3f44a8",
+      "client_sha256": "f7c869e2a74d674c81b010092e3fb2be35bb547e6c6daf25cc6c817c9529dc45",
+      "tokenizer_sha256": "c90dfa01249db1be4245780a052ede752e1361c612ac6d08e2bdada7d599476b",
+      "output_token_digest": "73f9ceb34f03",
+      "receipt_sha256": "01b7a5b89f2b58892e5d3644bed54901a953177f521f4309b5ecf0afe6cb0030"
+    },
+    {
+      "name": "bounded-c32-long",
+      "status": "passed",
+      "error": null,
+      "parallel": 32,
+      "stream": true,
+      "prompt_tokens_per_request": 261813,
+      "output_tokens_per_request": 4,
+      "requests": 32,
+      "peak_rss_bytes": 719233024,
+      "baseline_anon_plus_swap_bytes": 94195712,
+      "peak_sample_anon_plus_swap_bytes": 713822208,
+      "final_anon_plus_swap_bytes": 95412224,
+      "elapsed_s": 36.4707334600389,
+      "binary_sha256": "243eae3a3daef78054b4d036e2a0ac6aa9f924f554e4e31979fdc4644a3f44a8",
+      "client_sha256": "82c45ea12075c7cdf28a55ded105b829f51d7d9ebcd614532da5327cf7629b83",
+      "tokenizer_sha256": "c90dfa01249db1be4245780a052ede752e1361c612ac6d08e2bdada7d599476b",
+      "output_token_digest": "73f9ceb34f03",
+      "receipt_sha256": "d1d7d0d3966b1499e230df23c5655d6052c3624b60f1682b12d64c60f872e287"
+    },
+    {
+      "name": "fixed-c32-decode4k",
+      "status": "passed",
+      "error": null,
+      "parallel": 32,
+      "stream": true,
+      "prompt_tokens_per_request": 17613,
+      "output_tokens_per_request": 4096,
+      "requests": 32,
+      "peak_rss_bytes": 525549568,
+      "baseline_anon_plus_swap_bytes": 95645696,
+      "peak_sample_anon_plus_swap_bytes": 523100160,
+      "final_anon_plus_swap_bytes": 96473088,
+      "elapsed_s": 13.213706196984276,
+      "binary_sha256": "243eae3a3daef78054b4d036e2a0ac6aa9f924f554e4e31979fdc4644a3f44a8",
+      "client_sha256": "f7c869e2a74d674c81b010092e3fb2be35bb547e6c6daf25cc6c817c9529dc45",
+      "tokenizer_sha256": "c90dfa01249db1be4245780a052ede752e1361c612ac6d08e2bdada7d599476b",
+      "output_token_digest": "ce6dd19d84c7",
+      "receipt_sha256": "90cc14948fd6bf5828e79cc463a32bb0a35425d3cc1a1738a65a0c502adbcfa8"
+    },
+    {
+      "name": "fixed-c8-million",
+      "status": "failed",
+      "error": "RuntimeError: Peak RSS exceeded the regression ceiling",
+      "parallel": 8,
+      "stream": true,
+      "prompt_tokens_per_request": 990013,
+      "output_tokens_per_request": 4,
+      "requests": 8,
+      "peak_rss_bytes": 1071210496,
+      "baseline_anon_plus_swap_bytes": 94195712,
+      "peak_sample_anon_plus_swap_bytes": 1033019392,
+      "final_anon_plus_swap_bytes": 94920704,
+      "elapsed_s": 35.42098908801563,
+      "binary_sha256": "243eae3a3daef78054b4d036e2a0ac6aa9f924f554e4e31979fdc4644a3f44a8",
+      "client_sha256": "f7c869e2a74d674c81b010092e3fb2be35bb547e6c6daf25cc6c817c9529dc45",
+      "tokenizer_sha256": "c90dfa01249db1be4245780a052ede752e1361c612ac6d08e2bdada7d599476b",
+      "output_token_digest": "73f9ceb34f03",
+      "receipt_sha256": "18e80df576c4b567c2a8cae03645610e6924c013a1e2e571b19e693feb824d62"
+    }
+  ],
+  "cpu_million_case_review": "All eight requests completed correctly; the exploratory 900 MiB RSS ceiling was exceeded (peak 1021.6 MiB). Retain the failed ceiling result; do not claim a live GPU capacity pass from this CPU reproduction.",
+  "protocol_comparison": {
+    "status": "passed",
+    "cases": 35,
+    "normalization": [
+      "IDs",
+      "timestamps",
+      "runtime timing fields including decode_seconds"
+    ],
+    "uses_real_checkpoint_tokenizer": true,
+    "uses_production_prompts": false
+  },
+  "offline_tests": {
+    "native_build_passed": 318,
+    "publication_passed": 84,
+    "controller_passed": 14
+  },
+  "live_checks": {
+    "features": {
+      "status": "passed",
+      "requests": 25,
+      "started": "2026-10-13T05:45:44.842333+00:00",
+      "finished": "2026-10-13T05:46:19.107761+00:00",
+      "receipt_sha256": "cf553a9db022525c0cca466de33cab6968d1bfe3ddb8077635f8e33057453aa7"
+    },
+    "text_memory": {
+      "status": "passed",
+      "requests": 64,
+      "started": "2026-10-13T05:47:20.674613+00:00",
+      "finished": "2026-10-13T05:56:50.562976+00:00",
+      "receipt_sha256": "1bb7ee83e9db43afb881a7fc84cb346dc08ecf7313dd122cb5de43cba582e518",
+      "waves": [
+        {
+          "streams": 32,
+          "prompt_tokens": [
+            17613
+          ],
+          "reply_tokens": [
+            768
+          ],
+          "seconds": 434.18349130498245
+        },
+        {
+          "streams": 32,
+          "prompt_tokens": [
+            17613
+          ],
+          "reply_tokens": [
+            768
+          ],
+          "seconds": 133.9135888288729
+        }
+      ],
+      "replay_token_hashes_match": true
+    },
+    "full_262k_c32": {
+      "status": "passed",
+      "streams": 32,
+      "prompt_tokens": 261120,
+      "reply_tokens": 1024,
+      "total_tokens_per_stream": 262144,
+      "waves": 2,
+      "peak_decoding": [
+        32,
+        32
+      ],
+      "all_32_replay_token_sequences_match": true,
+      "vision_after_passed": true,
+      "wall_seconds": 503.318,
+      "receipt_sha256": "660804088f07dbe9b589f15fcd9de685d0d7137b96c6897237faa2bd10048fa4"
+    }
+  },
+  "cache_comparisons": {
+    "head": {
+      "ok": true,
+      "entries": 143770,
+      "compared": 143770,
+      "compared_bytes": 106107109192,
+      "byte_mismatches": 0,
+      "layout_mismatches": 0
+    },
+    "worker": {
+      "ok": true,
+      "entries": 143770,
+      "compared": 143770,
+      "compared_bytes": 106107109192,
+      "byte_mismatches": 0,
+      "layout_mismatches": 0
+    }
+  },
+  "local_test_client_retry": {
+    "cause": "UnboundLocalError in the private live-test adapter before any concurrent text request was sent.",
+    "server_failure": false,
+    "first_attempt_preserved": true,
+    "corrected_text_test_status": "passed"
+  },
+  "throughput": {
+    "status": "passed",
+    "scope": "One warm-up and one scored wave per shape; not a replacement for the three-repetition headline baseline.",
+    "completed_waves": 24,
+    "requests": 396,
+    "comparisons": [
+      {
+        "streams": 1,
+        "temperature": 0,
+        "task": "code",
+        "metric": "c1_content_decode_tps",
+        "candidate_single_run_tps": 93.47944107637156,
+        "baseline_three_run_median_tps": 100.24407165057589,
+        "previous_image_single_run_tps": 98.48058780225736,
+        "change_from_baseline_percent": -6.748160228151978,
+        "change_from_previous_image_percent": -5.078307144071658
+      },
+      {
+        "streams": 1,
+        "temperature": 0,
+        "task": "counting",
+        "metric": "c1_content_decode_tps",
+        "candidate_single_run_tps": 139.74367794423074,
+        "baseline_three_run_median_tps": 140.55379239694236,
+        "previous_image_single_run_tps": 139.29098993617663,
+        "change_from_baseline_percent": -0.5763732439347802,
+        "change_from_previous_image_percent": 0.3249944653717529
+      },
+      {
+        "streams": 1,
+        "temperature": 0,
+        "task": "prose",
+        "metric": "c1_content_decode_tps",
+        "candidate_single_run_tps": 57.96727032940428,
+        "baseline_three_run_median_tps": 59.30119235956215,
+        "previous_image_single_run_tps": 59.089774016057284,
+        "change_from_baseline_percent": -2.249401701857656,
+        "change_from_previous_image_percent": -1.8996581140215074
+      },
+      {
+        "streams": 1,
+        "temperature": 1,
+        "task": "code",
+        "metric": "c1_content_decode_tps",
+        "candidate_single_run_tps": 101.34891583589904,
+        "baseline_three_run_median_tps": 98.61296411942475,
+        "previous_image_single_run_tps": 100.85696012805776,
+        "change_from_baseline_percent": 2.7744341131059835,
+        "change_from_previous_image_percent": 0.4877756648788978
+      },
+      {
+        "streams": 1,
+        "temperature": 1,
+        "task": "counting",
+        "metric": "c1_content_decode_tps",
+        "candidate_single_run_tps": 136.61274186672293,
+        "baseline_three_run_median_tps": 139.30781211431773,
+        "previous_image_single_run_tps": 135.60639650716158,
+        "change_from_baseline_percent": -1.9346153002411604,
+        "change_from_previous_image_percent": 0.7421075889353146
+      },
+      {
+        "streams": 1,
+        "temperature": 1,
+        "task": "prose",
+        "metric": "c1_content_decode_tps",
+        "candidate_single_run_tps": 62.49121806780493,
+        "baseline_three_run_median_tps": 62.50141137028516,
+        "previous_image_single_run_tps": 62.30074065880425,
+        "change_from_baseline_percent": -0.016308915681673142,
+        "change_from_previous_image_percent": 0.30573859473652654
+      },
+      {
+        "streams": 32,
+        "temperature": 0,
+        "task": "code",
+        "metric": "aggregate_steady_decode_tps",
+        "candidate_single_run_tps": 307.9680815725789,
+        "baseline_three_run_median_tps": 313.41118615111594,
+        "previous_image_single_run_tps": 309.19828546418245,
+        "change_from_baseline_percent": -1.7367295167035168,
+        "change_from_previous_image_percent": -0.3978689240649258
+      },
+      {
+        "streams": 32,
+        "temperature": 0,
+        "task": "counting",
+        "metric": "aggregate_steady_decode_tps",
+        "candidate_single_run_tps": 380.05100184169925,
+        "baseline_three_run_median_tps": 376.9734854535317,
+        "previous_image_single_run_tps": 377.99777671208255,
+        "change_from_baseline_percent": 0.8163747602739413,
+        "change_from_previous_image_percent": 0.5431844460769497
+      },
+      {
+        "streams": 32,
+        "temperature": 0,
+        "task": "prose",
+        "metric": "aggregate_steady_decode_tps",
+        "candidate_single_run_tps": 270.06110970180646,
+        "baseline_three_run_median_tps": 268.6274699285256,
+        "previous_image_single_run_tps": 268.7548330116561,
+        "change_from_baseline_percent": 0.5336906808757425,
+        "change_from_previous_image_percent": 0.4860477021054077
+      },
+      {
+        "streams": 32,
+        "temperature": 1,
+        "task": "code",
+        "metric": "aggregate_steady_decode_tps",
+        "candidate_single_run_tps": 268.4457709531082,
+        "baseline_three_run_median_tps": 268.85418935943056,
+        "previous_image_single_run_tps": 267.27330303470467,
+        "change_from_baseline_percent": -0.15191074660040327,
+        "change_from_previous_image_percent": 0.43867752786790337
+      },
+      {
+        "streams": 32,
+        "temperature": 1,
+        "task": "counting",
+        "metric": "aggregate_steady_decode_tps",
+        "candidate_single_run_tps": 368.074887184332,
+        "baseline_three_run_median_tps": 366.5132385969217,
+        "previous_image_single_run_tps": 364.339753314226,
+        "change_from_baseline_percent": 0.4260824502243299,
+        "change_from_previous_image_percent": 1.025178788789649
+      },
+      {
+        "streams": 32,
+        "temperature": 1,
+        "task": "prose",
+        "metric": "aggregate_steady_decode_tps",
+        "candidate_single_run_tps": 252.15198354151548,
+        "baseline_three_run_median_tps": 251.05036667486513,
+        "previous_image_single_run_tps": 247.1885851954945,
+        "change_from_baseline_percent": 0.43880312992214954,
+        "change_from_previous_image_percent": 2.007939946780124
+      }
+    ],
+    "checks": {
+      "owned_rank_identity": true,
+      "exact_request_and_token_counters": true,
+      "all_scored_c32_waves_reached_full_occupancy": true,
+      "all_repetitions_retained": true,
+      "no_host_or_server_configuration_changes": true
+    },
+    "receipt_sha256": "cddaa92861a180f7f30a3e73d1102bcc34b0d34cdcdd2ea22a01e4ac281d4bd6",
+    "targeted_c1_code_followup": {
+      "status": "passed",
+      "reason": "Initial greedy C1 code result was 5.08% below the previous image single run; three further scored repetitions were declared before running.",
+      "requests": 4,
+      "scored_repeat_rates_tps": [
+        99.97810276185707,
+        100.79961752075681,
+        99.68487056678102
+      ],
+      "all_four_scored_rates_tps": [
+        93.47944107637156,
+        99.97810276185707,
+        100.79961752075681,
+        99.68487056678102
+      ],
+      "all_four_median_tps": 99.83148666431904,
+      "three_repeat_median_tps": 99.97810276185707,
+      "all_four_median_change_from_baseline_percent": -0.41158043509545994,
+      "graph_captures_per_scored_wave": [
+        6,
+        0,
+        0,
+        0
+      ],
+      "all_four_reply_digests_match": true,
+      "receipt_sha256": "9d5540186859129fbbcbfc35f87c95c4d6c12f90b3031761949a9087074fb6a6",
+      "interpretation": "Initial scored case captured six graphs. Three repeats captured none and returned to the baseline range; keep the initial result rather than replacing it."
+    }
+  },
+  "live_memory": {
+    "sample_count": 356,
+    "first_sample": "2026-10-13T05:45:09.196504+00:00",
+    "last_sample": "2026-10-13T06:16:43.248708+00:00",
+    "hosts": {
+      "head": {
+        "samples": 356,
+        "minimum_available_bytes": 3416170496,
+        "oom_delta": 0,
+        "oom_kill_delta": 0,
+        "host_probe_errors": 0
+      },
+      "worker": {
+        "samples": 356,
+        "minimum_available_bytes": 3652206592,
+        "oom_delta": 0,
+        "oom_kill_delta": 0,
+        "host_probe_errors": 0
+      }
+    },
+    "watchdog_failure_count_max": 0,
+    "poisoned_samples": 0,
+    "rdma_failed_samples": 0,
+    "raw_evidence_sha256": "52405bb2b4005f71cd603f313d7c6c3e0b4e9f312d6e5eba06455e1011660587"
+  },
+  "terminal": {
+    "time": "2026-10-13T06:13:14.622484+00:00",
+    "status": "passed",
+    "healthy": true,
+    "rank_restarts": 0,
+    "owned_launch_unchanged": true,
+    "monitor_active": true,
+    "allocator_policy_verified_on_both_hosts": true,
+    "random_sampling_default": true,
+    "previous_image_present_on_both_hosts": true,
+    "whole_campaign_requests": 551,
+    "final_canary_requests": 1,
+    "lan_smoke": {
+      "reachable": true,
+      "aliases_validated": 4,
+      "completion_correct": true,
+      "usage": {
+        "prompt_tokens": 12,
+        "completion_tokens": 4,
+        "total_tokens": 16,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        }
+      }
+    },
+    "receipt_sha256": "2427b276f4efb503e2ca7db03ea282e54e79668b71b27b962ff141a1f8f7ffaa"
+  },
+  "limitations": [
+    "No new 12-hour or 24-hour run on this image.",
+    "CPU scripted-engine RSS excludes model weights and GPU allocations.",
+    "The 900 MiB exploratory CPU ceiling for eight near-million-token text prompts failed; all requests completed correctly, with 1022 MiB peak RSS."
+  ],
+  "gpu_checks": {
+    "head": {
+      "cublaslt": 0,
+      "graph": 0,
+      "info": 0,
+      "nccl": 0,
+      "router_widths": 0,
+      "sample": 0,
+      "smoke": 0
+    },
+    "worker": {
+      "cublaslt": 0,
+      "graph": 0,
+      "info": 0,
+      "nccl": 0,
+      "router_widths": 0,
+      "sample": 0,
+      "smoke": 0
+    }
+  },
+  "completed_live_requests": 556,
+  "post_repeat_health": {
+    "time": "2026-10-13T06:17:16.120530+00:00",
+    "status": "passed",
+    "healthy": true,
+    "completed_requests": 556,
+    "rank_restarts": 0,
+    "monitor_active": true,
+    "available_gib": {
+      "head": 3.704357147216797,
+      "worker": 3.4861106872558594
+    },
+    "receipt_sha256": "b67b2c5a9479122fb4144a484a0f15402fe26109e6b5de72dc3de409e3f89974"
+  }
+}

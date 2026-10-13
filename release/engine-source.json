@@ -2798,7 +2798,7 @@
     },
     {
       "path": "zig/src/server/hf_text.zig",
-      "sha256": "f33ae4bec55cb268d254994cd26875a02dbc1b2ac274ede27cd2a8e20b515728"
+      "sha256": "48f3675299d9ad286f0dd94d27f837d8f162e22c87eb598a04a5a2d4c0ff4bcf"
     },
     {
       "path": "zig/src/server/host_heap.zig",
