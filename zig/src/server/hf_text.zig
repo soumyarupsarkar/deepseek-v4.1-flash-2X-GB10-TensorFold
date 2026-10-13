@@ -9,6 +9,10 @@ const Allocator = std.mem.Allocator;
 
 pub const HfText = struct {
     gpa: Allocator,
+    io: std.Io,
+    // Bound CPU preparation scratch across concurrent long conversations.
+    // Decoding and the GPU scheduler do not acquire this lock.
+    preparation: std.Io.Mutex = .init,
     arena: std.heap.ArenaAllocator,
     tok: tokenizer.Tokenizer,
     source: []const u8 = "",
@@ -24,7 +28,7 @@ pub const HfText = struct {
     pub fn load(gpa: Allocator, io: std.Io, dir: []const u8, pa: Allocator, problem: *[]const u8) !*HfText {
         const t = try gpa.create(HfText);
         errdefer gpa.destroy(t);
-        t.* = .{ .gpa = gpa, .arena = .init(gpa), .tok = undefined };
+        t.* = .{ .gpa = gpa, .io = io, .arena = .init(gpa), .tok = undefined };
         errdefer t.arena.deinit();
         const a = t.arena.allocator();
         t.tok = tokenizer.loadTokenizer(io, gpa, dir) catch |e| {
@@ -216,8 +220,15 @@ pub const HfText = struct {
 
     fn encodeFn(ctx: *anyopaque, a: Allocator, s: []const u8, add_special: bool) model_text.Error![]u32 {
         const t = self(ctx);
-        const ids = t.tok.encode(a, s) catch |e| return if (e == error.OutOfMemory) error.OutOfMemory else error.Template;
-        if (!add_special or (t.prefix.len == 0 and t.suffix.len == 0)) return ids;
+        t.preparation.lockUncancelable(t.io);
+        defer t.preparation.unlock(t.io);
+        // The caller is usually a request arena. Nesting the tokenizer's work
+        // arena in it retains all BPE scratch until the entire reply ends.
+        // Only the resulting ids belong to that lifetime.
+        var scratch: std.heap.ArenaAllocator = .init(t.gpa);
+        defer scratch.deinit();
+        const ids = t.tok.encode(scratch.allocator(), s) catch |e| return if (e == error.OutOfMemory) error.OutOfMemory else error.Template;
+        if (!add_special or (t.prefix.len == 0 and t.suffix.len == 0)) return a.dupe(u32, ids);
         return std.mem.concat(a, u32, &.{ t.prefix, ids, t.suffix });
     }
 
@@ -247,12 +258,19 @@ pub const HfText = struct {
         return if (t.tool_source.len > 0) std.mem.concat(t.arena.allocator(), u8, &.{ t.source, " ", t.tool_source }) catch t.source else t.source;
     }
 
-    fn renderFn(ctx: *anyopaque, a: Allocator, messages: Value, options: model_text.RenderOptions, problem: *[]const u8) model_text.Error![]u8 {
+    fn renderFn(ctx: *anyopaque, out_a: Allocator, messages: Value, options: model_text.RenderOptions, problem: *[]const u8) model_text.Error![]u8 {
         const t = self(ctx);
+        t.preparation.lockUncancelable(t.io);
+        defer t.preparation.unlock(t.io);
         const compiled = if (options.tools != null and t.tool_compiled != null) &t.tool_compiled.? else if (t.compiled) |*c| c else {
             problem.* = "this checkpoint has no chat template: send a completion prompt instead";
             return error.Template;
         };
+        // Template evaluation and JSON conversion are temporary even when the
+        // caller holds the rendered prompt for a long-running streamed reply.
+        var scratch: std.heap.ArenaAllocator = .init(t.gpa);
+        defer scratch.deinit();
+        const a = scratch.allocator();
         var context: std.json.ObjectMap = .empty;
         if (t.specials == .object) {
             var it = t.specials.object.iterator();
@@ -267,10 +285,10 @@ pub const HfText = struct {
         const tools: std.json.Value = if (options.tools) |tl| try toStd(a, tl) else .null;
         const out = template.render(a, compiled, try toStd(a, messages), tools, .{ .object = context }, options.add_generation_prompt, &diag) catch |e| {
             if (e == error.OutOfMemory) return error.OutOfMemory;
-            problem.* = diag.msg;
+            problem.* = try out_a.dupe(u8, diag.msg);
             return error.Template;
         };
-        return out;
+        return out_a.dupe(u8, out);
     }
 };
 
@@ -289,6 +307,64 @@ test "model EOS does not hide a different tokenizer chat end" {
     const added = try std.json.parseFromSliceLeaky(std.json.Value, a, "{\"eos_token\":{\"content\":\"<|im_end|>\"}}", .{});
     try std.testing.expectEqualSlices(u32, &.{ 248044, 248046 }, try t.eosIds(a, model, added));
     try std.testing.expectEqualSlices(u32, &.{248046}, try t.eosIds(a, .null, config));
+}
+
+test "tokenization retains only ids in the request arena" {
+    const gpa = std.testing.allocator;
+    var t: HfText = .{ .gpa = gpa, .io = std.testing.io, .arena = .init(gpa), .tok = try tokenizer.parse(gpa,
+        \\{"added_tokens":[],"pre_tokenizer":{"type":"ByteLevel","add_prefix_space":false,"use_regex":true},
+        \\ "decoder":{"type":"ByteLevel"},"model":{"type":"BPE","vocab":{"a":0,"b":1,"Ġ":2,"ab":3},"merges":["a b"]}}
+    ) };
+    defer t.tok.deinit();
+    defer t.arena.deinit();
+    var request: std.heap.ArenaAllocator = .init(gpa);
+    defer request.deinit();
+    const text = try gpa.alloc(u8, 3 * 4096);
+    defer gpa.free(text);
+    for (0..4096) |i| @memcpy(text[i * 3 ..][0..3], "ab ");
+    const expected = try t.tok.encode(gpa, text);
+    defer gpa.free(expected);
+    const ids = try HfText.encodeFn(&t, request.allocator(), text, false);
+    try std.testing.expectEqualSlices(u32, expected, ids);
+    // Arena bookkeeping/growth is allowed, tokenizer working storage is not.
+    try std.testing.expect(request.queryCapacity() <= 2 * ids.len * @sizeOf(u32) + 4096);
+    _ = request.reset(.free_all);
+    t.prefix = &.{42};
+    t.suffix = &.{43};
+    const special = try HfText.encodeFn(&t, request.allocator(), text, true);
+    try std.testing.expectEqual(@as(u32, 42), special[0]);
+    try std.testing.expectEqualSlices(u32, expected, special[1 .. special.len - 1]);
+    try std.testing.expectEqual(@as(u32, 43), special[special.len - 1]);
+    try std.testing.expect(request.queryCapacity() <= 2 * special.len * @sizeOf(u32) + 4096);
+}
+
+test "template scratch is released and error diagnostics outlive it" {
+    const gpa = std.testing.allocator;
+    var t: HfText = .{ .gpa = gpa, .io = std.testing.io, .arena = .init(gpa), .tok = undefined };
+    defer t.arena.deinit();
+    t.compiled = try template.compile(gpa, "{% for m in messages %}{{ m.content }}{% endfor %}", null);
+    defer if (t.compiled) |*compiled| compiled.deinit();
+    var input: std.heap.ArenaAllocator = .init(gpa);
+    defer input.deinit();
+    const message = try json.newObject(input.allocator());
+    const phrase = "synthetic template fixture ";
+    const text = try input.allocator().alloc(u8, phrase.len * 512);
+    for (0..512) |i| @memcpy(text[i * phrase.len ..][0..phrase.len], phrase);
+    try message.put(input.allocator(), "role", .{ .string = "user" });
+    try message.put(input.allocator(), "content", .{ .string = text });
+    var items = [_]Value{.{ .object = message }};
+    var request: std.heap.ArenaAllocator = .init(gpa);
+    defer request.deinit();
+    var problem: []const u8 = "";
+    const rendered = try HfText.renderFn(&t, request.allocator(), .{ .array = &items }, .{}, &problem);
+    try std.testing.expectEqualStrings(text, rendered);
+    try std.testing.expect(request.queryCapacity() <= 2 * rendered.len + 4096);
+    t.compiled.?.deinit();
+    t.compiled = null;
+    t.compiled = try template.compile(gpa, "{{ raise_exception(messages[0].content) }}", null);
+    _ = request.reset(.free_all);
+    try std.testing.expectError(error.Template, HfText.renderFn(&t, request.allocator(), .{ .array = &items }, .{}, &problem));
+    try std.testing.expect(std.mem.indexOf(u8, problem, "synthetic template fixture") != null);
 }
 
 /// Our JSON value as std.json's, ints exact (past i64 as number strings) and keys in order.
