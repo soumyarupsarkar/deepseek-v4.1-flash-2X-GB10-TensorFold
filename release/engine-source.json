@@ -1,8 +1,8 @@
 {
   "schema": 2,
   "upstream_base": "4e80f05ecba89a4e90d16375ade2eddbdc0a10c4",
-  "status": "native candidate; hardware qualification incomplete",
-  "scope": "Build, native engine, grammar bridge, deployment controller and configuration content inventory. This manifest is not serving qualification.",
+  "status": "1017 candidate; serving qualification pending",
+  "scope": "Build, native engine, grammar bridge, deployment controller/configuration and checkpoint-specific compiled test resources. This manifest is not serving qualification.",
   "files": [
     {
       "path": ".zig-version",
@@ -10,7 +10,7 @@
     },
     {
       "path": "build.zig",
-      "sha256": "feafe265172d61139ee35e9b35308de76c1b336d693f744d9ddb1b87460569ba"
+      "sha256": "b728bf5eb1ec1226e1b1490a2470c125861c692a2c5ac6bcd951dd603280cfc8"
     },
     {
       "path": "build.zig.zon",
@@ -26,7 +26,11 @@
     },
     {
       "path": "deployment/config/assets.json",
-      "sha256": "7d4b085b7b07fc042e7dde375d05693764052e2da437b56c41f339412779d37c"
+      "sha256": "e86bc92a0714c0311b1bf60acd73d4416a9f9ef3cd9fcc3011f9c0c19bef9c77"
+    },
+    {
+      "path": "deployment/config/chat-template-1017.jinja",
+      "sha256": "671caaee1cb21f81fc38d5c6b96ba9da45e37e60c5c83c9df22c923590a80fdf"
     },
     {
       "path": "deployment/config/cluster.example.json",
@@ -34,15 +38,15 @@
     },
     {
       "path": "deployment/config/derived-assets.json",
-      "sha256": "b9f3ec52ab5989455e4210e9b597c1724111c7112b9d441db1acb7a1048308c5"
+      "sha256": "0f076d788a2dd4ba9f7cd6c31a14e4382df7b59e93525f238363e467f7525ff6"
     },
     {
       "path": "deployment/config/draft-costs-20261006.json",
       "sha256": "6c32a81692cb84c1c5228ae358376355c99850f6244734d9de7dfcd983f5e1bb"
     },
     {
-      "path": "deployment/config/engram-layouts.json",
-      "sha256": "9e024144ce104faa2ef0b69b714a578c8a1276baa5414fa88d2a99c796f51c7b"
+      "path": "deployment/config/engram-links.json",
+      "sha256": "6a43401055802727e1f7dcbbbf7500c79c2eedebbdd4493e3b9d74de8e42eb35"
     },
     {
       "path": "deployment/config/native-inputs.json",
@@ -58,7 +62,7 @@
     },
     {
       "path": "deployment/config/profile.json",
-      "sha256": "cff34b2fb753c90a816c965bb05e968a27cdd1ba70e40f1e3a3f4b6d43b55348"
+      "sha256": "06717816552124d42529a8ecb370c7a1cba8c523415467d65c03a8077e7e7485"
     },
     {
       "path": "deployment/config/requirements-resolved.txt",
@@ -66,23 +70,23 @@
     },
     {
       "path": "deployment/scripts/assets.py",
-      "sha256": "8eb7339001d9c739fcd78ff44e5129401d889544809f28b24e995001eca4829f"
+      "sha256": "a22fd6bd3d547c71d57d12d4a1ce3a15b0a18f31c549d4421fb436a205d9571c"
     },
     {
       "path": "deployment/scripts/benchmark.py",
-      "sha256": "25f8ea03cc436610c813eeda15c0d33d17dc941de60d4ca07fb57363eaea4443"
+      "sha256": "7304cfdaaaee63f14e391fdf02786e5bef3d6081a7c4f363fb8caac7c0b5cb78"
     },
     {
       "path": "deployment/scripts/build_native.py",
-      "sha256": "2e9582f6895bbc2be04b6abb1ff2a3f61690f60a10a0bcbc484423db33c0e655"
+      "sha256": "20a8508c9184c566daffb5a7fca7ccdf0a41154088510fbb2463e5694e1787d3"
     },
     {
       "path": "deployment/scripts/cli.py",
-      "sha256": "19312798848bd4fb295aabc6ccf66526440996779ab335bad1e9ba134b119bfa"
+      "sha256": "894b9ac6feecacb600d159c96df7fdb30bbd423ecd5bc2cdf0519511647d580c"
     },
     {
       "path": "deployment/scripts/configuration.py",
-      "sha256": "b7b36193ceefc902d1cddc9067599d0cd537823e34c89fbc1847daf67a4dd5e3"
+      "sha256": "a5c55836bf5e7e34ce4134fc0f1590dc5b92189c259c2b95d6fb9f3a45172d0c"
     },
     {
       "path": "deployment/scripts/engine_health.py",
@@ -102,7 +106,7 @@
     },
     {
       "path": "deployment/scripts/native_prepare.py",
-      "sha256": "2e47df78953ac2acadfc21b7ef5b472784e8667ee3325199d0db267422bbca30"
+      "sha256": "0d3aa8c2490cdcb78824593b10bc64bfbd8fd4e762c9b1efd57d54f741c12ba8"
     },
     {
       "path": "deployment/scripts/prepare_token_map.py",
@@ -110,19 +114,31 @@
     },
     {
       "path": "deployment/scripts/range_download.py",
-      "sha256": "bda69b8bd12d8f3740fc56ae50b82c17f90fc41519b896beffc421154be3793c"
+      "sha256": "d6abfd5e2fd2e22782c0e21311265e98e3b3957fe821786be0d048a0d9109a43"
     },
     {
       "path": "deployment/scripts/reuse.py",
-      "sha256": "6a2e8e14c1e334c393ccf801f4884eef3695671d80d72d00283a244633773fd6"
+      "sha256": "53e28dd462e17803536cce858d7c190afce4584cc835fecb15b45ab3f7028b92"
     },
     {
       "path": "deployment/scripts/runtime.py",
       "sha256": "7c58d7f6440389bbb16105ffc4bf062b53133d09dc146b1c58a3ace2eaadb586"
     },
     {
+      "path": "tests/publication/fixtures/checkpoint-1017-prompts.json",
+      "sha256": "674fa35bbf28f8340101792b09f834c278493af06da148e74f0a851e64392758"
+    },
+    {
+      "path": "tools/qualification/check_1017_fp8.cu",
+      "sha256": "23aa388a890a9a2b5ee17ea865520095cadf669198989728119a1ecb7fd66550"
+    },
+    {
+      "path": "zig/build/checkpoint_fixtures.zig",
+      "sha256": "78d8b9ae53a25733741d5ca313f3a40bd30f19eaa1ed3a1ac042f9064e4dcc78"
+    },
+    {
       "path": "zig/build/cuda.zig",
-      "sha256": "18a04a7bb97b756bf15e12d9f468e7ac715fa55a4abdff4018e91888e7a5ba12"
+      "sha256": "debe0850faf08b9a60a427ca6ad2a1822ad09ccb403717e0da85a9bbb0d3454b"
     },
     {
       "path": "zig/build/dist.zig",
@@ -146,7 +162,7 @@
     },
     {
       "path": "zig/kernels/cuda/dsv41_ops.cu",
-      "sha256": "728ef4b0784143736945d8ecb44397f6c25af5db3445ab523ee99c0b8946b0a6"
+      "sha256": "afa5170be4e4832c444ad65af57754a8a670c0dd9a4b881942491f2024378eec"
     },
     {
       "path": "zig/kernels/cuda/dsv41_torch.cu",
@@ -1970,7 +1986,7 @@
     },
     {
       "path": "zig/src/families/dsv41/draft.zig",
-      "sha256": "7e504e37d50801dc6b312906e6f619269407efc2b4160ee8f7f4ede541d6e1f8"
+      "sha256": "1f46804befe9a37e89317b883b61892633aa4624682e47cf62896c0fe1b8570a"
     },
     {
       "path": "zig/src/families/dsv41/draft2d.zig",
@@ -1998,7 +2014,7 @@
     },
     {
       "path": "zig/src/families/dsv41/engram_io.zig",
-      "sha256": "e1e04ddd84b2e52d45b2b12aaa2f0dc8bd702b92771aabeb928c4f573d8dbacc"
+      "sha256": "0447c5a40d5afea9e692cfedce81c61205c00dca5137fac4455b6f38f290d22a"
     },
     {
       "path": "zig/src/families/dsv41/exact.zig",
@@ -2070,7 +2086,7 @@
     },
     {
       "path": "zig/src/families/dsv41/model.zig",
-      "sha256": "81d37270226fd5a55f73086d16a110826f7d448cbd27fc200f42a3f81a0e8fdb"
+      "sha256": "f5a5b770769dad6d6a17567970bb1b0268d83f874019022f830acb5f09d235ba"
     },
     {
       "path": "zig/src/families/dsv41/native.zig",
@@ -2078,7 +2094,7 @@
     },
     {
       "path": "zig/src/families/dsv41/ops.zig",
-      "sha256": "3414862ce065a22c4fe4df41d3c9d6613a349e855141c1765556bb4367e17423"
+      "sha256": "b63dec7d41cbe56820cd910a0b5dea748542a35daec3ba2c9bebf1997f6a2593"
     },
     {
       "path": "zig/src/families/dsv41/picture.zig",
@@ -2102,7 +2118,7 @@
     },
     {
       "path": "zig/src/families/dsv41/prompt.zig",
-      "sha256": "8406bf07c1acd3ba328e8ec6d1c5a56fbdc0b3c1be9cab4f4f8f0062685639fc"
+      "sha256": "46e59b703a50f9230e0716f4ccaa8ea780dd95cef65198e9966284da424734c8"
     },
     {
       "path": "zig/src/families/dsv41/prompt2d.zig",
@@ -2134,7 +2150,7 @@
     },
     {
       "path": "zig/src/families/dsv41/round.zig",
-      "sha256": "1335fa83eee2bfc76900f1c5a11316174ea1ae8913b4a6f3b6dbdeff28f41c5a"
+      "sha256": "b26defbe65f088f0f1b5259b9341d5ac883a1f501fc0aefb56053b83f449e659"
     },
     {
       "path": "zig/src/families/dsv41/round2d.zig",
@@ -2737,6 +2753,10 @@
       "sha256": "25fd0908636a2d01e5c45eb8c89b538e294d6bda8426ce7668ae9c3c3894fa51"
     },
     {
+      "path": "zig/src/server/checkpoint_1017_test.zig",
+      "sha256": "beb4252f5c7b3ac8797bf928f54946f053198720a69853babdc88a8d77f6434f"
+    },
+    {
       "path": "zig/src/server/chunk_plan.zig",
       "sha256": "3b8ffa8b838df0d11162e14e598e940283aa15d1291251be136acfb1f5381809"
     },
@@ -2854,7 +2874,7 @@
     },
     {
       "path": "zig/src/server/messages.zig",
-      "sha256": "d19be8f5846b879663772a5668c753518793d2f13a83de7fff3e14f805fb5383"
+      "sha256": "ca66c60be25a7a5acd9ab5529a7b5f2983c90d92bc57131fb86cc13af7905477"
     },
     {
       "path": "zig/src/server/metrics.zig",
@@ -2902,7 +2922,7 @@
     },
     {
       "path": "zig/src/server/root.zig",
-      "sha256": "54f18bb2074fd7e76ce532cfbe249747d67c98a11d092064850013f9993e75bb"
+      "sha256": "791c0f2047e1c1205eed3cdef50ee35e2eab0f767a65c48e68416818721014f1"
     },
     {
       "path": "zig/src/server/routes.zig",

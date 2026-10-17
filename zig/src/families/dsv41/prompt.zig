@@ -139,6 +139,7 @@ pub const Engine = struct {
     plain: Rope,
     compressed: Rope,
     round_rows: usize = 16, // a concurrent round's rows at most (TF_DS_ROUND_ROWS; round.max_rows at most)
+    fp8_wo_a: bool = false, // 1017 reference activation rounding, before EXL3's input rotation
     two: ?*const prompt2d.Two = null, // a node of the four-node 2D split (prompt2d.zig); `world` stays TP2's
     ring: ?*rdma.Ring = null, // TP2: the decode-size all-gathers over the RDMA ring (the served lane's), else NCCL
 
@@ -828,6 +829,7 @@ pub fn attention(e: *const Engine, ch: *Chunk, cs: *const Caches, sh: *Shared, l
         .one_split = one_split,
     });
     try tri_norm.ropeHeads(e.t, ch.o, rope.cos, rope.sin, ch.pos, rd, true, n, hl, hd);
+    if (e.fp8_wo_a) try e.ops.fp8Woa(e.s, ch.o, n * hl * hd);
     // ring[pos[-keep:] % R] = kv[-keep:] (ring mode wrote them before the attention)
     const keep: usize = if (ring_mode) 0 else @min(n, ring_rows);
     if (keep > 0) {

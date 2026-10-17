@@ -88,6 +88,7 @@ def reuse(pair, sources, prepared=False):
     specs=read(CONFIG/'assets.json');derived=read(CONFIG/'derived-assets.json')
     rows=[]
     for kind,folder in (('model','stock-model'),('keys','overlays')):
+        if kind not in specs:continue
         for row in specs[kind]['files']:
             name=folder+'/'+str(relative(row['path']))
             rows.append(dict(source=name,target=name,bytes=row['size'],sha256=row['sha256'],
@@ -104,16 +105,21 @@ def reuse(pair, sources, prepared=False):
         if name.startswith('stock-model/') and name!='stock-model/model.safetensors.index.json':
             manifest['model/'+name.split('/',1)[1]]=row
         elif name in derived:manifest[name]=row
-    manifest['model/zz_keys_overlay.safetensors']=imported['overlays/'+specs['keys']['files'][0]['path']]
+    if 'keys' in specs:
+        manifest['model/zz_keys_overlay.safetensors']=imported['overlays/'+specs['keys']['files'][0]['path']]
     index=(root/'model/model.safetensors.index.json').read_bytes()
     manifest['model/model.safetensors.index.json']=dict(bytes=len(index),sha256=hashlib.sha256(index).hexdigest())
+    template=(root/'model/chat_template.jinja').read_bytes()
+    manifest['model/chat_template.jinja']=dict(bytes=len(template),sha256=hashlib.sha256(template).hexdigest())
     atomic(pair.state/'runtime-assets.json',manifest)
     # The newly rendered index has the same tensor mapping but may differ in
     # formatting from the old installer. Copy only this small generated metadata.
     code="import pathlib,sys\np=pathlib.Path(sys.argv[1]);data=sys.stdin.buffer.read()\nif p.exists():\n if p.is_symlink() or p.read_bytes()!=data:raise ValueError('Existing index differs')\nelse:\n with p.open('xb') as f:f.write(data)\n"
-    pair.run('worker',['python3','-B','-c',code,pair.config['worker']['data_root']+'/model/model.safetensors.index.json'],
-             input=index.decode(),timeout=60)
-    rows=[dict(source=n,target=n,**row) for n,row in manifest.items() if n!='model/model.safetensors.index.json']
+    generated={'model/model.safetensors.index.json':index,'model/chat_template.jinja':template}
+    for name,content in generated.items():
+        pair.run('worker',['python3','-B','-c',code,pair.config['worker']['data_root']+'/'+name],
+                 input=content.decode(),timeout=60)
+    rows=[dict(source=n,target=n,**row) for n,row in manifest.items() if n not in generated]
     print('Worker: hashing and linking the matching runtime assets',flush=True)
     pair.run('worker',['python3','-B','-c',IMPORT],input=json.dumps(dict(
         source=sources['worker'],root=pair.config['worker']['data_root'],files=rows)),timeout=7200)

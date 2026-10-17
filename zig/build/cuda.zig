@@ -207,6 +207,7 @@ fn nativeServer(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.b
         .link_libc = true,
         .imports = &.{ .{ .name = "engine_api", .module = m.api }, .{ .name = "tokenizer", .module = tokenizer }, .{ .name = "template", .module = template } },
     });
+    @import("checkpoint_fixtures.zig").add(b, server_tests);
     b.step("test-server", "Native HTTP validation, sampling, streaming and grammar tests (CPU only)").dependOn(hostTest(b, server_tests));
     return exe;
 }

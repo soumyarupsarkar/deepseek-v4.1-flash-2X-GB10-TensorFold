@@ -273,15 +273,18 @@ test "rows of a toy table by id, on the pool" {
     const io = std.testing.io;
     var tmp = std.testing.tmpDir(.{ .iterate = true });
     defer tmp.cleanup();
-    // a [6, 4] weight table and its [6, 1] scales for layer 14
-    const json = "{\"layers.14.engram.embed.weight\":{\"dtype\":\"U8\",\"shape\":[6,4],\"data_offsets\":[0,24]}," ++
-        "\"layers.14.engram.embed.scale\":{\"dtype\":\"U8\",\"shape\":[6,1],\"data_offsets\":[24,30]}}";
+    // Original checkpoint shards can contain unrelated tensors before the
+    // [6, 4] table and [6, 1] scales. Honor header offsets, not extracted layout.
+    const json = "{\"other.weight\":{\"dtype\":\"F32\",\"shape\":[1],\"data_offsets\":[0,4]}," ++
+        "\"layers.14.engram.embed.weight\":{\"dtype\":\"U8\",\"shape\":[6,4],\"data_offsets\":[4,28]}," ++
+        "\"layers.14.engram.embed.scale\":{\"dtype\":\"U8\",\"shape\":[6,1],\"data_offsets\":[28,34]}}";
     var file: std.ArrayList(u8) = .empty;
     defer file.deinit(a);
     var len: [8]u8 = undefined;
     std.mem.writeInt(u64, &len, json.len, .little);
     try file.appendSlice(a, &len);
     try file.appendSlice(a, json);
+    try file.appendSlice(a, &.{ 0xaa, 0xbb, 0xcc, 0xdd });
     for (0..30) |i| try file.append(a, @intCast(i));
     try tmp.dir.writeFile(io, .{ .sub_path = "engram.safetensors", .data = file.items });
     const dir = try std.fs.path.join(a, &.{ ".zig-cache", "tmp", &tmp.sub_path });

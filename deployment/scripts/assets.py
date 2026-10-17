@@ -176,6 +176,42 @@ def link_checked(source, dest):
     else:os.link(source,dest)
 
 
+def link_engram(original, output, index, links, derived):
+    """The native reader uses named tensors and header offsets in original shards.
+
+    Keep those immutable bytes rather than writing another 203 GB with a new
+    header. Unrelated tensors are ignored by the reader. Verify the exact table
+    set and dimensions before publishing the two hardlinks.
+    """
+    for name,entry in links.items():
+        source=Path(original)/relative(entry['source'])
+        h,base=header(source)
+        tables={k:v for k,v in h.items() if '.engram.embed.' in k}
+        if set(tables)!=set(entry['tensors']):raise ValueError('Engram table inventory differs')
+        for key,expected in entry['tensors'].items():
+            tensor=tables[key]
+            if (index.get(key)!=entry['source'] or any(tensor[k]!=expected[k] for k in ('dtype','shape'))
+                    or tensor['data_offsets'][1]-tensor['data_offsets'][0]!=expected['shape'][0]*expected['shape'][1]
+                    or tensor['data_offsets'][0]<0 or base+tensor['data_offsets'][1]>source.stat().st_size):
+                raise ValueError('Engram tensor layout differs')
+        pin=derived['engram/'+name]
+        if source.stat().st_size!=pin['bytes'] or sha(source)!=pin['sha256']:
+            raise ValueError('Original Engram shard hash differs')
+        link_checked(source,Path(output)/relative(name))
+
+
+def install_template(view):
+    """The 1017 release ships a reference encoder, but no Jinja template."""
+    source=CONFIG/'chat-template-1017.jinja'
+    target=Path(view)/'chat_template.jinja'
+    content=source.read_bytes()
+    if target.is_symlink():raise ValueError('Redirected chat template')
+    if target.exists():
+        if target.read_bytes()!=content:raise ValueError('Existing chat template differs from reviewed source')
+    else:
+        with target.open('xb') as out:out.write(content)
+
+
 def model_view(root, specs):
     root=Path(root);stock=root/'stock-model';view=root/'model'
     stock_entries={}
@@ -183,18 +219,23 @@ def model_view(root, specs):
         h,_=header(p)
         if stock_entries.keys() & h.keys():raise ValueError('Duplicate stock tensors')
         stock_entries.update(h)
-    row=specs['keys']['files'][0];overlay=root/'overlays'/relative(row['path'])
-    if sha(overlay)!=row['sha256']:raise ValueError('Keys overlay hash differs')
-    overrides,_=header(overlay)
-    names={f'layers.{n}.attn.wo_b.{part}' for n in range(10,36) for part in ('trellis','suh','svh','mul1')}
-    if set(overrides)!=names:raise ValueError('Expected exactly the 104 pinned Keys tensors')
-    for name,entry in overrides.items():
-        if name not in stock_entries or any(entry[k]!=stock_entries[name][k] for k in ('dtype','shape')):
-            raise ValueError('Incompatible Keys tensor')
+    overrides={}
+    if 'keys' in specs:
+        row=specs['keys']['files'][0];overlay=root/'overlays'/relative(row['path'])
+        if sha(overlay)!=row['sha256']:raise ValueError('Keys overlay hash differs')
+        overrides,_=header(overlay)
+        names={f'layers.{n}.attn.wo_b.{part}' for n in range(10,36) for part in ('trellis','suh','svh','mul1')}
+        if set(overrides)!=names:raise ValueError('Expected exactly the 104 pinned Keys tensors')
+        for name,entry in overrides.items():
+            if name not in stock_entries or any(entry[k]!=stock_entries[name][k] for k in ('dtype','shape')):
+                raise ValueError('Incompatible Keys tensor')
     for row in specs['model']['files']:
         if row['path']!='model.safetensors.index.json':
             link_checked(stock/relative(row['path']),view/relative(row['path']))
-    link_checked(overlay,view/'zz_keys_overlay.safetensors')
+    if overrides:link_checked(overlay,view/'zz_keys_overlay.safetensors')
+    elif (view/'zz_keys_overlay.safetensors').exists():
+        raise ValueError('Stock checkpoint must not contain a previous Keys overlay')
+    install_template(view)
     index=read(stock/'model.safetensors.index.json')
     for name in overrides:index['weight_map'][name]='zz_keys_overlay.safetensors'
     index_path=view/'model.safetensors.index.json'
@@ -205,6 +246,10 @@ def model_view(root, specs):
         selected.update({k:p.name for k in header(p)[0]})
     if len(selected)!=len(stock_entries) or any(selected[k]!='zz_keys_overlay.safetensors' for k in overrides):
         raise ValueError('Lexical overlay resolution differs')
+    expected={row['path'] for row in specs['model']['files']} | {'chat_template.jinja'}
+    if overrides:expected.add('zz_keys_overlay.safetensors')
+    if {str(p.relative_to(view)) for p in view.rglob('*') if p.is_file() or p.is_symlink()}!=expected:
+        raise ValueError('Unexpected files in the serving model view')
 
 
 def fetch(pair):
@@ -215,11 +260,12 @@ def fetch(pair):
         token=Path(os.environ['HF_TOKEN_PATH']).read_text().strip()
     # Only immutable source metadata and weights are requested. Tokens are never journaled.
     for kind,folder in (('model','stock-model'),('keys','overlays'),('engram','original')):
+        if kind not in specs:continue
         for row in specs[kind]['files']:
             fetch_file(specs[kind],row,root/folder/relative(row['path']),token)
     index=read(root/'original/model.safetensors.index.json')['weight_map']
-    extract_engram(root/'original',root/'engram',index,read(CONFIG/'engram-layouts.json'))
     derived=read(CONFIG/'derived-assets.json')
+    link_engram(root/'original',root/'engram',index,read(CONFIG/'engram-links.json'),derived)
     extract_vision(specs['engram'],index,root/'vision-extra/vision-routing-bias.safetensors',
                    derived['vision-extra/vision-routing-bias.safetensors'],token)
     model_view(root,specs)

@@ -76,6 +76,8 @@ class ConfigurationTests(unittest.TestCase):
             self.assertEqual(env['TF_DS_POOL_TOKENS'],'8650752')
             self.assertEqual(env['TF_DS_STREAMS'],'32')
             self.assertEqual(env['TF_RDMA_GID_INDEX'],'3')
+            self.assertEqual(env['TF_DS_FP8_WOA'],'1')
+            self.assertEqual(env['TF_DS_VISION_BIAS'],'/vision-extra/vision-routing-bias.safetensors')
             self.assertNotIn('HF_TOKEN',env)
             self.assertNotIn('--privileged',args)
             self.assertIn(value[host]['data_root']+'/prepared:/prepared:ro',args)

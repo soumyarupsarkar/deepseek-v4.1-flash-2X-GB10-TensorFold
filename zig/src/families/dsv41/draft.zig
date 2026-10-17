@@ -599,6 +599,7 @@ pub const Drafter = struct {
             .parts = .{ .pm = dr.pm_, .pl = dr.pl_, .po = dr.po_ },
         });
         try tri_norm.ropeHeads(t, dr.o, rope.cos, rope.sin, pos, rd, true, R, hl, hd);
+        if (e.fp8_wo_a) try e.ops.fp8Woa(e.s, dr.o, R * hl * hd);
         // wo_ab: wo_a's inputs rotated from o's column blocks, its epilogue writing wo_b's rotated rows; wo_b (fp32)
         var calls: [exl3_linear.gmax]exl3_linear.Call = undefined;
         const uw = lay.groups * lay.wo_a[0].n;

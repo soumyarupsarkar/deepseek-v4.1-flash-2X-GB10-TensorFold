@@ -120,6 +120,19 @@ def precompile(pair):
                 '-v',pair.config[host]['data_root']+'/native-kit:/kit:ro',
                 '--entrypoint','/opt/tensorfold/bin/tf-dsv41-router-check',image,'/kit/aot',timeout=300)
             results['router_widths']=dict(returncode=result.returncode,output=result.stdout+result.stderr)
+            result=pair.docker(host,'run','--rm','--gpus','all','--network','none',
+                '--memory','3g','--memory-swap','3g','--cpus','4','--pids-limit','256',
+                '--entrypoint','/opt/tensorfold/bin/tf-dsv41-fp8-check',image,timeout=600)
+            results['fp8_wo_a']=dict(returncode=result.returncode,output=result.stdout+result.stderr)
+            result=pair.docker(host,'run','--rm','--network','none',
+                '--memory','3g','--memory-swap','3g','--cpus','4','--pids-limit','256',
+                '-v',pair.config[host]['data_root']+'/engram:/engram:ro',
+                '--entrypoint','/opt/tensorfold/bin/tf-dsv41-engram-check',image,
+                '/engram','--rows','4096','--seed','1017',timeout=300)
+            summary=json.loads(result.stdout.strip().splitlines()[-1])
+            if summary.get('layers')!=2 or summary.get('all_equal') is not True:
+                raise ValueError('Both Engram tables must match across buffered, direct and AIO reads')
+            results['engram_rows']=dict(returncode=result.returncode,output=result.stdout+result.stderr)
             receipt['hosts'][host]=results
             atomic(pair.state/'precompile.json',receipt)
         check_caches(pair,image)

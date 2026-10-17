@@ -3,7 +3,29 @@
 #include <cuda_runtime.h>
 #include <cuda_fp16.h>
 #include <cuda_bf16.h>
+#include <cuda_fp8.h>
 #include <stdint.h>
+
+// DeepSeek's 1017 Attention.forward: after inverse RoPE and before wo_a, round each
+// contiguous group of 32 BF16 activations through E4M3 with a power-of-two scale.
+// This is the reference act_quant(..., 32, "ue8m0", ..., inplace=True), including
+// its 1e-4 floor and round-to-nearest-even FP8/BF16 conversions. One warp a group;
+// count is a multiple of 32, so every shuffle has all 32 participating lanes.
+extern "C" __global__ void tf_ds_fp8_woa_kernel(__nv_bfloat16* x, uint64_t count) {
+    for (uint64_t i = uint64_t(blockIdx.x) * blockDim.x + threadIdx.x; i < count;
+         i += uint64_t(gridDim.x) * blockDim.x) {
+        const float v = __bfloat162float(x[i]);
+        float amax = fabsf(v);
+        for (int delta = 16; delta; delta >>= 1)
+            amax = fmaxf(amax, __shfl_xor_sync(0xffffffff, amax, delta));
+        const float raw_scale = __fmul_rn(fmaxf(amax, 1e-4f), 1.0f / 448.0f);
+        const uint32_t bits = __float_as_uint(raw_scale);
+        const uint32_t exponent = ((bits >> 23) & 255) + ((bits & 0x7fffff) != 0);
+        const float scale = __uint_as_float(exponent << 23);
+        const float q = fminf(448.0f, fmaxf(-448.0f, __fdiv_rn(v, scale)));
+        x[i] = __float2bfloat16_rn(__fmul_rn(float(__nv_fp8_e4m3(q)), scale));
+    }
+}
 
 // `.float()` of fp16 values (exact): the MoE gate's weights before torch's fp32 GEMM (model.py moe, prompt rows).
 extern "C" __global__ void tf_ds_f16_to_f32_kernel(const __half* input, float* output, uint64_t count) {

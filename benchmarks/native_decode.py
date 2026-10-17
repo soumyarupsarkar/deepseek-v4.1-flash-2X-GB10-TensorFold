@@ -91,7 +91,7 @@ def main():
 
     record = dict(schema_version=1, status='running', started=now(),
                   runtime_source=revision, runtime_image=launch['image'],
-                  model='DeepSeek-V4.1-Flash-Keys',
+                  model='deepseek-v4.1-flash',
                   kit_sha256=sha(ROOT / 'tools/dsv41/kit_bench.py'),
                   runner_sha256=sha(Path(__file__)),
                   profile_sha256=sha(source / 'deployment/config/profile.json'),

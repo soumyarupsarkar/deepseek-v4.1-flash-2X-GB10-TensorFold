@@ -345,3 +345,18 @@ The offline `prepare_token_map.py` follows Bertholomus's MIT
 `compressed_token_map`, based on DeepSeek's Engram normalization. It calls
 Hugging Face tokenizers (Apache-2.0), installed only in the container, and
 verifies its output against the pinned kernel kit's token-map digest.
+
+## DeepSeek V4.1 Flash 1017 integration
+
+The checkpoint-specific attention rounding and prompt-format changes follow
+[DeepSeek's 1017 reference](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017/tree/1bae0e1088993b9b82de08f59de5be5a34e42170),
+MIT License, Copyright (c) 2023 DeepSeek. The retained text is
+[LICENSES/DeepSeek-MIT.txt](LICENSES/DeepSeek-MIT.txt). Synthetic encoder fixtures
+record reference outputs, not user conversations.
+
+The Jinja template in `deployment/config/chat-template-1017.jinja` is adapted
+from Mia-AiLab's original EXL3 V4.1 chat template, updated for the 1017 encoder.
+The pinned 1017 EXL3 quantization is by
+[LibertAIDAI](https://huggingface.co/LibertAIDAI/DeepSeek-V4.1-Flash-1017-EXL3-2.9bpw).
+Weights are downloaded separately and retain their upstream licenses.
+The prior drowzeys / Keys overlay is not applied to the new checkpoint.

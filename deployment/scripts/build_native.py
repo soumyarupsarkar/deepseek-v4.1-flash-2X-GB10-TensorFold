@@ -43,6 +43,8 @@ def main():
         '-Doptimize=safe','-Dnvcc=/usr/local/cuda/bin/nvcc','-Dsm=121','-j2',
         '--cache-dir',str(build/'cache'),'--prefix',str(build/'out'),'--summary','all',cwd=source)
     run('cp',str(build/'out/native/bin/tensorfold-native'),str(build/'out/bin/tensorfold-native'))
+    run('/usr/local/cuda/bin/nvcc','-O2','-std=c++17','-arch=sm_121','--fmad=false','--ftz=false',
+        str(source/'tools/qualification/check_1017_fp8.cu'),'-o',str(build/'out/bin/tf-dsv41-fp8-check'))
 
 
 if __name__ == '__main__':

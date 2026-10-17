@@ -287,6 +287,11 @@ pub const Model = struct {
         }
         m.eng = .{ .d = d, .s = m.stream, .t = .{ .set = &m.set, .stream = m.stream }, .blas = undefined, .comm = &m.comm, .pf = &m.pf, .lin = &m.lg, .ex = &m.exk, .ops = &m.ops, .exact = &m.ex, .c = c, .w = &m.w, .world = sp.world, .plain = rope, .compressed = rope_c, .ring = m.ring, .two = if (m.two) |*t| t else null };
         m.eng.round_rows = o.round_rows;
+        if (std.c.getenv("TF_DS_FP8_WOA")) |v| {
+            const setting = std.mem.span(v);
+            if (!std.mem.eql(u8, setting, "0") and !std.mem.eql(u8, setting, "1")) return error.BadFp8Woa;
+            m.eng.fp8_wo_a = std.mem.eql(u8, setting, "1");
+        }
         m.ch = try prompt.Chunk.init(&m.eng, &m.arena, chunk_rows, m.context_cap);
         m.caches = try prompt.Caches.init(&m.eng, &m.arena, o.pool, m.streams);
         m.blas = try cublas.Blas.open(m.stream, m.ch.blas_ws);
@@ -340,8 +345,9 @@ pub const Model = struct {
 
         // a vision checkpoint's image routing bias (without it a prompt with images is refused; text runs as ever)
         if (c.vision) {
-            const path = o.vision_bias orelse try std.fs.path.join(a, &.{ o.kit_dir, "vision", "gate_bias_vl.safetensors" });
-            m.loadVisionBias(path) catch |err| if (o.vision_bias != null or err != error.FileNotFound) return err;
+            const explicit = o.vision_bias orelse if (std.c.getenv("TF_DS_VISION_BIAS")) |v| std.mem.span(v) else null;
+            const path = explicit orelse try std.fs.path.join(a, &.{ o.kit_dir, "vision", "gate_bias_vl.safetensors" });
+            m.loadVisionBias(path) catch |err| if (explicit != null or err != error.FileNotFound) return err;
         }
 
         m.host_pos = try a.alloc(i64, chunk_rows);

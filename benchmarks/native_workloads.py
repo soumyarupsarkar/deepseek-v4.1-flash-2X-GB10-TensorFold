@@ -128,7 +128,7 @@ def main():
                 require(time.monotonic() < deadline, 'Other requests are active; run refused')
                 time.sleep(.02)
 
-    client = Client(base, 'DeepSeek-V4.1-Flash-Keys', None)
+    client = Client(base, 'deepseek-v4.1-flash', None)
     rank_epochs = {}
 
     def ranks():

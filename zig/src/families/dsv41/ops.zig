@@ -37,6 +37,7 @@ pub const Ops = struct {
     copy16: cuda.Function,
     argmax_rows: cuda.Function,
     gpu_clock: cuda.Function,
+    fp8_woa: cuda.Function,
 
     /// The three images (cuda.kernels.torch_pointwise, torch_movement and dsv41_ops, or the fatbins' bytes).
     pub fn load(d: *const cuda.Driver, pointwise: []const u8, movement: []const u8, family: []const u8) !Ops {
@@ -68,6 +69,7 @@ pub const Ops = struct {
             .copy16 = try fm.function("tf_ds_copy_rows16_kernel"),
             .argmax_rows = try fm.function("tf_ds_argmax_rows_kernel"),
             .gpu_clock = try fm.function("tf_ds_clock_kernel"),
+            .fp8_woa = try fm.function("tf_ds_fp8_woa_kernel"),
         };
     }
 
@@ -80,6 +82,16 @@ pub const Ops = struct {
 
     fn go(f: cuda.Function, s: cuda.Stream, grid: usize, block: u32, args: *cuda.Args) !void {
         try cuda.launch.launch(f, .{ .grid = .{ .x = @intCast(grid) }, .block = .{ .x = block } }, s, args);
+    }
+
+    /// 1017's in-place E4M3 activation rounding before wo_a (32 values per scale).
+    pub fn fp8Woa(o: *const Ops, s: cuda.Stream, x: u64, count: usize) !void {
+        if (count % 32 != 0) return error.BadFp8Group;
+        if (count == 0) return;
+        var a: cuda.Args = .{};
+        a.add(x);
+        a.add(@as(u64, count));
+        try go(o.fp8_woa, s, blocks(count, 256), 256, &a);
     }
 
     /// `.float()` of `count` bf16 values (exact).

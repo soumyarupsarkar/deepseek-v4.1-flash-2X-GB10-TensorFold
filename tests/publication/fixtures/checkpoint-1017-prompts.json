@@ -1,0 +1,1996 @@
+{
+  "source": "https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017/blob/1bae0e1088993b9b82de08f59de5be5a34e42170/encoding/encoding.py",
+  "source_sha256": "13231c592e958fb39e2af6001dae69d90e7a36b265702b9b390236fb387599e2",
+  "synthetic": true,
+  "cases": [
+    {
+      "name": "simple-chat",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Say hello."
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": "Say hello."
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": false,
+        "reasoning_effort": "high",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜User｜>Say hello.<｜Assistant｜></think>",
+      "expected_images": []
+    },
+    {
+      "name": "simple-thinking-high",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Say hello."
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": "Say hello."
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": true,
+        "reasoning_effort": "high",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜System｜>Reasoning Effort: 75 (range 1-100, the higher the value, the more thorough the reasoning)\n\n<｜User｜>Say hello.<｜Assistant｜><think>",
+      "expected_images": []
+    },
+    {
+      "name": "simple-thinking-max",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Say hello."
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": "Say hello."
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": true,
+        "reasoning_effort": "max",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜System｜>Reasoning Effort: 100 (range 1-100, the higher the value, the more thorough the reasoning)\n\n<｜User｜>Say hello.<｜Assistant｜><think>",
+      "expected_images": []
+    },
+    {
+      "name": "system-chat",
+      "messages": [
+        {
+          "role": "system",
+          "content": "Be concise."
+        },
+        {
+          "role": "user",
+          "content": "Say hello."
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "system",
+          "content": "Be concise."
+        },
+        {
+          "role": "user",
+          "content": "Say hello."
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": false,
+        "reasoning_effort": "high",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜System｜>Be concise.<｜User｜>Say hello.<｜Assistant｜></think>",
+      "expected_images": []
+    },
+    {
+      "name": "system-thinking-high",
+      "messages": [
+        {
+          "role": "system",
+          "content": "Be concise."
+        },
+        {
+          "role": "user",
+          "content": "Say hello."
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "system",
+          "content": "Be concise."
+        },
+        {
+          "role": "user",
+          "content": "Say hello."
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": true,
+        "reasoning_effort": "high",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜System｜>Reasoning Effort: 75 (range 1-100, the higher the value, the more thorough the reasoning)\n\nBe concise.<｜User｜>Say hello.<｜Assistant｜><think>",
+      "expected_images": []
+    },
+    {
+      "name": "system-thinking-max",
+      "messages": [
+        {
+          "role": "system",
+          "content": "Be concise."
+        },
+        {
+          "role": "user",
+          "content": "Say hello."
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "system",
+          "content": "Be concise."
+        },
+        {
+          "role": "user",
+          "content": "Say hello."
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": true,
+        "reasoning_effort": "max",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜System｜>Reasoning Effort: 100 (range 1-100, the higher the value, the more thorough the reasoning)\n\nBe concise.<｜User｜>Say hello.<｜Assistant｜><think>",
+      "expected_images": []
+    },
+    {
+      "name": "tool_round-chat",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": "B synthetic text"
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": "A synthetic text"
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": "B synthetic text"
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": "A synthetic text"
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": false,
+        "reasoning_effort": "high",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜User｜>Compare the two synthetic files.<｜Assistant｜></think>\n\n<｜DSML｜ calls>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">a.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">b.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n</｜DSML｜ calls><｜end▁of▁sentence｜><｜User｜><tool_result>A synthetic text</tool_result>\n\n<tool_result>B synthetic text</tool_result><｜Assistant｜></think>",
+      "expected_images": []
+    },
+    {
+      "name": "tool_round-thinking-high",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": "B synthetic text"
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": "A synthetic text"
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": "B synthetic text"
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": "A synthetic text"
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": true,
+        "reasoning_effort": "high",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜System｜>Reasoning Effort: 75 (range 1-100, the higher the value, the more thorough the reasoning)\n\n<｜User｜>Compare the two synthetic files.<｜Assistant｜><think>I will inspect both files.</think>\n\n<｜DSML｜ calls>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">a.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">b.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n</｜DSML｜ calls><｜end▁of▁sentence｜><｜User｜><tool_result>A synthetic text</tool_result>\n\n<tool_result>B synthetic text</tool_result><｜Assistant｜><think>",
+      "expected_images": []
+    },
+    {
+      "name": "tool_round-thinking-max",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": "B synthetic text"
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": "A synthetic text"
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": "B synthetic text"
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": "A synthetic text"
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": true,
+        "reasoning_effort": "max",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜System｜>Reasoning Effort: 100 (range 1-100, the higher the value, the more thorough the reasoning)\n\n<｜User｜>Compare the two synthetic files.<｜Assistant｜><think>I will inspect both files.</think>\n\n<｜DSML｜ calls>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">a.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">b.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n</｜DSML｜ calls><｜end▁of▁sentence｜><｜User｜><tool_result>A synthetic text</tool_result>\n\n<tool_result>B synthetic text</tool_result><｜Assistant｜><think>",
+      "expected_images": []
+    },
+    {
+      "name": "new_turn-chat",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": "B synthetic text"
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": "A synthetic text"
+        },
+        {
+          "role": "assistant",
+          "content": "Both are short.",
+          "reasoning_content": "The inspection is complete."
+        },
+        {
+          "role": "user",
+          "content": "Now say goodbye."
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": "B synthetic text"
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": "A synthetic text"
+        },
+        {
+          "role": "assistant",
+          "content": "Both are short.",
+          "reasoning_content": "The inspection is complete."
+        },
+        {
+          "role": "user",
+          "content": "Now say goodbye."
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": false,
+        "reasoning_effort": "high",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜User｜>Compare the two synthetic files.<｜Assistant｜></think>\n\n<｜DSML｜ calls>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">a.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">b.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n</｜DSML｜ calls><｜end▁of▁sentence｜><｜User｜><tool_result>A synthetic text</tool_result>\n\n<tool_result>B synthetic text</tool_result><｜Assistant｜></think>Both are short.<｜end▁of▁sentence｜><｜User｜>Now say goodbye.<｜Assistant｜></think>",
+      "expected_images": []
+    },
+    {
+      "name": "new_turn-thinking-high",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": "B synthetic text"
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": "A synthetic text"
+        },
+        {
+          "role": "assistant",
+          "content": "Both are short.",
+          "reasoning_content": "The inspection is complete."
+        },
+        {
+          "role": "user",
+          "content": "Now say goodbye."
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": "B synthetic text"
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": "A synthetic text"
+        },
+        {
+          "role": "assistant",
+          "content": "Both are short.",
+          "reasoning_content": "The inspection is complete."
+        },
+        {
+          "role": "user",
+          "content": "Now say goodbye."
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": true,
+        "reasoning_effort": "high",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜System｜>Reasoning Effort: 75 (range 1-100, the higher the value, the more thorough the reasoning)\n\n<｜User｜>Compare the two synthetic files.<｜Assistant｜></think>\n\n<｜DSML｜ calls>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">a.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">b.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n</｜DSML｜ calls><｜end▁of▁sentence｜><｜User｜><tool_result>A synthetic text</tool_result>\n\n<tool_result>B synthetic text</tool_result><｜Assistant｜></think>Both are short.<｜end▁of▁sentence｜><｜User｜>Now say goodbye.<｜Assistant｜><think>",
+      "expected_images": []
+    },
+    {
+      "name": "new_turn-thinking-max",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": "B synthetic text"
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": "A synthetic text"
+        },
+        {
+          "role": "assistant",
+          "content": "Both are short.",
+          "reasoning_content": "The inspection is complete."
+        },
+        {
+          "role": "user",
+          "content": "Now say goodbye."
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": "B synthetic text"
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": "A synthetic text"
+        },
+        {
+          "role": "assistant",
+          "content": "Both are short.",
+          "reasoning_content": "The inspection is complete."
+        },
+        {
+          "role": "user",
+          "content": "Now say goodbye."
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": true,
+        "reasoning_effort": "max",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜System｜>Reasoning Effort: 100 (range 1-100, the higher the value, the more thorough the reasoning)\n\n<｜User｜>Compare the two synthetic files.<｜Assistant｜></think>\n\n<｜DSML｜ calls>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">a.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">b.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n</｜DSML｜ calls><｜end▁of▁sentence｜><｜User｜><tool_result>A synthetic text</tool_result>\n\n<tool_result>B synthetic text</tool_result><｜Assistant｜></think>Both are short.<｜end▁of▁sentence｜><｜User｜>Now say goodbye.<｜Assistant｜><think>",
+      "expected_images": []
+    },
+    {
+      "name": "consecutive_users-chat",
+      "messages": [
+        {
+          "role": "user",
+          "content": "First."
+        },
+        {
+          "role": "user",
+          "content": "Second."
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": "First."
+        },
+        {
+          "role": "user",
+          "content": "Second."
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": false,
+        "reasoning_effort": "high",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜User｜>First.\n\nSecond.<｜Assistant｜></think>",
+      "expected_images": []
+    },
+    {
+      "name": "consecutive_users-thinking-high",
+      "messages": [
+        {
+          "role": "user",
+          "content": "First."
+        },
+        {
+          "role": "user",
+          "content": "Second."
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": "First."
+        },
+        {
+          "role": "user",
+          "content": "Second."
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": true,
+        "reasoning_effort": "high",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜System｜>Reasoning Effort: 75 (range 1-100, the higher the value, the more thorough the reasoning)\n\n<｜User｜>First.\n\nSecond.<｜Assistant｜><think>",
+      "expected_images": []
+    },
+    {
+      "name": "consecutive_users-thinking-max",
+      "messages": [
+        {
+          "role": "user",
+          "content": "First."
+        },
+        {
+          "role": "user",
+          "content": "Second."
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": "First."
+        },
+        {
+          "role": "user",
+          "content": "Second."
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": true,
+        "reasoning_effort": "max",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜System｜>Reasoning Effort: 100 (range 1-100, the higher the value, the more thorough the reasoning)\n\n<｜User｜>First.\n\nSecond.<｜Assistant｜><think>",
+      "expected_images": []
+    },
+    {
+      "name": "late_system-chat",
+      "messages": [
+        {
+          "role": "user",
+          "content": "First."
+        },
+        {
+          "role": "assistant",
+          "content": "Done.",
+          "reasoning_content": "I answered."
+        },
+        {
+          "role": "system",
+          "content": "Now be brief."
+        },
+        {
+          "role": "user",
+          "content": "Second."
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": "First."
+        },
+        {
+          "role": "assistant",
+          "content": "Done.",
+          "reasoning_content": "I answered."
+        },
+        {
+          "role": "system",
+          "content": "Now be brief."
+        },
+        {
+          "role": "user",
+          "content": "Second."
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": false,
+        "reasoning_effort": "high",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜User｜>First.<｜Assistant｜></think>Done.<｜end▁of▁sentence｜><｜System｜>Now be brief.<｜User｜>Second.<｜Assistant｜></think>",
+      "expected_images": []
+    },
+    {
+      "name": "late_system-thinking-high",
+      "messages": [
+        {
+          "role": "user",
+          "content": "First."
+        },
+        {
+          "role": "assistant",
+          "content": "Done.",
+          "reasoning_content": "I answered."
+        },
+        {
+          "role": "system",
+          "content": "Now be brief."
+        },
+        {
+          "role": "user",
+          "content": "Second."
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": "First."
+        },
+        {
+          "role": "assistant",
+          "content": "Done.",
+          "reasoning_content": "I answered."
+        },
+        {
+          "role": "system",
+          "content": "Now be brief."
+        },
+        {
+          "role": "user",
+          "content": "Second."
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": true,
+        "reasoning_effort": "high",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜System｜>Reasoning Effort: 75 (range 1-100, the higher the value, the more thorough the reasoning)\n\n<｜User｜>First.<｜Assistant｜></think>Done.<｜end▁of▁sentence｜><｜System｜>Now be brief.<｜User｜>Second.<｜Assistant｜><think>",
+      "expected_images": []
+    },
+    {
+      "name": "late_system-thinking-max",
+      "messages": [
+        {
+          "role": "user",
+          "content": "First."
+        },
+        {
+          "role": "assistant",
+          "content": "Done.",
+          "reasoning_content": "I answered."
+        },
+        {
+          "role": "system",
+          "content": "Now be brief."
+        },
+        {
+          "role": "user",
+          "content": "Second."
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": "First."
+        },
+        {
+          "role": "assistant",
+          "content": "Done.",
+          "reasoning_content": "I answered."
+        },
+        {
+          "role": "system",
+          "content": "Now be brief."
+        },
+        {
+          "role": "user",
+          "content": "Second."
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": true,
+        "reasoning_effort": "max",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜System｜>Reasoning Effort: 100 (range 1-100, the higher the value, the more thorough the reasoning)\n\n<｜User｜>First.<｜Assistant｜></think>Done.<｜end▁of▁sentence｜><｜System｜>Now be brief.<｜User｜>Second.<｜Assistant｜><think>",
+      "expected_images": []
+    },
+    {
+      "name": "text_parts-chat",
+      "messages": [
+        {
+          "role": "user",
+          "content": "First block.\n\nSecond block."
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "First block."
+            },
+            {
+              "type": "text",
+              "text": "Second block."
+            }
+          ]
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": false,
+        "reasoning_effort": "high",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜User｜>First block.\n\nSecond block.<｜Assistant｜></think>",
+      "expected_images": []
+    },
+    {
+      "name": "text_parts-thinking-high",
+      "messages": [
+        {
+          "role": "user",
+          "content": "First block.\n\nSecond block."
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "First block."
+            },
+            {
+              "type": "text",
+              "text": "Second block."
+            }
+          ]
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": true,
+        "reasoning_effort": "high",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜System｜>Reasoning Effort: 75 (range 1-100, the higher the value, the more thorough the reasoning)\n\n<｜User｜>First block.\n\nSecond block.<｜Assistant｜><think>",
+      "expected_images": []
+    },
+    {
+      "name": "text_parts-thinking-max",
+      "messages": [
+        {
+          "role": "user",
+          "content": "First block.\n\nSecond block."
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "First block."
+            },
+            {
+              "type": "text",
+              "text": "Second block."
+            }
+          ]
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": true,
+        "reasoning_effort": "max",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜System｜>Reasoning Effort: 100 (range 1-100, the higher the value, the more thorough the reasoning)\n\n<｜User｜>First block.\n\nSecond block.<｜Assistant｜><think>",
+      "expected_images": []
+    },
+    {
+      "name": "interleaved_tool_results-chat",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": "B synthetic text"
+        },
+        {
+          "role": "user",
+          "content": "Keep this note in place."
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": "A synthetic text"
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": "B synthetic text"
+        },
+        {
+          "role": "user",
+          "content": "Keep this note in place."
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": "A synthetic text"
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": false,
+        "reasoning_effort": "high",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜User｜>Compare the two synthetic files.<｜Assistant｜></think>\n\n<｜DSML｜ calls>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">a.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">b.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n</｜DSML｜ calls><｜end▁of▁sentence｜><｜User｜><tool_result>A synthetic text</tool_result>\n\nKeep this note in place.\n\n<tool_result>B synthetic text</tool_result><｜Assistant｜></think>",
+      "expected_images": []
+    },
+    {
+      "name": "interleaved_tool_results-thinking-high",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": "B synthetic text"
+        },
+        {
+          "role": "user",
+          "content": "Keep this note in place."
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": "A synthetic text"
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": "B synthetic text"
+        },
+        {
+          "role": "user",
+          "content": "Keep this note in place."
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": "A synthetic text"
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": true,
+        "reasoning_effort": "high",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜System｜>Reasoning Effort: 75 (range 1-100, the higher the value, the more thorough the reasoning)\n\n<｜User｜>Compare the two synthetic files.<｜Assistant｜></think>\n\n<｜DSML｜ calls>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">a.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">b.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n</｜DSML｜ calls><｜end▁of▁sentence｜><｜User｜><tool_result>A synthetic text</tool_result>\n\nKeep this note in place.\n\n<tool_result>B synthetic text</tool_result><｜Assistant｜><think>",
+      "expected_images": []
+    },
+    {
+      "name": "interleaved_tool_results-thinking-max",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": "B synthetic text"
+        },
+        {
+          "role": "user",
+          "content": "Keep this note in place."
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": "A synthetic text"
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": "B synthetic text"
+        },
+        {
+          "role": "user",
+          "content": "Keep this note in place."
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": "A synthetic text"
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": true,
+        "reasoning_effort": "max",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜System｜>Reasoning Effort: 100 (range 1-100, the higher the value, the more thorough the reasoning)\n\n<｜User｜>Compare the two synthetic files.<｜Assistant｜></think>\n\n<｜DSML｜ calls>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">a.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">b.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n</｜DSML｜ calls><｜end▁of▁sentence｜><｜User｜><tool_result>A synthetic text</tool_result>\n\nKeep this note in place.\n\n<tool_result>B synthetic text</tool_result><｜Assistant｜><think>",
+      "expected_images": []
+    },
+    {
+      "name": "tool_images-chat",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": "B\n\n<｜deepseek_image｜>"
+        },
+        {
+          "role": "user",
+          "content": "Middle\n\n<｜deepseek_image｜>"
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": "A\n\n<｜deepseek_image｜>"
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": [
+            {
+              "type": "text",
+              "text": "B"
+            },
+            {
+              "type": "image_url",
+              "image_url": {
+                "url": "data:image/png;base64,Qg=="
+              }
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "Middle"
+            },
+            {
+              "type": "image_url",
+              "image_url": {
+                "url": "data:image/png;base64,TQ=="
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": [
+            {
+              "type": "text",
+              "text": "A"
+            },
+            {
+              "type": "image_url",
+              "image_url": {
+                "url": "data:image/png;base64,QQ=="
+              }
+            }
+          ]
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": false,
+        "reasoning_effort": "high",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜User｜>Compare the two synthetic files.<｜Assistant｜></think>\n\n<｜DSML｜ calls>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">a.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">b.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n</｜DSML｜ calls><｜end▁of▁sentence｜><｜User｜><tool_result>A\n\n<｜deepseek_image｜></tool_result>\n\nMiddle\n\n<｜deepseek_image｜>\n\n<tool_result>B\n\n<｜deepseek_image｜></tool_result><｜Assistant｜></think>",
+      "expected_images": [
+        {
+          "type": "image",
+          "url": "data:image/png;base64,QQ=="
+        },
+        {
+          "type": "image",
+          "url": "data:image/png;base64,TQ=="
+        },
+        {
+          "type": "image",
+          "url": "data:image/png;base64,Qg=="
+        }
+      ]
+    },
+    {
+      "name": "tool_images-thinking-high",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": "B\n\n<｜deepseek_image｜>"
+        },
+        {
+          "role": "user",
+          "content": "Middle\n\n<｜deepseek_image｜>"
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": "A\n\n<｜deepseek_image｜>"
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": [
+            {
+              "type": "text",
+              "text": "B"
+            },
+            {
+              "type": "image_url",
+              "image_url": {
+                "url": "data:image/png;base64,Qg=="
+              }
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "Middle"
+            },
+            {
+              "type": "image_url",
+              "image_url": {
+                "url": "data:image/png;base64,TQ=="
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": [
+            {
+              "type": "text",
+              "text": "A"
+            },
+            {
+              "type": "image_url",
+              "image_url": {
+                "url": "data:image/png;base64,QQ=="
+              }
+            }
+          ]
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": true,
+        "reasoning_effort": "high",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜System｜>Reasoning Effort: 75 (range 1-100, the higher the value, the more thorough the reasoning)\n\n<｜User｜>Compare the two synthetic files.<｜Assistant｜></think>\n\n<｜DSML｜ calls>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">a.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">b.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n</｜DSML｜ calls><｜end▁of▁sentence｜><｜User｜><tool_result>A\n\n<｜deepseek_image｜></tool_result>\n\nMiddle\n\n<｜deepseek_image｜>\n\n<tool_result>B\n\n<｜deepseek_image｜></tool_result><｜Assistant｜><think>",
+      "expected_images": [
+        {
+          "type": "image",
+          "url": "data:image/png;base64,QQ=="
+        },
+        {
+          "type": "image",
+          "url": "data:image/png;base64,TQ=="
+        },
+        {
+          "type": "image",
+          "url": "data:image/png;base64,Qg=="
+        }
+      ]
+    },
+    {
+      "name": "tool_images-thinking-max",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": "B\n\n<｜deepseek_image｜>"
+        },
+        {
+          "role": "user",
+          "content": "Middle\n\n<｜deepseek_image｜>"
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": "A\n\n<｜deepseek_image｜>"
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": "Compare the two synthetic files."
+        },
+        {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "I will inspect both files.",
+          "tool_calls": [
+            {
+              "id": "first",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "a.txt"
+                }
+              }
+            },
+            {
+              "id": "second",
+              "type": "function",
+              "function": {
+                "name": "inspect",
+                "arguments": {
+                  "path": "b.txt"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "second",
+          "content": [
+            {
+              "type": "text",
+              "text": "B"
+            },
+            {
+              "type": "image_url",
+              "image_url": {
+                "url": "data:image/png;base64,Qg=="
+              }
+            }
+          ]
+        },
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "Middle"
+            },
+            {
+              "type": "image_url",
+              "image_url": {
+                "url": "data:image/png;base64,TQ=="
+              }
+            }
+          ]
+        },
+        {
+          "role": "tool",
+          "tool_call_id": "first",
+          "content": [
+            {
+              "type": "text",
+              "text": "A"
+            },
+            {
+              "type": "image_url",
+              "image_url": {
+                "url": "data:image/png;base64,QQ=="
+              }
+            }
+          ]
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": true,
+        "reasoning_effort": "max",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜System｜>Reasoning Effort: 100 (range 1-100, the higher the value, the more thorough the reasoning)\n\n<｜User｜>Compare the two synthetic files.<｜Assistant｜></think>\n\n<｜DSML｜ calls>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">a.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n<｜DSML｜ invoke name=\"inspect\">\n<｜DSML｜ parameter name=\"path\" string=\"true\">b.txt</｜DSML｜ parameter>\n</｜DSML｜ invoke>\n</｜DSML｜ calls><｜end▁of▁sentence｜><｜User｜><tool_result>A\n\n<｜deepseek_image｜></tool_result>\n\nMiddle\n\n<｜deepseek_image｜>\n\n<tool_result>B\n\n<｜deepseek_image｜></tool_result><｜Assistant｜><think>",
+      "expected_images": [
+        {
+          "type": "image",
+          "url": "data:image/png;base64,QQ=="
+        },
+        {
+          "type": "image",
+          "url": "data:image/png;base64,TQ=="
+        },
+        {
+          "type": "image",
+          "url": "data:image/png;base64,Qg=="
+        }
+      ]
+    },
+    {
+      "name": "user_image-chat",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Describe this synthetic image.\n\n<｜deepseek_image｜>"
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "Describe this synthetic image."
+            },
+            {
+              "type": "image_url",
+              "image_url": {
+                "url": "data:image/png;base64,Ug=="
+              }
+            }
+          ]
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": false,
+        "reasoning_effort": "high",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜User｜>Describe this synthetic image.\n\n<｜deepseek_image｜><｜Assistant｜></think>",
+      "expected_images": [
+        {
+          "type": "image",
+          "url": "data:image/png;base64,Ug=="
+        }
+      ]
+    },
+    {
+      "name": "user_image-thinking-high",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Describe this synthetic image.\n\n<｜deepseek_image｜>"
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "Describe this synthetic image."
+            },
+            {
+              "type": "image_url",
+              "image_url": {
+                "url": "data:image/png;base64,Ug=="
+              }
+            }
+          ]
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": true,
+        "reasoning_effort": "high",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜System｜>Reasoning Effort: 75 (range 1-100, the higher the value, the more thorough the reasoning)\n\n<｜User｜>Describe this synthetic image.\n\n<｜deepseek_image｜><｜Assistant｜><think>",
+      "expected_images": [
+        {
+          "type": "image",
+          "url": "data:image/png;base64,Ug=="
+        }
+      ]
+    },
+    {
+      "name": "user_image-thinking-max",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Describe this synthetic image.\n\n<｜deepseek_image｜>"
+        }
+      ],
+      "wire_messages": [
+        {
+          "role": "user",
+          "content": [
+            {
+              "type": "text",
+              "text": "Describe this synthetic image."
+            },
+            {
+              "type": "image_url",
+              "image_url": {
+                "url": "data:image/png;base64,Ug=="
+              }
+            }
+          ]
+        }
+      ],
+      "kwargs": {
+        "enable_thinking": true,
+        "reasoning_effort": "max",
+        "add_generation_prompt": true
+      },
+      "expected": "<｜begin▁of▁sentence｜><｜System｜>Reasoning Effort: 100 (range 1-100, the higher the value, the more thorough the reasoning)\n\n<｜User｜>Describe this synthetic image.\n\n<｜deepseek_image｜><｜Assistant｜><think>",
+      "expected_images": [
+        {
+          "type": "image",
+          "url": "data:image/png;base64,Ug=="
+        }
+      ]
+    }
+  ]
+}

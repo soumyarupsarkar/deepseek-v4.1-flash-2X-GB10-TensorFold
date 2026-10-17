@@ -704,20 +704,28 @@ fn attention(e: *const Engine, rd: *Round, ch: *const Chunk, cs: *const Caches, 
         .wbase = rd.g(.wbase),
         .cbase = cbase,
         .ring_rows = ring_rows,
-        .rot = .{ .cos = rope.cos, .sin = rope.sin, .rd = rd_dim, .suh = rd.wo_suh[li], .xh = rd.xhwo, .gh = gk / hd },
+        .rot = if (e.fp8_wo_a) null else .{ .cos = rope.cos, .sin = rope.sin, .rd = rd_dim, .suh = rd.wo_suh[li], .xh = rd.xhwo, .gh = gk / hd },
         .parts = .{ .pm = rd.pm_, .pl = rd.pl_, .po = rd.po_ },
     });
     try rd.mark(e, .a_core);
+    // 1017 rounds the unrotated attention output. The original checkpoint keeps
+    // its fused inverse-RoPE + Hadamard merge above; quantizing that rotated
+    // output would implement a different model.
+    if (e.fp8_wo_a) {
+        try tri_norm.ropeHeads(t, rd.o, rope.cos, rope.sin, pos, rd_dim, true, R, hl, hd);
+        try e.ops.fp8Woa(e.s, rd.o, R * hl * hd);
+    }
     var calls: [exl3_linear.gmax]exl3_linear.Call = undefined;
     const uw = lay.groups * lay.wo_a[0].n;
     var col: usize = 0;
     var off: usize = 0;
     for (lay.wo_a[0..lay.groups], 0..) |wo, gi| {
         const rot: exl3_linear.RotOut = if (e.two) |tw| round2d.woRot(tw, lay, col) else .{ .suh = lay.wo_b.suh, .xh = rd.xb, .ldr = @intCast(lay.wo_b.k), .off = @intCast(col) };
-        calls[gi] = .{ .layer = wo, .x = 0, .ldx = 0, .x_dtype = .bf16, .xh = rd.xhwo + off * 2, .y = rd.u + col * 2, .ldy = @intCast(uw), .y_dtype = .bf16, .counters = 0, .rot = rot };
+        calls[gi] = .{ .layer = wo, .x = if (e.fp8_wo_a) rd.o + gi * gk * 2 else 0, .ldx = if (e.fp8_wo_a) @intCast(hl * hd) else 0, .x_dtype = .bf16, .xh = rd.xhwo + off * 2, .y = rd.u + col * 2, .ldy = @intCast(uw), .y_dtype = .bf16, .counters = 0, .rot = rot };
         col += wo.n;
         off += R * wo.k;
     }
+    if (e.fp8_wo_a) try exl3_linear.rotMany(e.lin, e.s, calls[0..lay.groups], R, true);
     try prompt.groupedRotated(e, ch, R, calls[0..lay.groups]);
     try rd.mark(e, .a_woa);
     if (e.two) |tw| try round2d.woExchange(tw, e, rd.xb, R); // 2D: the column partner's half of wo_b's input rows

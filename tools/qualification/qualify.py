@@ -16,7 +16,7 @@ from cluster import get, memory
 from benchmark import wait_idle
 
 from common import API_BASE as BASE
-MODEL = 'DeepSeek-V4.1-Flash-Keys'
+MODEL = 'deepseek-v4.1-flash'
 OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 def post(body, route='/v1/chat/completions', timeout=1200, *, shared_prompt=None):

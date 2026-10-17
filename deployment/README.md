@@ -21,11 +21,10 @@ Routine start/stop needs no reboot. Prerequisite driver/package/network changes
 are outside the recipe's rollback scope.
 
 Use dedicated writable data roots, initially empty and without symlink
-redirection. Fresh acquisition needs roughly 724 GB on the head and 520 GB on
-the worker, plus the approximately 24.5 GB image, temporary download/build
-space, logs and free-space margin. These are decimal GB. The estimate retains
-the original Engram shards on the head and approximately 106 GB of prepared
-weights per rank. The pinned native kit adds approximately 0.67 GB per node.
+redirection. Fresh acquisition needs roughly 521 GB on each host, plus the approximately 24.5 GB image, temporary download/build
+space, logs and free-space margin. These are decimal GB. The estimate includes approximately 106 GB of prepared weights per rank.
+The native Engram view hardlinks the verified original shards on the head,
+avoiding a second 203 GB copy. The pinned native kit adds approximately 0.67 GB per node.
 
 ## Configure and record the baseline
 
@@ -61,9 +60,11 @@ python3 cluster replicate
 python3 cluster verify
 ```
 
-The manifests pin the Mia EXL3 weights, the matching 104 Keys tensor overrides,
-original Engram/vision assets and Bertholomus's native kernel kit to immutable
-revisions and hashes. Extraction creates a separate verified model view and
+The manifests pin LibertAIDAI's stock 1017 EXL3 weights, matching 1017
+Engram/vision assets, the adapted chat template and Bertholomus's native
+kernel kit to immutable revisions and hashes. The previous Keys overlay is
+not applied to this checkpoint; it contains replacement weights from the
+original model. See [the checkpoint migration notes](CHECKPOINT-1017.md). Extraction creates a separate verified model view and
 retains stock files. Replication uses rsync without deletion. Completed files
 whose hashes differ are refused.
 
@@ -134,7 +135,7 @@ in this native serving path.
 
 ## API and resource policy
 
-The base model ID is `DeepSeek-V4.1-Flash-Keys`. Advertised suffix aliases are
+The base model ID is `DeepSeek-V4.1-Flash-1017`. Advertised suffix aliases are
 `-262k`, `-524k`, `-614k` and `-1m`, with ceilings of 262,144, 524,288, 614,400 and
 1,048,576 tokens respectively, counting prompt plus reply. The aliases use the
 same loaded model and shared pool; they do not allocate separate models.

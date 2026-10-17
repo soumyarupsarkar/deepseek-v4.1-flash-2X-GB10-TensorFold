@@ -50,6 +50,65 @@ fn hasImages(list: Value) bool {
     return false;
 }
 
+fn hasRole(message: Value, role: []const u8) bool {
+    const r = message.get("role") orelse return false;
+    return r == .string and std.mem.eql(u8, r.string, role);
+}
+
+fn toolRank(message: Value, calls: []const Value) usize {
+    const id = message.get("tool_call_id") orelse return 0;
+    if (id != .string or id.string.len == 0) return 0;
+    // The reference's dictionary uses the last occurrence of a duplicate id.
+    var rank: usize = 0;
+    for (calls, 0..) |call, i| {
+        var cid = call.get("id");
+        if (cid == null or (cid.? == .string and cid.?.string.len == 0)) {
+            if (call.get("function")) |f| cid = f.get("id");
+        }
+        if (cid) |c| if (c == .string and std.mem.eql(u8, c.string, id.string)) {
+            rank = i;
+        };
+    }
+    return rank;
+}
+
+/// DeepSeek sorts only tool-result positions within each merged user/tool turn,
+/// preserving ordinary user blocks in place. Do this BEFORE collecting image
+/// bytes: sorting placeholders later must not attach one tool's image to another.
+fn orderToolImages(a: std.mem.Allocator, list: []const Value) ![]const Value {
+    const out = try a.dupe(Value, list);
+    var calls: []const Value = &.{};
+    var i: usize = 0;
+    while (i < out.len) {
+        const m = out[i];
+        if (hasRole(m, "assistant")) {
+            if (m.get("tool_calls")) |c| if (c == .array and c.array.len > 0) {
+                calls = c.array;
+            };
+        }
+        if (!hasRole(m, "user") and !hasRole(m, "tool")) {
+            i += 1;
+            continue;
+        }
+        const start = i;
+        while (i < out.len and (hasRole(out[i], "user") or hasRole(out[i], "tool"))) : (i += 1) {}
+        var positions: std.ArrayList(usize) = .empty;
+        var results: std.ArrayList(Value) = .empty;
+        for (start..i) |j| if (hasRole(out[j], "tool")) {
+            try positions.append(a, j);
+            try results.append(a, out[j]);
+        };
+        const Less = struct {
+            fn less(c: []const Value, lhs: Value, rhs: Value) bool {
+                return toolRank(lhs, c) < toolRank(rhs, c);
+            }
+        };
+        std.mem.sort(Value, results.items, calls, Less.less);
+        for (positions.items, results.items) |at, value| out[at] = value;
+    }
+    return out;
+}
+
 /// An ``image_url`` part's bytes: its URL (the part's string, or its object's ``url``) a base64 data URL, the base64 as
 /// Python's b64decode reads it; the served lane's refusals otherwise.
 fn imageBytes(cx: *Cx, part: Value) errors.Refused![]const u8 {
@@ -155,12 +214,17 @@ pub fn normalizeImages(cx: *Cx, messages: ?Value, late_system: []const u8, needs
     const list = messages orelse return cx.refuse("messages must be a non-empty list");
     if (list != .array or list.array.len == 0) return cx.refuse("messages must be a non-empty list");
     const with_images = images != null and hasImages(list);
+    const deepseek = images != null and std.mem.eql(u8, images.?.placeholder, "<｜deepseek_image｜>");
+    const ordered = if (with_images and deepseek) try orderToolImages(cx.a, list.array) else list.array;
     var out: std.ArrayList(Value) = .empty;
     var instructions: std.ArrayList(*json.Object) = .empty;
-    for (list.array) |message| {
+    for (ordered) |message| {
         if (message != .object) return cx.refuse("each message must be an object");
         const role = message.get("role");
         if (!isRole(role)) return cx.refuse("message role must be system, developer, user, assistant or tool");
+        if (deepseek) {
+            for ([_][]const u8{ "content", "reasoning_content" }) |key| if (message.get(key)) |v| if (v == .string and std.mem.indexOf(u8, v.string, images.?.placeholder) != null) return cx.refuse(image_text_refusal);
+        }
         if (with_images) {
             const im = images.?;
             // media other than the content's images is refused as ever
@@ -202,11 +266,13 @@ pub fn normalizeImages(cx: *Cx, messages: ?Value, late_system: []const u8, needs
         var item: *json.Object = message.object;
         if (content != null and content.? == .array) {
             var text: std.ArrayList(u8) = .empty;
-            for (content.?.array) |part| {
+            for (content.?.array, 0..) |part, k| {
+                if (deepseek and k > 0) try text.appendSlice(cx.a, "\n\n");
                 const typed = part == .object and part.get("type") != null and part.get("type").? == .string and std.mem.eql(u8, part.get("type").?.string, "text");
                 if (!typed or fields.hasMedia(part)) return cx.refuse("this server accepts text parts only; image, audio and video inputs are unsupported");
                 const t = part.get("text") orelse return cx.refuse("a text content part must contain a text string");
                 if (t != .string) return cx.refuse("a text content part must contain a text string");
+                if (deepseek and std.mem.indexOf(u8, t.string, images.?.placeholder) != null) return cx.refuse(image_text_refusal);
                 try text.appendSlice(cx.a, t.string);
             }
             item = try withField(cx, message.object, "content", .{ .string = text.items });
@@ -389,4 +455,49 @@ test "a conversation keeps its shape when the template does not need the rule" {
     try std.testing.expectEqual(@as(usize, 2), out.array.len);
     try std.testing.expectEqualStrings("assistant", out.array[0].get("role").?.string);
     try std.testing.expectEqualStrings("tool", out.array[1].get("role").?.string);
+}
+
+test "DeepSeek tool image bytes follow call order while user blocks keep their positions" {
+    var arena: std.heap.ArenaAllocator = .init(std.testing.allocator);
+    defer arena.deinit();
+    var cx: Cx = .{ .a = arena.allocator() };
+    const list = (try json.parse(cx.a,
+        \\[{"role":"user","content":"Compare."},{"role":"assistant","content":"","tool_calls":[{"id":"a"},{"id":"b"}]},{"role":"tool","tool_call_id":"b","content":[{"type":"image_url","image_url":"data:image/png;base64,Qg=="}]},{"role":"user","content":[{"type":"image_url","image_url":"data:image/png;base64,TQ=="}]},{"role":"tool","tool_call_id":"a","content":[{"type":"image_url","image_url":"data:image/png;base64,QQ=="}]}]
+    )).ok;
+    var images: Images = .{ .placeholder = "<｜deepseek_image｜>" };
+    const normalized = try normalizeImages(&cx, list, "system", false, &images);
+    try std.testing.expectEqualStrings("a", normalized.array[2].get("tool_call_id").?.string);
+    try std.testing.expectEqualStrings("user", normalized.array[3].get("role").?.string);
+    try std.testing.expectEqualStrings("b", normalized.array[4].get("tool_call_id").?.string);
+    try std.testing.expectEqual(@as(usize, 3), images.list.items.len);
+    try std.testing.expectEqualStrings("A", images.list.items[0]);
+    try std.testing.expectEqualStrings("M", images.list.items[1]);
+    try std.testing.expectEqualStrings("B", images.list.items[2]);
+    // Input objects and their arrival order are not mutated.
+    try std.testing.expectEqualStrings("b", list.array[2].get("tool_call_id").?.string);
+}
+
+test "DeepSeek text blocks match the reference separator even without an image" {
+    var arena: std.heap.ArenaAllocator = .init(std.testing.allocator);
+    defer arena.deinit();
+    var cx: Cx = .{ .a = arena.allocator() };
+    const list = (try json.parse(cx.a,
+        \\[{"role":"user","content":[{"type":"text","text":"First."},{"type":"text","text":"Second."}]}]
+    )).ok;
+    var images: Images = .{ .placeholder = "<｜deepseek_image｜>" };
+    const normalized = try normalizeImages(&cx, list, "system", false, &images);
+    try std.testing.expectEqualStrings("First.\n\nSecond.", normalized.array[0].get("content").?.string);
+    const other = try normalize(&cx, list, "system", false);
+    try std.testing.expectEqualStrings("First.Second.", other.array[0].get("content").?.string);
+}
+
+test "DeepSeek rejects unbound image markers without any image parts" {
+    var arena: std.heap.ArenaAllocator = .init(std.testing.allocator);
+    defer arena.deinit();
+    var cx: Cx = .{ .a = arena.allocator() };
+    const list = (try json.parse(cx.a,
+        \\[{"role":"user","content":[{"type":"text","text":"<｜deepseek_image｜>"}]}]
+    )).ok;
+    var images: Images = .{ .placeholder = "<｜deepseek_image｜>" };
+    try std.testing.expectError(error.Refused, normalizeImages(&cx, list, "system", false, &images));
 }

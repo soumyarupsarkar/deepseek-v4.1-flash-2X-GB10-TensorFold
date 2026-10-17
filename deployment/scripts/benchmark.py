@@ -27,7 +27,7 @@ sys.path.insert(0, str(SOURCE / 'tools/dsv41'))
 from kit_bench import PROMPT_SETS, WORDS
 
 OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-MODEL = 'DeepSeek-V4.1-Flash-Keys'
+MODEL = 'deepseek-v4.1-flash'
 EVICTION_TOKENS = 4096
 EVICTION_PROTOCOL = 'retained-prefix-lru-4096-v2'
 

@@ -11,7 +11,7 @@ CONFIG = SOURCE / 'deployment/config'
 STATE = SOURCE / 'deployment/.local'
 LABEL = 'org.deepseek-spark.deployment'
 ROLE = 'org.deepseek-spark.role'
-MODEL = 'DeepSeek-V4.1-Flash-Keys'
+MODEL = 'DeepSeek-V4.1-Flash-1017'
 BASE_IMAGE = 'nvcr.io/nvidia/pytorch@sha256:7531d90bcbe0e43e1f7363029c7e145ce90eebeb494a7b4695fdba0329d7c3c3'
 SUBDIRS = ('stock-model', 'overlays', 'original', 'model', 'engram', 'vision-extra',
            'prepared', 'kernel-cache', 'state', 'native-kit')

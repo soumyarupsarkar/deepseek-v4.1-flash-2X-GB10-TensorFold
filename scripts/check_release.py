@@ -31,7 +31,9 @@ def main():
         failures.append('duplicate source pins')
     source_paths = set(git('ls-files', '-c', '-o', '-z', '--exclude-standard', '--',
                           'zig', 'build.zig', 'build.zig.zon', '.zig-version', 'cluster',
-                          'deployment/scripts', 'deployment/config').rstrip('\0').split('\0'))
+                          'deployment/scripts', 'deployment/config',
+                          'tools/qualification/check_1017_fp8.cu',
+                          'tests/publication/fixtures/checkpoint-1017-prompts.json').rstrip('\0').split('\0'))
     if source_paths != set(pins):
         failures.append('engine source inventory changed')
     for name, digest in pins.items():

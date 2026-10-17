@@ -5,10 +5,10 @@
   "drafts": 5,
   "drm": true,
   "vision": true,
-  "name": "native-c32-keys-candidate",
+  "name": "native-c32-1017",
   "engine": "native-zig",
   "qualification": "candidate; not yet hardware qualified",
-  "description": "Pinned native Zig engine with independently sized shared KV, Keys, vision, grammar constraints and reversible DRM",
+  "description": "Pinned 1017 stock checkpoint with native Zig serving, shared KV, vision, grammar constraints and reversible DRM",
   "minimum_available_gib": 2,
   "environment": {
     "MALLOC_TRIM_THRESHOLD_": "131072",
@@ -35,6 +35,10 @@
     "TF_DS_MEASURE_COSTS": "1",
     "TF_DS_SHARED_ROUND_MS": "21.846117,27.321591,32.797065,38.272540,43.410044,48.547549,53.685053,58.822558,62.395480,65.968402,69.541323,73.114245,77.397632,81.681019,85.964405,90.247792,94.587727,98.927661,103.267596,107.607530,111.947465,116.287399,120.627334,124.967268,127.966326,130.965383,133.964441,136.963498,139.962556,142.961613,145.960671,148.959728,151.742729,154.525729,157.308729,160.091730,162.874730,165.657731,168.440731,171.223731,174.006732,176.789732,179.572733,182.355733,185.138733,187.921734,190.704734,193.487735",
     "TF_DS_ADAPTIVE_DRAFTS": "0",
-    "TF_DS_BUDGET_DRAFTS": "1"
-  }
+    "TF_DS_BUDGET_DRAFTS": "1",
+    "TF_DS_FP8_WOA": "1",
+    "TF_DS_VISION_BIAS": "/vision-extra/vision-routing-bias.safetensors"
+  },
+  "checkpoint": "1017",
+  "keys_overlay": false
 }

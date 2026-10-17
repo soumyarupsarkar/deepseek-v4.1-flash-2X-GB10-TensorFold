@@ -19,7 +19,7 @@ def plan(config):
         config=config, base_image=BASE_IMAGE,
         requires=dict(nodes=2,minimum_available_gib_before_load=112,ethernet_mtu=9000,rdma_mtu=4096,
                       passwordless_ssh=True,noninteractive_sudo=True,temporary_drm=True),
-        actions=['init owned roots and baselines','fetch pinned model/Keys/original assets',
+        actions=['init owned roots and baselines','fetch pinned checkpoint and matching original assets',
                  'extract and hash Engram/vision assets; verify the pinned native kernel kit',
                  'copy and verify worker assets','build identical native source image',
                  'prepare native rank caches and compressed token maps with CPU tools',

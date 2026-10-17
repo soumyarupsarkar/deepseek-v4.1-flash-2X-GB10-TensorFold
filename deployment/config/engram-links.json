@@ -1,0 +1,40 @@
+{
+  "engram-layer-01.safetensors": {
+    "source": "model-00047-of-00048.safetensors",
+    "tensors": {
+      "layers.1.engram.embed.scale": {
+        "dtype": "F8_E8M0",
+        "shape": [
+          384006168,
+          8
+        ]
+      },
+      "layers.1.engram.embed.weight": {
+        "dtype": "F8_E4M3",
+        "shape": [
+          384006168,
+          256
+        ]
+      }
+    }
+  },
+  "engram-layer-14.safetensors": {
+    "source": "model-00048-of-00048.safetensors",
+    "tensors": {
+      "layers.14.engram.embed.scale": {
+        "dtype": "F8_E8M0",
+        "shape": [
+          384016682,
+          8
+        ]
+      },
+      "layers.14.engram.embed.weight": {
+        "dtype": "F8_E4M3",
+        "shape": [
+          384016682,
+          256
+        ]
+      }
+    }
+  }
+}

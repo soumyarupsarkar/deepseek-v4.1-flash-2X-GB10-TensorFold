@@ -72,6 +72,7 @@ def download(url, path, digest, size, *, workers=4, chunk_bytes=128*2**20, token
                         if response.status != 206 or response.headers.get('Content-Range') != f'bytes {start}-{end}/{size}':
                             raise ValueError('Server did not honor the exact HTTP range')
                         offset = start
+                        discard_from = start
                         while offset <= end:
                             block = response.read(min(2**20, end-offset+1))
                             if not block: raise ConnectionError('Truncated HTTP range')
@@ -80,6 +81,13 @@ def download(url, path, digest, size, *, workers=4, chunk_bytes=128*2**20, token
                                 wrote = os.pwrite(fd, view, offset)
                                 if not wrote: raise OSError('Short disk write')
                                 offset += wrote; view = view[wrote:]
+                            # A large range must not keep all its dirty pages until
+                            # completion. With parallel transfers that can exceed
+                            # the host reserve even when Python's buffers are tiny.
+                            if offset-discard_from >= 4*2**20:
+                                os.fdatasync(fd)
+                                os.posix_fadvise(fd,discard_from,offset-discard_from,os.POSIX_FADV_DONTNEED)
+                                discard_from=offset
                         if response.read(1): raise ValueError('Oversized HTTP range')
                     # A range is durable before its completion is journaled.
                     with guard:
