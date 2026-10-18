@@ -147,9 +147,14 @@ def main():
     p = profile()
     assert p['pool_tokens'] == 8650752 and p['parallel'] == 32
     assert int(p['environment']['TF_DS_ROUND_ROWS']) == 48
+    from compaction_fixture import condition
+    conditioned = path.with_name(path.stem + '-conditioning.json')
+    condition(common, conditioned)
     reservation = ((524288 + 48 + 2 + 2047)//2048)*2048
     record = dict(started=common.now(), status='running', launch=read(STATE/'launch.json'),
                   script_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+                  conditioning=dict(receipt=conditioned.name,
+                      sha256=hashlib.sha256(conditioned.read_bytes()).hexdigest()),
                   reservation_tokens=reservation, samples=[], fixtures=[], phases=[])
     probes = []
     deadline = time.monotonic() + 1800
@@ -208,6 +213,8 @@ def main():
             wait_for(lambda _h: holder.holding.is_set())
         full = health()
         assert full['native']['active_streams'] == 16 and full['native']['prefilling_streams'] == 0
+        assert full['native']['compactions'] == initial['native']['compactions'], \
+            'Initial placement compacted; alternating arrival indices no longer prove fragmentation'
         record['phases'].append(dict(name='full-uniform-reservations', health=full))
         save()
         for i in range(0, 16, 2):

@@ -1,6 +1,7 @@
 # Native two-GB10 setup
 
-This runbook describes the native candidate. A build, a successful plan, and
+This runbook describes the native Zig deployment. See [current measured
+acceptance](../release/STATUS.md). A build, a successful plan, and
 cache compatibility checks do not establish serving qualification. Consult the
 release's qualification report before selecting it for production. Historical
 Python benchmark and recovery receipts are reference results, not native results.
@@ -140,7 +141,7 @@ The base model ID is `DeepSeek-V4.1-Flash-1017`. Advertised suffix aliases are
 1,048,576 tokens respectively, counting prompt plus reply. The aliases use the
 same loaded model and shared pool; they do not allocate separate models.
 
-The candidate targets 32 active slots and 8,650,752 shared KV tokens. Active and
+The profile provides 32 active slots and 8,650,752 shared KV tokens. Active and
 retained sessions share this capacity. Thirty-two slots do not imply thirty-two
 full million-token histories. Read measured qualification evidence for the
 release's supported combinations.

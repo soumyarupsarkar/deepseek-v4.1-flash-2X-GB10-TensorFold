@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "upstream_base": "4e80f05ecba89a4e90d16375ade2eddbdc0a10c4",
-  "status": "1017 candidate; serving qualification pending",
+  "status": "1017 runtime accepted; qualification metadata updated after the measured e2de6d1 image",
   "scope": "Build, native engine, grammar bridge, deployment controller/configuration and checkpoint-specific compiled test resources. This manifest is not serving qualification.",
   "files": [
     {
@@ -62,7 +62,7 @@
     },
     {
       "path": "deployment/config/profile.json",
-      "sha256": "06717816552124d42529a8ecb370c7a1cba8c523415467d65c03a8077e7e7485"
+      "sha256": "c6f23d048aec7642532d63bf9f881dc430662df61db9f4964f7e20298985c0d1"
     },
     {
       "path": "deployment/config/requirements-resolved.txt",

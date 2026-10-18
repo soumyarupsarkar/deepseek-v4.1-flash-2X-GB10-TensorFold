@@ -1,10 +1,79 @@
 # Native release status
 
+## Current checkpoint: 1017
+
+The stock **DeepSeek-V4.1-Flash-1017** migration uses LibertAIDAI's pinned EXL3
+2.9 bpw conversion and the matching 1017 Engram and vision inputs. The new
+Keys sidecar was reviewed and left off because its K6 replacements differ from
+this pack's K5 tensors. [Compatibility, storage and checkpoint rollback](../deployment/CHECKPOINT-1017.md).
+
+Runtime source `e2de6d1b2159a311c65ab8433ef0dc9957f32b6b`, image
+`sha256:20c86f35699ad32b245933a455606588834baa9f224b2382b4b3d54c916f0aa2`.
+Later documentation and qualification-client commits do not change this image.
+
+The [1017 numeric report](native-checkpoint-1017-20261018.json) records 322 native
+build tests, 30 prompt cases against the pinned reference encoder, nine GPU
+checks per host and a comparison of every prepared tensor byte against the
+intended checkpoint. The FP8 WoA check independently enumerates E4M3 rounding
+and checks eager and CUDA-graph results. Both Engram readers agree with buffered
+reads on each host.
+
+All 21 finite checks passed: serving features, vision and tool-image ordering,
+strict outputs, explicit-seed replay, ordinary/drafted parity through C32,
+retention, live reservation compaction, prefill responsiveness, concurrent
+long-text memory, full-window C32 and cold million-token retrieval. Both C32
+waves reached 32 active decoders with 261,120 prompt and 1,024 reply tokens each;
+all 32 sequences matched on replay. This capacity fixture uses a primed shared
+document with independent active reservations. The cold million-token request
+used 1,048,320 prompt and 256 reply tokens and recovered all three passphrases.
+
+The initial compaction fixture failed to induce the required relocation because
+older retained prefixes changed its starting placement. The corrected fixture
+first occupies the entire pool with short, non-retainable synthetic requests,
+then cancels only those requests. Normal, populated-prefill and active-decode
+relocation checks passed on the same ranks and unchanged image, including
+independent uncached continuation comparisons. The original failed attempt
+remains recorded; it was not evidence of a server corruption fault.
+
+The [fresh workload campaign](../benchmarks/NATIVE-WORKLOADS.md) completed all
+48 waves and 792 requests. Three-repetition greedy medians were 93.7/59.3/138.2
+tok/s for C1 code/prose/counting and 301.1/252.8/371.0 aggregate tok/s at C32.
+Sampled medians were 94.1/56.2/132.4 and 264.2/239.5/362.4 respectively.
+Every scored C32 wave reached 32 decoders. Exact request/token counters and
+fixed-seed reply hashes matched; every warm-up and scored repetition is retained.
+
+The bounded one-hour diagnostic completed 28 mixed cycles and five cold deep
+requests, reaching a million-token window. Its 1,379 requests completed without
+rank restart, OOM, poisoned runtime or RoCE failure. All 391 memory observations
+per host were complete and clean; minimum available memory was 2.76 GiB on the
+head and 3.31 GiB on the worker. Matched quiet windows held the same 64 retained
+states, 408 MiB of snapshots and 144 graphs. Rank anonymous memory plus swap
+grew by 1.96 MiB and 0.64 MiB respectively. The head's available memory decreased
+452.77 MiB as residency and paging changed; its allocated anonymous-plus-swap
+footprint remained nearly flat. This bounded observation is separate from the
+deferred 24-hour endurance qualification.
+
+After the private pair stopped and host restoration passed, the LAN installation
+reused the verified assets and repeated both hosts' prepared-byte and GPU checks.
+The new pair passed 12 synthetic startup requests covering all four context aliases,
+strict JSON, required tools, red/blue vision, random seeds, returned-seed replay and
+streaming parity. Worker-to-head LAN access and the paired monitor passed. These
+are new LAN rank epochs, separate from the uninterrupted qualification run.
+
+The prior source, image and head-side assets remain preserved, including a
+verified copy of the old worker's prepared cache. Scoped worker reclamation
+freed approximately 520 GB after checking both the originals and head backups.
+The restore helpers passed synthetic corruption/refusal/retry tests; the full
+520 GB restoration has not been rehearsed. See the checkpoint rollback notes.
+
+The following sections preserve the preceding checkpoint's measurements and
+runtime identities.
+
 The author requested publication and started the tested native image for
 personal LAN use on **2026-10-11**. Finite validation passed; **24-hour endurance
 remains deferred**. Personal use does not establish production qualification.
 
-## Current runtime
+## Previous request-memory correction
 
 Source `0d39dfcfc856756ac889d369f687115c71bdfe2b`, image
 `sha256:dbe678e719b1e827535dc2e7cc26aae140c79f673609e7208dbcbca807fe2a6e`.

@@ -1,7 +1,14 @@
-# Native engine migration (endurance pending)
+# Native engine migration history
 
-**Current deployment, 2026-10-11:** the author requested publication and startup
-of tested runtime `6aaec5b` after the finite throughput phase. It is now serving
+The current 1017 checkpoint, image and acceptance evidence are recorded in
+[release status](release/STATUS.md) and the
+[checkpoint migration notes](deployment/CHECKPOINT-1017.md). The sections below
+preserve the earlier Keys checkpoint's native-engine migration results.
+
+## October 11 deployment
+
+**Historical deployment, 2026-10-11:** the author requested publication and startup
+of tested runtime `6aaec5b` after the finite throughput phase. It was started
 on the existing LAN endpoint with the normal paired monitor. Fresh text,
 vision, structured-output, alias and sampling checks passed; see
 [the startup receipt](release/native-serving-check-20261011.json).

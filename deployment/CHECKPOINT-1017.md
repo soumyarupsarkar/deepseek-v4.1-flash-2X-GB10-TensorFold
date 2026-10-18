@@ -1,9 +1,16 @@
 # DeepSeek V4.1 Flash 1017 migration
 
-The candidate uses the stock **DeepSeek-V4.1-Flash-1017** checkpoint. The original
+The deployment uses the stock **DeepSeek-V4.1-Flash-1017** checkpoint. The original
 Keys overlay contains replacement attention weights, not deltas. Applying it
 to 1017 would replace updated weights with weights from the previous model.
-A separately produced, checkpoint-matched overlay needs its own qualification.
+The newer [1017 Keys EXL3 sidecar](https://huggingface.co/drowzeys/keys-DeepSeek-V4.1-Flash-1017-Abliterated/blob/c61b5dcce6add8a282395f030d2ca7c664de5423/TENSORFOLD.md)
+was reviewed separately and was **not applied**. Its published target is the
+LibertAIDAI 3.5 bpw pack on four GB10s. Its 26 replacement `wo_b` matrices use
+6-bit trellises with shape `[512, 320, 96]`; our 2.9 bpw pack uses 5-bit trellises
+with shape `[512, 320, 80]`. The installer therefore rejects a direct overlay.
+The native loader can infer per-tensor widths, so a mixed-precision adaptation
+may be possible, but would be a separate configuration requiring qualification.
+The FP8 sidecar is not substituted for the EXL3 tensors.
 
 ## Inputs and compatibility
 
@@ -72,6 +79,17 @@ pool, 1,048,576-token ceiling and 2 GiB host-memory floor while qualifying.
 No driver, kernel, networking or persistent DRM change is required by this
 migration. No reboot is expected.
 
+## Storage
+
+The verified serving inputs occupy 413,891,088,099 bytes per node. Each new
+prepared rank cache is 106,203,501,685 bytes. Together with the 665,926,306-byte
+native kernel kit, these require **520,760,516,090 bytes (about 521 GB / 485 GiB)
+per node**, before the container image, build workspace, logs and spare space.
+The model/Engram total includes both original 1017 Engram shards. On the head,
+hardlinked download and serving views share those bytes on the same filesystem.
+A preserved previous checkpoint and its rollback caches require additional
+space; they are not included in the new installation's total.
+
 ## Restore the previous deployment
 
 1. Stop the candidate with its controller, then run `python3 cluster check-host`.
@@ -93,6 +111,18 @@ Do not overwrite live restoration journals with their backups: a successful
 stop has already advanced their state. A restart cannot recover in-memory
 sessions that were present before shutdown; clients must resend their histories.
 
+## Measured acceptance
+
+The [2026-10-18 numeric report](../release/native-checkpoint-1017-20261018.json)
+records all 21 finite gates, 48 fresh workload waves and an accepted one-hour
+mixed/deep-context diagnostic, followed by verified LAN startup. Runtime source
+`e2de6d1b2159a311c65ab8433ef0dc9957f32b6b` and its exact image digest remain
+identified separately from later documentation and qualification-client commits.
+See [current release status](../release/STATUS.md) and the
+[full workload measurements](../benchmarks/NATIVE-WORKLOADS.md). The prior
+source/image/head assets and verified worker-cache backup are preserved; a full
+520 GB old-worker restoration has not been rehearsed.
+
 ## Acceptance gates
 
 Before promoting the candidate, verify all assets and prepared tensors, GPU
@@ -109,3 +139,11 @@ E4M3 rounding against an independent enumeration oracle, including signed zeros,
 tiny values, halfway bins, multiple row sizes, a grid-stride case and CUDA graph
 replay. Passing this operation check is necessary but does not replace the
 serving and capacity tests above.
+
+The CPU request-memory regression passed its three C32 cases: 17.6k text
+prompts, near-262k text prompts, and 4k-token streamed replies. The extra C8
+near-million-text diagnostic again exceeded its exploratory 900 MiB RSS
+ceiling: 1,019.8 MiB peak versus 1,021.6 MiB on the preceding checkpoint.
+All eight scripted replies completed and RSS settled to 93.7 MiB. This is a
+CPU HTTP/tokenizer measurement, separate from GPU serving and resident KV
+capacity; the ceiling failure remains recorded in the acceptance evidence.

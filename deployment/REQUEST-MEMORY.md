@@ -65,7 +65,7 @@ To reproduce inside a development environment using the repository's pinned
 Zig compiler, build the existing CPU test server:
 
 ```bash
-zig build-exe -O ReleaseSafe -lc -femit-bin=/tmp/fake-serve \
+zig build-exe -O safe -lc -femit-bin=/tmp/fake-serve \
   --dep server --dep engine_api --dep tokenizer --dep template \
   -Mroot=zig/tests/server/fake_serve.zig \
   --dep engine_api --dep tokenizer --dep template \

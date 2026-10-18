@@ -1,53 +1,54 @@
 # Native decode by workload and concurrency
 
-These measurements use separate code, prose and counting batches on two GB10s,
-with the Keys overlay and the native engine. C1 is one request; C32 is 32
-concurrent requests of the same task type. Greedy means temperature 0; sampled
-means temperature 1 with explicit per-request seeds.
+These measurements use the stock **DeepSeek-V4.1-Flash-1017** checkpoint in
+LibertAIDAI's EXL3 2.9 bpw conversion, on two GB10s with the native engine.
+No Keys overlay is applied. C1 is one request; C32 is 32 concurrent requests
+of the same task type. Greedy means temperature 0; sampled means temperature 1
+with explicit per-request seeds.
 
-Measured on 2026-10-11. Each value is the median of three scored waves; C32
-rates are aggregate output tok/s across all 32 active decoders.
+Measured on 2026-10-18. Each value is the median of all three scored waves.
+C32 rates are aggregate output tok/s across all 32 active decoders.
 
 | Decode configuration | Code | Prose | Counting |
 | --- | ---: | ---: | ---: |
-| C1 greedy | **100.2** | **59.3** | **140.6** |
-| C32 greedy | **313.4** | **268.6** | **377.0** |
-| C1 sampled | **98.6** | **62.5** | **139.3** |
-| C32 sampled | **268.9** | **251.1** | **366.5** |
+| C1 greedy | **93.7** | **59.3** | **138.2** |
+| C32 greedy | **301.1** | **252.8** | **371.0** |
+| C1 sampled | **94.1** | **56.2** | **132.4** |
+| C32 sampled | **264.2** | **239.5** | **362.4** |
 
-[Complete evidence: every request, health sample and repetition](evidence/native-workloads-20261011.json).
-The run completed 36 scored waves (594 requests) and 12 warm-up waves
-(198 requests), for 792 requests total. All 18 scored C32 waves reached 32
-active decoders, with 25.2–44.8 seconds of eligible steady observations each.
-Request and token counters matched exactly. Both ranks stayed running with
-zero restarts and the paired monitor active.
+[Complete evidence: every request, health sample and repetition](evidence/native-workloads-20261018-1017.json).
+The campaign completed 36 scored waves (594 requests) and 12 warm-up
+waves (198 requests), for 792 requests total. All 18
+scored C32 waves reached 32 active decoders, with 28.0–48.5
+seconds of eligible steady observations each. Request and token counters
+matched exactly. Both ranks stayed running with zero restarts and the paired
+monitor active.
 
 ## All measured repetitions
 
-C1 numbers below use first-to-last-content decode timing; C32 numbers use
-aggregate steady decode. The last column retains the complete-wave median,
-including admission and prefill, in aggregate output tok/s.
+C1 uses first-to-last-content decode timing. C32 uses aggregate steady decode.
+The final column includes admission, prefill and completion tails. Prompt and
+reply ranges retain early stopping; a 384-token cap does not mean every reply
+reaches that length.
 
-| Configuration | Task | Decode repetitions, output tok/s | Reply tokens per request | End-to-end median, output tok/s |
-| --- | --- | --- | --- | ---: |
-| C1 greedy | Code | 100.24 / 100.32 / 99.77 | 384 | 96.5 |
-| C1 greedy | Prose | 58.99 / 59.30 / 59.31 | 299 | 58.2 |
-| C1 greedy | Counting | 136.50 / 140.55 / 141.36 | 384 | 135.4 |
-| C32 greedy | Code | 308.66 / 314.64 / 313.41 | 384 | 272.1 |
-| C32 greedy | Prose | 269.39 / 268.46 / 268.63 | 362–384 | 243.2 |
-| C32 greedy | Counting | 376.97 / 377.32 / 373.15 | 384 | 334.3 |
-| C1 sampled | Code | 98.61 / 97.64 / 99.15 | 384 | 94.7 |
-| C1 sampled | Prose | 62.32 / 62.68 / 62.50 | 384 | 61.5 |
-| C1 sampled | Counting | 139.31 / 138.93 / 139.38 | 384 | 134.2 |
-| C32 sampled | Code | 267.94 / 268.85 / 268.87 | 384 | 237.3 |
-| C32 sampled | Prose | 251.12 / 250.88 / 251.05 | 354–384 | 228.9 |
-| C32 sampled | Counting | 366.26 / 368.20 / 366.51 | 384 | 327.1 |
+| Configuration | Task | Decode repetitions, output tok/s | Prompt tokens | Reply tokens | End-to-end median, output tok/s |
+| --- | --- | --- | --- | --- | ---: |
+| C1 greedy | Code | 91.43 / 93.68 / 95.05 | 43 | 384 | 90.4 |
+| C1 greedy | Prose | 58.51 / 59.32 / 59.62 | 23 | 384 | 58.4 |
+| C1 greedy | Counting | 136.10 / 138.51 / 138.16 | 23 | 384 | 133.1 |
+| C32 greedy | Code | 293.65 / 301.62 / 301.10 | 48 | 384 | 258.2 |
+| C32 greedy | Prose | 252.82 / 253.13 / 251.23 | 28 | 322–384 | 228.8 |
+| C32 greedy | Counting | 361.73 / 371.00 / 372.64 | 28 | 384 | 324.6 |
+| C1 sampled | Code | 93.02 / 94.06 / 94.34 | 43 | 384 | 90.3 |
+| C1 sampled | Prose | 56.58 / 55.98 / 56.25 | 23 | 384 | 55.4 |
+| C1 sampled | Counting | 132.12 / 132.49 / 132.39 | 23 | 384 | 127.1 |
+| C32 sampled | Code | 266.42 / 264.20 / 264.08 | 48 | 384 | 232.9 |
+| C32 sampled | Prose | 239.60 / 238.98 / 239.47 | 28 | 383–384 | 220.2 |
+| C32 sampled | Counting | 362.92 / 362.45 / 361.01 | 28 | 384 | 323.0 |
 
-Input lengths were 43 tokens for C1 code and 23 for C1 prose/counting; the C32
-variant suffix made these 48 and 28 tokens. Greedy C1 prose finished at 299
-tokens, while sampled prose reached the cap with a different continuation.
-Within each configuration, every request index's returned-text hash matched
-across all three repetitions. These repetitions reuse fixed fixtures.
+Returned-text hashes matched at every request index across all three scored
+repetitions in 12 of the 12 configurations. Repetitions reuse fixed
+prompt/seed fixtures. All repetitions remain in the report.
 
 ## Workloads and timing
 
@@ -87,20 +88,18 @@ from the earliest request start to the latest response end. It includes
 admission, prefill and completion tails. The complete receipt keeps both timing
 methods, individual request timings and lengths, and all health samples.
 
+
 ## Runtime and verification
 
-The running native source is
-`6aaec5b3616f4547fabbe2fcc3fb1e779bb75f82`, image
-`sha256:baa3fc8d748766476d694da36f3e79ac501f18bed6b9572e36c1c80c4baa7bc7`.
-Keys, vision and structured-output support are enabled. The profile has 32
-slots, an 8,650,752-token shared KV pool and a 1,048,576-token request limit.
-This benchmark uses short text requests.
+Runtime source `e2de6d1b2159a311c65ab8433ef0dc9957f32b6b`, image
+`sha256:20c86f35699ad32b245933a455606588834baa9f224b2382b4b3d54c916f0aa2`. The profile has 32 slots, an
+8,650,752-token shared KV pool and a 1,048,576-token request limit. This
+benchmark uses short text requests; it does not independently qualify full
+context capacity, vision, structured outputs or long-run stability.
 
-The [runner](native_workloads.py) reuses the kit's prompt corpus, chat-request
-builder and streaming timing implementation. It checks the owned rank/image
-identities, readiness, graph budget, paired monitor and exact completed-request
-and input/output-token counters. It also checks the entire campaign's counters
-to detect traffic between waves. Every scored C32 wave must show all 32 active
+The [runner](native_workloads.py) checks the owned rank/image identities,
+readiness, graph budget, paired monitor and exact completed-request and
+input/output-token counters. Every scored C32 wave must show all 32 active
 decoders and sufficient eligible steady time. No host or server configuration
 is changed.
 
@@ -122,10 +121,11 @@ temperatures. The runner refuses existing receipt paths, preserves failed or
 interrupted attempts, and rejects counter contamination. It leaves the ranks
 running.
 
-## Related measurements
 
-The [initial unchanged-kit C1 run](NATIVE-DECODE.md) retains its earlier
-repetitions and reproduction command. The [mixed C32 drafting investigation](NATIVE-DRAFTING.md)
-retains the earlier 11-code/11-prose/10-counting workload with padded inputs,
-its steady and end-to-end rates, and ordinary-decoding controls. Those workloads
-and timing results remain separately identified.
+## Earlier measurements
+
+The [previous Keys workload report](NATIVE-WORKLOADS-KEYS-20261011.md) preserves
+its original measurements and evidence. Those results use a different
+checkpoint. The [earlier unchanged-kit C1 run](NATIVE-DECODE.md) and
+[mixed C32 drafting investigation](NATIVE-DRAFTING.md) retain their original
+protocols and runtime identities as well.

@@ -1,6 +1,6 @@
 # Restore the pre-installation host state
 
-The historical Python [portable cutover](CUTOVER.md) exercised interrupted-controller recovery and idle worker-loss cleanup. The selected native image has also passed paired recovery, one controlled worker reboot and a native-to-Python-to-native rollback rehearsal; the head was not rebooted. [MIGRATION.md](../MIGRATION.md#recovery-and-retained-python-startup) records the evidence and the retained Python engine's cold-start fix. The operations below restore recipe-managed state using each installation's own journals.
+The historical Python [portable cutover](CUTOVER.md) exercised interrupted-controller recovery and idle worker-loss cleanup. An earlier native Keys image also passed paired recovery, one controlled worker reboot and a native-to-Python-to-native rollback rehearsal; the head was not rebooted. Those results describe that earlier image, not a repeated 1017 reboot or full worker-asset restoration test. [MIGRATION.md](../MIGRATION.md#recovery-and-retained-python-startup) records the evidence and the retained Python engine's cold-start fix. The operations below restore recipe-managed state using each installation's own journals. For checkpoint assets and prepared-cache recovery, also follow [the 1017 migration instructions](CHECKPOINT-1017.md).
 
 ## Normal stop
 

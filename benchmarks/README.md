@@ -135,7 +135,7 @@ Use an otherwise idle pair and record the source, image, asset/profile hashes, d
 ```bash
 mkdir -p deployment/.local/measurements
 python3 tools/dsv41/kit_bench.py \
-  --base http://127.0.0.1:8000 --model DeepSeek-V4.1-Flash-Keys \
+  --base http://127.0.0.1:8000 --model deepseek-v4.1-flash \
   decode --set b --tokens 384 --reps 3 \
   --out deployment/.local/measurements/kit-decode.json
 python3 deployment/scripts/benchmark.py \

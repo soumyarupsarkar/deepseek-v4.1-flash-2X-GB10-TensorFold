@@ -16,8 +16,12 @@ p.add_argument('--partial-prefill',action='store_true');a=p.parse_args()
 assert a.record.replace('-','').isalnum()
 assert common.PAIR.config['api']['bind']=='127.0.0.1'
 path=common.ROOT/'records'/('validation-'+a.record+'.json');assert not path.exists()
+from compaction_fixture import condition
+conditioned=path.with_name(path.stem+'-conditioning.json')
+condition(common,conditioned)
 record=dict(started=common.now(),status='running',health_before=cluster.get('/health'),samples=[],
             partial_prefill=a.partial_prefill,
+            conditioning=dict(receipt=conditioned.name,sha256=hashlib.sha256(conditioned.read_bytes()).hexdigest()),
             script_sha256=hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest())
 assert ready(record['health_before'],profile()) and record['health_before']['scheduler']['running']==0
 common.atomic(path,record)
@@ -91,6 +95,8 @@ try:
                 else:
                     wait_first(i,jobs[i])
             record['full']=h();assert record['full']['native']['active_streams']==16
+            assert record['full']['native']['compactions']==record['health_before']['native']['compactions'], \
+                'Initial placement compacted; alternating arrival indices no longer prove fragmentation'
             common.atomic(path,record)
             for i in range(0,16,2):cancel[i]=True;control[i].set()
             for i in range(0,16,2):jobs[i].result(timeout=30)

@@ -82,12 +82,19 @@ class NativeControllerTests(unittest.TestCase):
             self.assertEqual(env['TF_DS_POOL_TOKENS'],'8650752')
             self.assertEqual(env['TF_DS_STREAMS'],'32')
             self.assertEqual(env['TENSORFOLD_SEED_MODE'],'random')
+            self.assertEqual(env['TF_DS_FP8_WOA'],'1')
+            self.assertEqual(env['TF_DS_VISION_BIAS'],'/vision-extra/vision-routing-bias.safetensors')
             self.assertIn(c[host]['data_root']+'/native-kit:/kit:ro',args)
             self.assertIn(c[host]['data_root']+'/prepared:/prepared:ro',args)
             if host=='head':
                 self.assertIn('/opt/tensorfold/bin/tensorfold-native',args)
                 limits=json.loads(env['TENSORFOLD_MODEL_CONTEXTS'])
-                self.assertEqual(limits['DeepSeek-V4.1-Flash-Keys-262k'],262144)
+                expected = {'deepseek-v4.1-flash': 1048576}
+                for stem in ('DeepSeek-V4.1-Flash-1017', 'deepseek-v4.1-flash'):
+                    for suffix, size in (('262k',262144),('524k',524288),('614k',614400),('1m',1048576)):
+                        expected[stem+'-'+suffix] = size
+                self.assertEqual(limits,expected)
+                self.assertEqual(args[args.index('--name', args.index('sha256:synthetic'))+1], 'DeepSeek-V4.1-Flash-1017')
                 for name in limits:self.assertIn(name,args)
             else:
                 self.assertIn('/opt/tensorfold/bin/tf-dsv41-lanes',args)

@@ -1,19 +1,19 @@
-# DeepSeek-V4.1-Flash · 2× GB10 · TensorFold
+# DeepSeek-V4.1-Flash-1017 · 2× GB10 · TensorFold
 
-**Keys abliteration · Vision · Strict JSON and tools · A large shared KV pool**
+**Vision · Strict JSON and tools · A large shared KV pool**
 
-Run DeepSeek-V4.1-Flash across two NVIDIA GB10s using Mia's EXL3 weights, drowzeys' Keys overlay and Bertholomus's native Zig TP2 engine. This fork adds the recipe's context aliases, structured output, shared-pool capacity and reversible deployment controls to that engine.
+Run DeepSeek-V4.1-Flash-1017 across two NVIDIA GB10s using LibertAIDAI's EXL3 weights, the matching 1017 Engram tables and Bertholomus's native Zig TP2 engine. This fork adds the recipe's context aliases, structured output, shared-pool capacity and reversible deployment controls to that engine.
 
 | Headline | Setting or measured result |
 |---|---|
 | Shared KV pool | **8,650,752 logical tokens** shared by active and retained sessions (supporting 32 × 262k resident sessions, 8 × 1M, 4 × 1M + 8 × 524k, or any combination within the pool capacity) |
 | Concurrent active slots | **32** |
 | Maximum context | **1,048,576 tokens per request**, prompt plus reply |
-| C1 greedy decode — code / prose / counting | **100.2 / 59.3 / 140.6 output tok/s** |
-| C32 greedy decode — code / prose / counting | **313.4 / 268.6 / 377.0 aggregate output tok/s** |
-| C1 sampled decode — code / prose / counting | **98.6 / 62.5 / 139.3 output tok/s** |
-| C32 sampled decode — code / prose / counting | **268.9 / 251.1 / 366.5 aggregate output tok/s** |
-| Features under qualification | Vision, Keys, strict JSON/schema/tools, random and explicit request seeds |
+| C1 greedy decode — code / prose / counting | **93.7 / 59.3 / 138.2 tok/s** |
+| C32 greedy decode — code / prose / counting | **301.1 / 252.8 / 371.0 aggregate tok/s** |
+| C1 sampled decode — code / prose / counting | **94.1 / 56.2 / 132.4 tok/s** |
+| C32 sampled decode — code / prose / counting | **264.2 / 239.5 / 362.4 aggregate tok/s** |
+| Features | Vision, strict JSON/schema/tools, random and explicit request seeds |
 | Session KV writes to NVMe | **Off** |
 
 C1 is one session; C32 is 32 concurrent sessions. Decode measurements use short prompts and a 384-token reply cap, at temperature 0 (greedy) or 1 (sampled). [Workloads, timing methods and all repetitions](benchmarks/NATIVE-WORKLOADS.md).
@@ -35,9 +35,10 @@ This work builds on the following projects and contributors:
 | [ashhart / TensorFold contributors](https://github.com/ashhart/TensorFold) | TensorFold framework, EXL3 foundation and inherited kernels |
 | [Bertholomus / Albert Lee](https://github.com/bertholomus/TensorFold/tree/deepseek-v41-tp2) | DeepSeek TP2 native Zig engine, vision/RDMA integration, benchmark kit and CUDA kernels; earlier Python correctness and memory improvements |
 | [Capicua25x](https://github.com/bertholomus/deepseek-v4.1-tensorfold-tp2-2xgb10/pull/9) | Novelty signal used by Bertholomus's optional reasoning-loop guard |
-| [Mia-AiLab](https://huggingface.co/Mia-AiLab/DeepSeek-V4.1-Flash-EXL3-2.9bpw) | EXL3 2.9-bpw checkpoint |
-| [drowzeys / Keys](https://huggingface.co/drowzeys/DeepSeek-V4.1-Flash-Abliterated-Cybersecurity-Unleashed) | Matching Keys attention overlay |
-| [DeepSeek](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash) | Original model, assets and model research |
+| [LibertAIDAI](https://huggingface.co/LibertAIDAI/DeepSeek-V4.1-Flash-1017-EXL3-2.9bpw) | Current 1017 EXL3 2.9-bpw checkpoint |
+| [Mia-AiLab](https://huggingface.co/Mia-AiLab/DeepSeek-V4.1-Flash-EXL3-2.9bpw) | Earlier EXL3 checkpoint and the serving kit, quantization layout and kernels used by this recipe |
+| [drowzeys / Keys](https://huggingface.co/drowzeys/DeepSeek-V4.1-Flash-Abliterated-Cybersecurity-Unleashed) | Keys attention overlay used by the previous checkpoint deployment |
+| [DeepSeek](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017) | Original 1017 model, reference implementation, Engram/vision assets and model research |
 | [Urtho](https://github.com/urtho/TensorFold) | Adapted structured-output/DRM work and approaches to graph and memory budgeting |
 | [Jay Leaton](https://github.com/jayleaton/deepseek-v41-tensorfold-spark) | Parsing/grammar work adapted through Urtho, with its MIT notice retained |
 | [coolbho3k / Emi Huang](https://github.com/coolbho3k/DeepSeek-v4.1-Flash-2x-DGX-Spark) | vLLM recipe reference and the display-memory idea credited by Urtho's independent DRM implementation |
@@ -58,7 +59,7 @@ Run the controller on the head node; it manages the worker over verified SSH. Th
 - Python 3.12+, rsync, SSH, noninteractive sudo, `ip`, `ibv_devinfo`, `nvidia-smi`, systemd and module tools on both hosts; Git on the head.
 - Two working RoCE rails with stable IPv4 addresses, Ethernet MTU 9000 and active RDMA MTU 4096.
 - At least 112 GiB `MemAvailable` per host before loading. The profile temporarily takes over the NVIDIA display.
-- Dedicated writable data roots. Fresh acquisition needs roughly 724 GB on the head and 520 GB on the worker, plus the approximately 24.5 GB image, build/download scratch space, logs and margin. These are decimal GB.
+- Dedicated writable data roots. Fresh acquisition needs roughly 521 GB on each host, plus the approximately 24.5 GB image, build/download scratch space, logs and margin. These are decimal GB.
 - Access to the [pinned model assets](deployment/config/assets.json), using an external read-only HF token file if required.
 
 Host CUDA development packages, host NCCL and host Zig are unnecessary: build and inference dependencies are containerized. Routine recipe start/stop requires no reboot. Prerequisite package, credential and network changes are outside recipe rollback.
@@ -87,7 +88,7 @@ python3 cluster replicate
 python3 cluster verify
 ```
 
-Acquisition pins immutable weights, the 104 Keys tensor overrides, Engram/vision assets and the native kernel kit. The [reuse path](deployment/README.md#acquire-verified-inputs) can instead hardlink verified compatible assets from a retained installation without copying private journals or mutable caches. Shared files must remain immutable.
+Acquisition pins the stock 1017 weights, matching Engram/vision assets and native kernel kit. The older Keys overlay replaces weights from the previous checkpoint and is excluded from this deployment. [Checkpoint compatibility and reversible migration](deployment/CHECKPOINT-1017.md). The [reuse path](deployment/README.md#acquire-verified-inputs) can instead hardlink verified compatible assets from a retained installation without copying private journals or mutable caches. Shared files must remain immutable.
 
 ### Build and start
 
@@ -110,7 +111,7 @@ With the default bind and port:
 ```bash
 curl --fail http://127.0.0.1:8000/v1/chat/completions \
   -H 'Content-Type: application/json' \
-  -d '{"model":"DeepSeek-V4.1-Flash-Keys-262k","messages":[{"role":"user","content":"What is 12 times 13?"}],"max_tokens":64}'
+  -d '{"model":"DeepSeek-V4.1-Flash-1017-262k","messages":[{"role":"user","content":"What is 12 times 13?"}],"max_tokens":64}'
 ```
 
 Use your configured address/port if different. The `-262k`, `-524k`, `-614k` and `-1m` aliases differ only in the allowed prompt-plus-reply window. See [sampling and replay](deployment/SAMPLING.md).
@@ -131,7 +132,7 @@ python3 cluster --config deployment/.local/installed.json stop
 python3 cluster --config deployment/.local/installed.json check-host
 ```
 
-If a host is unreachable, recover it and retry with the same journals. After a reboot, the controller compares state without imposing stale current-boot settings. Preserve failed restoration evidence. [Full rollback](deployment/ROLLBACK.md) and [migration rollback](deployment/MIGRATION-ROLLBACK.md) cover updates and returning to a retained Python installation. Never overwrite current recovery journals with backup copies.
+If a host is unreachable, recover it and retry with the same journals. After a reboot, the controller compares state without imposing stale current-boot settings. Preserve failed restoration evidence. [Full rollback](deployment/ROLLBACK.md), [1017 checkpoint rollback](deployment/CHECKPOINT-1017.md#restore-the-previous-deployment) and [Python migration rollback](deployment/MIGRATION-ROLLBACK.md) cover returning to retained installations. Never overwrite current recovery journals with backup copies.
 
 ## Native changes and limits
 
@@ -144,19 +145,19 @@ If a host is unreachable, recover it and retry with the same journals. After a r
 
 Session KV histories are not written to NVMe. Prepared weights, compiler/driver caches and bounded operational logs still write to storage. Python remains for orchestration, offline token-map preparation and the bounded image-codec helper; model execution, scheduling and sampling run in Zig/CUDA.
 
-## Native context measurements
+## Earlier context measurements
 
 ![Cold C1 requests at five context lengths: native decode remains near the Python reference while time to first token improves.](release/figures/native-deep-context-20261010.svg)
 
 Two cold synthetic requests per engine and context, each generating 1,024 tokens at temperature 0. At a million tokens, median steady decode was **88.8 tok/s native versus 89.4 Python**; first token arrived in **670 s versus 875 s**. These are independent fixed-length requests. The generated replies differ between engines, so the graph compares matched prompts and output budgets rather than identical generated decode work.
 
-This graph and its Python comparison belong to the pre-optimization native runtime `4d48d4e`.
+This graph and its Python comparison used the previous V4.1 Flash + Keys checkpoint and the pre-optimization native runtime `4d48d4e`. They do not measure 1017.
 
-The tradeoff is workload-dependent: the mixed C32 short-prompt confirmation measured **141.2 versus 153.2 aggregate end-to-end tok/s** (six native runs versus the original two Python runs). The measured-benefit gate accepts faster deep prefill with this cost disclosed. Recovery and the Python rollback rehearsal passed. The 24-hour endurance run was stopped at the author's request to review these numbers first; endurance qualification and production cutover remain pending. [All repetitions, methods and limits](MIGRATION.md#deep-context-matched-measurements-on-the-corrected-image) · [JSON data](release/native-deep-comparison-20261010.json) · [PNG](release/figures/native-deep-context-20261010.png).
+[All repetitions, methods and limits](MIGRATION.md#deep-context-matched-measurements-on-the-corrected-image) · [JSON data](release/native-deep-comparison-20261010.json) · [PNG](release/figures/native-deep-context-20261010.png).
 
-## Native drafting measurements
+## Earlier drafting measurements
 
-The separate drafting investigation compares native candidate `6aaec5b` against
+The separate drafting investigation on the previous Keys checkpoint compares native candidate `6aaec5b` against
 the instrumented native baseline `7d7ddd3`. For mixed C32 batches (11 code,
 11 prose and 10 counting requests), with 1,024 prompt and 256 reply tokens per
 request, the initial three-pair medians were:

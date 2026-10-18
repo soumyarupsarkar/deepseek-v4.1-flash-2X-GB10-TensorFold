@@ -7,7 +7,7 @@
   "vision": true,
   "name": "native-c32-1017",
   "engine": "native-zig",
-  "qualification": "candidate; not yet hardware qualified",
+  "qualification": "1017 finite, performance, bounded one-hour diagnostic and LAN checks passed; see release/STATUS.md",
   "description": "Pinned 1017 stock checkpoint with native Zig serving, shared KV, vision, grammar constraints and reversible DRM",
   "minimum_available_gib": 2,
   "environment": {

@@ -99,7 +99,7 @@ The equivalent unwrapped kit command is:
 
 ```bash
 python3 tools/dsv41/kit_bench.py \
-  --base http://127.0.0.1:8000 --model DeepSeek-V4.1-Flash-Keys \
+  --base http://127.0.0.1:8000 --model deepseek-v4.1-flash \
   decode --set b --tokens 384 --reps 3 \
   --out deployment/.local/measurements/kit-c1-new.json
 ```

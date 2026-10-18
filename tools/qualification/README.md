@@ -77,6 +77,14 @@ checkpoint after the move, and requires continued text beyond that checkpoint
 to match solo output.
 Reading buffered text generated before relocation cannot alone satisfy that
 check. These are relocation correctness tests, not long-context speed claims.
+Before either compaction fixture, the client temporarily fills the complete
+logical pool with short, cancellable reservations, then releases its own
+requests. This invalidates old retained extents without saving new snapshots.
+The receipt must witness all 32 reservations simultaneously. Initial holder
+placement must then complete without compaction: otherwise alternating arrival
+indices do not establish the physical fragmentation the test requires.
+The subsequent test still requires actual relocation and independent output
+comparisons. Conditioning has its own receipt and changes no server settings.
 The million-token fixture places three passphrases across synthetic filler and
 requires retrieval at the total prompt-plus-reply boundary. Its small requests
 must also complete during prefill and within the declared latency limit.
