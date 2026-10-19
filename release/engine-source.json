@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "upstream_base": "4e80f05ecba89a4e90d16375ade2eddbdc0a10c4",
-  "status": "Optional 1017 Keys mixed-precision implementation; hardware qualification in progress",
+  "status": "Optional 1017 Keys overlay and bounded request-plan lifetime; hardware qualification in progress",
   "scope": "Build, native engine, grammar bridge, deployment controller/configuration and checkpoint-specific compiled test resources. This manifest is not serving qualification.",
   "files": [
     {
@@ -2902,7 +2902,7 @@
     },
     {
       "path": "zig/src/server/openai.zig",
-      "sha256": "925a9b9a89fbe86a8855d5adc7cd0b7cee66007ee7f4b791e41709cfc3aaaff6"
+      "sha256": "9788739a008c055e16a904e6a28488accc631aa4aa4ba1220587eae540af25ae"
     },
     {
       "path": "zig/src/server/prompt.zig",

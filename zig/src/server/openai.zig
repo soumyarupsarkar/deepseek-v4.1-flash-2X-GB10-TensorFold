@@ -39,13 +39,17 @@ pub const Out = struct {
 
 /// POST /v1/chat/completions or /v1/completions, read from the client and answered to it.
 pub fn post(srv: *Server, conn: *Conn, a: Allocator, is_chat: bool) void {
-    var cx: Cx = .{ .a = a };
+    // The JSON tree (especially a large array of token IDs) is preparation
+    // scratch, not reply state. Keep it outside the connection's reply arena.
+    var scratch: std.heap.ArenaAllocator = .init(srv.gpa);
+    defer scratch.deinit();
+    var cx: Cx = .{ .a = scratch.allocator() };
     const body = http_body.readJson(conn, &cx) catch {
         const err = errorBody(a, &cx, if (is_chat) "messages" else "prompt") catch return;
         return routes.sendValue(conn, a, cx.status(), wrapError(a, err) catch return);
     };
     var client: ClientOut = .{ .conn = conn, .a = a };
-    run(srv, a, client.out(), .{ .conn = conn }, is_chat, body);
+    runWithScratch(srv, a, client.out(), .{ .conn = conn }, is_chat, body, &scratch);
 }
 
 /// A chat reply written straight to the client.
@@ -112,7 +116,97 @@ const Plan = struct {
     separate_usage: bool,
     policy: tool_stream.Policy,
     named: []const u8,
+
+    /// A fresh plan detached from the body/normalization arena. In particular,
+    /// retain typed u32 prompt IDs, not their much larger JSON Value array.
+    fn owned(p: Plan, a: Allocator) Allocator.Error!Plan {
+        var out = p;
+        out.named = try a.dupe(u8, p.named);
+        out.input.messages = try json.deepCopy(a, p.input.messages);
+        out.input.tools = (try json.deepCopy(a, .{ .array = @constCast(p.input.tools) })).array;
+        out.input.fields = try json.deepCopy(a, p.input.fields);
+        out.input.id = try a.dupe(u8, p.input.id);
+        if (p.input.prompt) |prompt| out.input.prompt = switch (prompt) {
+            .text => |text| .{ .text = try a.dupe(u8, text) },
+            .ids => |tokens| .{ .ids = try a.dupe(u32, tokens) },
+        };
+        const images = try a.alloc([]const u8, p.input.images.len);
+        for (p.input.images, images) |bytes, *copy| copy.* = try a.dupe(u8, bytes);
+        out.input.images = images;
+        return out;
+    }
 };
+
+test "owned request plan survives destruction of parsed strings, tools and images" {
+    const gpa = std.testing.allocator;
+    var scratch: std.heap.ArenaAllocator = .init(gpa);
+    defer scratch.deinit();
+    const tmp = scratch.allocator();
+    const raw = try tmp.dupe(u8,
+        \\{"model":"alias-262k","messages":[{"role":"user","content":"hello"}],"tools":[{"type":"function","function":{"name":"read","parameters":{"type":"object"}}}],"fields":{"seed":"18446744073709551615","stop":["done"]},"prompt":"raw text","image":"\u0000image bytes","id":"request-id"}
+    );
+    const body = (try json.parse(tmp, raw)).ok;
+    const image_list = try tmp.alloc([]const u8, 1);
+    image_list[0] = body.get("image").?.string;
+    const original: Plan = .{ .input = .{
+        .messages = body.get("messages").?,
+        .tools = body.get("tools").?.array,
+        .fields = body.get("fields").?,
+        .prompt = .{ .text = body.get("prompt").?.string },
+        .id = body.get("id").?.string,
+        .images = image_list,
+        .max_tokens = 123,
+        .temperature = 0.7,
+        .token_ids = true,
+    }, .named = body.get("model").?.string, .stream = true, .separate_usage = true, .policy = .{ .single = true } };
+    var reply: std.heap.ArenaAllocator = .init(gpa);
+    defer reply.deinit();
+    const owned = try original.owned(reply.allocator());
+    @memset(raw, 0xdd);
+    @memset(@constCast(image_list[0]), 0xdd);
+    _ = scratch.reset(.free_all);
+    try std.testing.expectEqualStrings("alias-262k", owned.named);
+    try std.testing.expectEqualStrings("hello", owned.input.messages.array[0].get("content").?.string);
+    try std.testing.expectEqualStrings("read", owned.input.tools[0].get("function").?.get("name").?.string);
+    try std.testing.expectEqualStrings("object", owned.input.tools[0].get("function").?.get("parameters").?.get("type").?.string);
+    try std.testing.expectEqualStrings("18446744073709551615", owned.input.fields.get("seed").?.string);
+    try std.testing.expectEqualStrings("done", owned.input.fields.get("stop").?.array[0].string);
+    try std.testing.expectEqualStrings("raw text", owned.input.prompt.?.text);
+    try std.testing.expectEqualStrings("\x00image bytes", owned.input.images[0]);
+    try std.testing.expectEqualStrings("request-id", owned.input.id);
+    try std.testing.expectEqual(@as(?i64, 123), owned.input.max_tokens);
+    try std.testing.expectEqual(@as(f64, 0.7), owned.input.temperature);
+    try std.testing.expect(owned.input.token_ids and owned.stream and owned.separate_usage and owned.policy.single);
+}
+
+test "full-window request plan retains compact IDs instead of the JSON tree" {
+    const gpa = std.testing.allocator;
+    var scratch: std.heap.ArenaAllocator = .init(gpa);
+    defer scratch.deinit();
+    const tmp = scratch.allocator();
+    const n = 261120;
+    var raw: std.ArrayList(u8) = .empty;
+    try raw.appendSlice(tmp, "{\"prompt\":[");
+    for (0..n) |i| {
+        if (i != 0) try raw.append(tmp, ',');
+        try raw.appendSlice(tmp, "123456");
+    }
+    try raw.appendSlice(tmp, "],\"max_tokens\":1024}");
+    const parsed = (try json.parse(tmp, raw.items)).ok.get("prompt").?.array;
+    const tokens = try tmp.alloc(u32, parsed.len);
+    for (parsed, tokens) |v, *token| token.* = @intCast(v.int64().?);
+    const original: Plan = .{ .input = .{ .prompt = .{ .ids = tokens }, .fields = .null }, .named = "test", .stream = false, .separate_usage = false, .policy = .{} };
+    var reply: std.heap.ArenaAllocator = .init(gpa);
+    defer reply.deinit();
+    const owned = try original.owned(reply.allocator());
+    @memset(tokens, 0);
+    _ = scratch.reset(.free_all);
+    try std.testing.expectEqual(n, owned.input.prompt.?.ids.len);
+    for (owned.input.prompt.?.ids) |token| try std.testing.expectEqual(@as(u32, 123456), token);
+    // Under 2 MiB per active request, rather than retaining the 12+ MiB body
+    // and parsed tree throughout decoding (hundreds of MiB at C32).
+    try std.testing.expect(reply.queryCapacity() <= 2 * 1024 * 1024);
+}
 
 /// Everything checked before a reply starts (a refusal here is a 400 with no stream opened).
 fn plan(srv: *Server, cx: *Cx, is_chat: bool, raw: Value) errors.Refused!Plan {
@@ -208,9 +302,13 @@ fn promptText(srv: *Server, cx: *Cx, p: Value) errors.Refused![]const u8 {
 
 /// The chat or completion reply to ``raw`` (already decoded), written to ``out``.
 pub fn run(srv: *Server, a: Allocator, out: Out, gone: Gone, is_chat: bool, raw: Value) void {
+    runWithScratch(srv, a, out, gone, is_chat, raw, null);
+}
+
+fn runWithScratch(srv: *Server, a: Allocator, out: Out, gone: Gone, is_chat: bool, raw: Value, scratch: ?*std.heap.ArenaAllocator) void {
     const field: []const u8 = if (is_chat) "messages" else "prompt";
     const id = ids.make(a, if (is_chat) "chatcmpl-" else "cmpl-", 32) catch return;
-    var cx: Cx = .{ .a = a };
+    var cx: Cx = .{ .a = if (scratch) |arena| arena.allocator() else a };
     var p = plan(srv, &cx, is_chat, raw) catch |e| {
         if (e == error.OutOfMemory) cx.message = "out of memory";
         logRefused(id, cx.message);
@@ -218,6 +316,16 @@ pub fn run(srv: *Server, a: Allocator, out: Out, gone: Gone, is_chat: bool, raw:
         out.vt.reply(out.ctx, cx.status(), wrapError(a, body) catch return);
         return;
     };
+    if (scratch) |arena| {
+        p = p.owned(a) catch {
+            cx.message = "out of memory";
+            logRefused(id, cx.message);
+            const body = errorOther(a, cx.message) catch return;
+            out.vt.reply(out.ctx, 500, wrapError(a, body) catch return);
+            return;
+        };
+        _ = arena.reset(.free_all);
+    }
     p.input.id = id;
     var r: Run = .{ .srv = srv, .a = a, .out = out, .is_chat = is_chat, .plan = p, .id = id, .created = std.Io.Clock.real.now(srv.io).toSeconds() };
     if (p.stream) r.stream(gone, field) else r.whole(gone, field);
