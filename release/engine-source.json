@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "upstream_base": "4e80f05ecba89a4e90d16375ade2eddbdc0a10c4",
-  "status": "1017 runtime accepted; qualification metadata updated after the measured e2de6d1 image",
+  "status": "Optional 1017 Keys mixed-precision implementation; hardware qualification in progress",
   "scope": "Build, native engine, grammar bridge, deployment controller/configuration and checkpoint-specific compiled test resources. This manifest is not serving qualification.",
   "files": [
     {
@@ -49,6 +49,10 @@
       "sha256": "6a43401055802727e1f7dcbbbf7500c79c2eedebbdd4493e3b9d74de8e42eb35"
     },
     {
+      "path": "deployment/config/keys-1017.json",
+      "sha256": "40b4c5c3dd73439c7cd07460e42783deae0ff215a439a4b844868eb47bddfa1d"
+    },
+    {
       "path": "deployment/config/native-inputs.json",
       "sha256": "dd75d9328ef27bab2d23df96d28fae236cdf4b5b771498091785a020f4470f92"
     },
@@ -82,15 +86,19 @@
     },
     {
       "path": "deployment/scripts/cli.py",
-      "sha256": "894b9ac6feecacb600d159c96df7fdb30bbd423ecd5bc2cdf0519511647d580c"
+      "sha256": "68bb2667fbc91250d33605cbfdcd6d2c2afc5603a5845c4db87b97a874914e9f"
     },
     {
       "path": "deployment/scripts/configuration.py",
-      "sha256": "a5c55836bf5e7e34ce4134fc0f1590dc5b92189c259c2b95d6fb9f3a45172d0c"
+      "sha256": "aa9757f0da0051092816ddb2e2057054ccf1c7dec0ba2c119d14eed3105d62ab"
     },
     {
       "path": "deployment/scripts/engine_health.py",
-      "sha256": "154c011df9fb0d4fe728d62650efe1d68259683a94b5e8e6cb34bb99a611c0b8"
+      "sha256": "450f4be7c5b07899f06478044b90eee07972ee4e56bb72a43b81787edb54e540"
+    },
+    {
+      "path": "deployment/scripts/keys_overlay.py",
+      "sha256": "ef3591f15d96cff8afa8ea0da493b03c32dc9d32987527521df3357cd76ff42a"
     },
     {
       "path": "deployment/scripts/memory_probe.py",
@@ -122,7 +130,7 @@
     },
     {
       "path": "deployment/scripts/runtime.py",
-      "sha256": "7c58d7f6440389bbb16105ffc4bf062b53133d09dc146b1c58a3ace2eaadb586"
+      "sha256": "639cbe7f48d13f3bccd5102127b3a945720f88b2b9a6a878ac86245b8b0b939d"
     },
     {
       "path": "tests/publication/fixtures/checkpoint-1017-prompts.json",
@@ -1566,7 +1574,7 @@
     },
     {
       "path": "zig/src/core/lanes/backend.zig",
-      "sha256": "0f3f89eea9e9e9ce7b119e4abef592129e70dad68899ec69f2a6028c3c49ff81"
+      "sha256": "7fe86f3e38cdc2babd24e2a8b831300640aecac5541ec8bbdcf3feed721ad1ce"
     },
     {
       "path": "zig/src/core/lanes/config.zig",
@@ -1958,7 +1966,7 @@
     },
     {
       "path": "zig/src/families/dsv41/check_main.zig",
-      "sha256": "5f12fbdb3aa233b2557b369f04f64f92a86e1fd7c25cac7e469c15f49ff84314"
+      "sha256": "ad8b617f24103091f2ac711c9189a083c2feec84f68d2a5a1242e4a070437f9a"
     },
     {
       "path": "zig/src/families/dsv41/checkpoint.zig",
@@ -1994,7 +2002,7 @@
     },
     {
       "path": "zig/src/families/dsv41/dsv41.zig",
-      "sha256": "96b835f1fb14134d804890d28a45c5071c72edde0bef7e5f81f48954f82fed6c"
+      "sha256": "cfa78d3cc240bde0aa5b6029487f2ff944231dc0ad372eb1fd1f65012847a717"
     },
     {
       "path": "zig/src/families/dsv41/elf.zig",
@@ -2062,11 +2070,11 @@
     },
     {
       "path": "zig/src/families/dsv41/lanes.zig",
-      "sha256": "7b0338d3da104f1f3c073f7a69d6baa89110b8dd6abfe33f19a4b397f5ce4236"
+      "sha256": "4398e713612b0cfacb8fbcf7f703d9c9b0e56ca740598a6aaf9306445f514d4a"
     },
     {
       "path": "zig/src/families/dsv41/lanes_main.zig",
-      "sha256": "b000be3cc522f5e8d4e468ad47d2a55d3abaa45d424b03431eb80a8d3a645773"
+      "sha256": "80449b7c762b8f94a3b8e991f401302de0b6feb91a81b5fb55969230151512c2"
     },
     {
       "path": "zig/src/families/dsv41/layer_main.zig",
@@ -2086,11 +2094,11 @@
     },
     {
       "path": "zig/src/families/dsv41/model.zig",
-      "sha256": "f5a5b770769dad6d6a17567970bb1b0268d83f874019022f830acb5f09d235ba"
+      "sha256": "b543f4950efdc14d7efc723c366f669117c39776cf5d2075631716b276d99b19"
     },
     {
       "path": "zig/src/families/dsv41/native.zig",
-      "sha256": "492c53dfb69294bc513b81dec3bdc5075818b6de3a0efdfde0fa732a5fb975fd"
+      "sha256": "b4530dd2026fa9e7f10711ff0d94cf2d2d20c56858ccaa3b8612edea38944ea3"
     },
     {
       "path": "zig/src/families/dsv41/ops.zig",
@@ -2114,7 +2122,7 @@
     },
     {
       "path": "zig/src/families/dsv41/prepare_main.zig",
-      "sha256": "26c9fde50c5c412ed5fb1dc717782e6e2535420c78d177da737c024934b008a2"
+      "sha256": "20b69bbbf06f6877a58cb604545ce910231a4ab50b94612fa94c2bbf95cd9602"
     },
     {
       "path": "zig/src/families/dsv41/prompt.zig",
@@ -2209,8 +2217,12 @@
       "sha256": "8dec2595b235a1b07b196bcbcc46f7b727e7473d71bc0c0a7774b1c5c6e249f1"
     },
     {
+      "path": "zig/src/families/dsv41/weight_overlay.zig",
+      "sha256": "c6db7c7151361460054559ec87545652441ad8e7fd0cbc3ddd1514dd6014a7ad"
+    },
+    {
       "path": "zig/src/families/dsv41/weights.zig",
-      "sha256": "aa5f2ff4e878046f2ae119de1bf1fa273d63ec0c9e2601970d225d80ac417be7"
+      "sha256": "2284969e4e5f50dc80f13ee1262cbced5b7106d949c289985c57ae1d40062f51"
     },
     {
       "path": "zig/src/families/flashnext/affine.zig",

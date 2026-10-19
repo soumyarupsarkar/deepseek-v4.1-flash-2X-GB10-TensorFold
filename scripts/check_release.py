@@ -17,6 +17,7 @@ import assets
 import reuse
 import native_assets
 import native_prepare
+import keys_overlay
 
 
 def git(*args):
@@ -57,7 +58,7 @@ def main():
         ast.parse(path.read_text(), filename=str(path.relative_to(ROOT)))
     for module, names in ((runtime, ('ROOTS', 'SNAPSHOT', 'FABRIC')), (assets, ('VERIFY',)),
                           (reuse, ('IMPORT', 'PREPARED')),
-                          (native_prepare, ('INVENTORY',))):
+                          (native_prepare, ('INVENTORY',)), (keys_overlay, ('ENSURE','VERIFY'))):
         for name in names:
             ast.parse(getattr(module, name), filename=module.__name__ + '.' + name)
     cfg.validate(cfg.read(cfg.CONFIG / 'cluster.example.json'))
@@ -67,6 +68,8 @@ def main():
     if 'allow_temporary_drm' not in cli.plan(cfg.read(cfg.CONFIG / 'cluster.example.json'))['config']:
         failures.append('example plan incomplete')
     specs = cfg.read(cfg.CONFIG / 'assets.json')
+    keys = keys_overlay.spec()
+    specs = dict(specs, optional_keys=keys)
     for spec in specs.values():
         if not re.fullmatch('[0-9a-f]{40}', spec['revision']):
             failures.append('asset revision is not immutable')

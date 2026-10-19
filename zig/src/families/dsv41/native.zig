@@ -115,7 +115,7 @@ pub fn weightBytes(io: std.Io, dir: []const u8) u64 {
     const world = std.fmt.parseInt(u32, getenv("TF_TP_WORLD") orelse "2", 10) catch return 0;
     const name = rank_cache.find(fba.allocator(), io, d, 0, world) catch return 0;
     const st = d.statFile(io, name, .{}) catch return 0;
-    return st.size;
+    return st.size + if (getenv("TF_DS_WEIGHT_OVERLAY") != null) @as(u64, @import("weight_overlay.zig").extra_bytes_per_rank) else @as(u64, 0);
 }
 
 /// Loads rank 0 and links rank 1 (which must start against TF_TP_MASTER:TF_TP_PORT); the pool holds `o.context`
@@ -132,6 +132,7 @@ pub fn open(gpa: std.mem.Allocator, io: std.Io, ctx: *const cuda.Context, dir: [
     st.m = try model.Model.open(gpa, io, ctx, .{
         .model_dir = dir,
         .cache_dir = getenv("TF_DS_RANK_CACHE") orelse return error.NoRankCache,
+        .weight_overlay_dir = getenv("TF_DS_WEIGHT_OVERLAY"),
         .kit_dir = getenv("TF_DS_KIT") orelse return error.NoKit,
         .aot_dir = kernels,
         .rank = 0,

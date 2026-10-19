@@ -97,7 +97,12 @@ def source_revision():
     return subprocess.check_output(['git','rev-parse','HEAD'],cwd=SOURCE,text=True).strip()
 
 
-def profile():
+def profile(weight_variant=None):
+    if weight_variant is None:
+        selection = STATE/'variant.json'
+        weight_variant = read(selection)['variant'] if selection.exists() else 'stock'
+    if weight_variant not in ('stock','keys'):
+        raise ValueError('Weight variant must be stock or keys')
     value = read(CONFIG / 'profile.json')
     if value['engine'] != 'native-zig':
         raise ValueError('This controller requires the native Zig profile')
@@ -108,10 +113,18 @@ def profile():
         raise ValueError('Native profile exceeds the implemented capacity')
     if value['drafts'] != 5:
         raise ValueError('The pinned native drafter has a five-token block; disable drafts per request when needed')
+    if 'TF_DS_WEIGHT_OVERLAY' in value['environment']:
+        raise ValueError('Select the verified Keys variant instead of overriding its path')
+    value['weight_variant'] = weight_variant
+    value['keys_overlay'] = weight_variant == 'keys'
+    if weight_variant == 'keys':
+        value['name'] += '-keys'
+        value['description'] = 'Stock 1017 2.9 bpw with separately prepared Keys K6 wo_b replacements'
     return value
 
 
-def launch_args(config, host, deployment_id, image, rails, drm_card='/dev/dri/card0', *, prepared_readonly=False):
+def launch_args(config, host, deployment_id, image, rails, drm_card='/dev/dri/card0', *, prepared_readonly=False,
+                weight_variant='stock'):
     """Pure command rendering; GID indices and DRM card come from host preflight."""
     validate(config)
     if not re.fullmatch(r'[0-9a-f-]{36}', deployment_id):
@@ -120,7 +133,7 @@ def launch_args(config, host, deployment_id, image, rails, drm_card='/dev/dri/ca
         raise ValueError('Expected one of the two ranks and its validated rails')
     if len({r['gid_index'] for r in rails}) != 1:
         raise ValueError('Both rails must have the same IPv4 RoCE-v2 GID index')
-    p = profile()
+    p = profile(weight_variant)
     rank = 0 if host == 'head' else 1
     node = config[host]
     root = PurePosixPath(node['data_root'])
@@ -142,6 +155,8 @@ def launch_args(config, host, deployment_id, image, rails, drm_card='/dev/dri/ca
         'TF_CARVEOUT': '1', 'TF_DRM_CARD': drm_card,
     }
     env.update(p['environment'])
+    if weight_variant == 'keys':
+        env['TF_DS_WEIGHT_OVERLAY'] = '/weight-overlay'
     aliases = {'deepseek-v4.1-flash': p['context']}
     for stem in (MODEL, 'deepseek-v4.1-flash'):
         for suffix, tokens in (('262k',262144),('524k',524288),('614k',614400),('1m',1048576)):
@@ -159,6 +174,8 @@ def launch_args(config, host, deployment_id, image, rails, drm_card='/dev/dri/ca
                            ('native-kit','/kit',True),
                            ('kernel-cache','/cache',False), ('state','/state',False)]:
         args += ['-v', str(root/sub)+':'+mount+(':ro' if ro else '')]
+    if weight_variant == 'keys':
+        args += ['-v',str(root/'overlays/keys-1017/prepared')+':/weight-overlay:ro']
     for key, value in sorted(env.items()):
         args += ['-e', key+'='+str(value)]
     if rank == 0:

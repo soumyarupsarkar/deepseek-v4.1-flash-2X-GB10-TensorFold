@@ -104,13 +104,25 @@ pub const Weights = struct {
 };
 
 /// Where entries come from: the lane's rank cache file, or the checkpoint read by the split.
+pub const CacheSource = struct {
+    file: std.Io.File,
+    index: *const rank_cache.Index,
+    io: std.Io,
+    overlay: ?struct { file: std.Io.File, index: *const rank_cache.Index } = null,
+
+    pub fn locate(c: CacheSource, key: []const u8) !struct { file: std.Io.File, entry: rank_cache.Entry } {
+        if (c.overlay) |o| if (o.index.get(key)) |entry| return .{ .file = o.file, .entry = entry };
+        return .{ .file = c.file, .entry = c.index.get(key) orelse return error.MissingEntry };
+    }
+};
+
 pub const Source = union(enum) {
-    cache: struct { file: std.Io.File, index: *const rank_cache.Index, io: std.Io },
+    cache: CacheSource,
     shards: *const checkpoint.Shards,
 
     pub fn size(s: Source, key: []const u8) !usize {
         return switch (s) {
-            .cache => |c| (c.index.get(key) orelse return error.MissingEntry).bytes,
+            .cache => |c| (try c.locate(key)).entry.bytes,
             .shards => |sh| (try checkpoint.describe(sh, key)).bytes,
         };
     }
@@ -118,9 +130,10 @@ pub const Source = union(enum) {
     pub fn read(s: Source, key: []const u8, out: []u8) !void {
         switch (s) {
             .cache => |c| {
-                const e = c.index.get(key) orelse return error.MissingEntry;
+                const located = try c.locate(key);
+                const e = located.entry;
                 if (e.bytes != out.len) return error.BadSize;
-                if (try c.file.readPositionalAll(c.io, out, e.offset) != out.len) return error.ShortRead;
+                if (try located.file.readPositionalAll(c.io, out, e.offset) != out.len) return error.ShortRead;
             },
             .shards => |sh| try checkpoint.read(sh, key, out),
         }
@@ -189,7 +202,7 @@ const Loader = struct {
     fn shape(L: *Loader, key: []const u8) ![3]usize {
         return switch (L.src) {
             .cache => |c| blk: {
-                const e = c.index.get(key) orelse return error.MissingEntry;
+                const e = (try c.locate(key)).entry;
                 if (e.rank != 3) return error.UnexpectedTensor;
                 break :blk .{ e.shape[0], e.shape[1], e.shape[2] };
             },
@@ -423,6 +436,37 @@ pub fn load(gpa: std.mem.Allocator, d: *const cuda.Driver, src: Source, c: Confi
         };
     }
     return w;
+}
+
+test "overlay bytes and sizes override stock while untouched entries still read stock" {
+    const a = std.testing.allocator;
+    const io = std.testing.io;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(io, .{ .sub_path = "base", .data = "abcdefgh" });
+    try tmp.dir.writeFile(io, .{ .sub_path = "overlay", .data = "KEYS!!" });
+    var base = try tmp.dir.openFile(io, "base", .{});
+    defer base.close(io);
+    var overlay = try tmp.dir.openFile(io, "overlay", .{});
+    defer overlay.close(io);
+    var bi = try rank_cache.parseIndex(a, "[[\"changed\",\"uint8\",[4],0,4],[\"stock\",\"uint8\",[4],4,4]]", 8);
+    defer bi.deinit();
+    var oi = try rank_cache.parseIndex(a, "[[\"changed\",\"uint8\",[6],0,6]]", 6);
+    defer oi.deinit();
+    const src: Source = .{ .cache = .{ .file = base, .index = &bi, .io = io,
+        .overlay = .{ .file = overlay, .index = &oi } } };
+    try std.testing.expectEqual(@as(usize,6), try src.size("changed"));
+    try std.testing.expectEqual(@as(usize,4), try src.size("stock"));
+    var out: [6]u8 = undefined;
+    try src.read("changed", &out);
+    try std.testing.expectEqualStrings("KEYS!!", &out);
+    try src.read("stock", out[0..4]);
+    try std.testing.expectEqualStrings("efgh", out[0..4]);
+    try std.testing.expectError(error.MissingEntry, src.size("missing"));
+    try std.testing.expectError(error.BadSize, src.read("changed", out[0..4]));
+    const stock: Source = .{ .cache = .{ .file = base, .index = &bi, .io = io } };
+    try stock.read("changed", out[0..4]);
+    try std.testing.expectEqualStrings("abcd", out[0..4]);
 }
 
 test "strips: each 128-column block's tiles in k order" {

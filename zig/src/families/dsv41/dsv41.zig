@@ -3,6 +3,7 @@
 pub const Config = @import("config.zig").Config;
 pub const native = @import("native.zig");
 pub const rank_cache = @import("rank_cache.zig");
+pub const weight_overlay = @import("weight_overlay.zig");
 pub const plan = @import("plan.zig");
 pub const engram = @import("engram.zig");
 pub const picture = @import("picture.zig");
@@ -55,6 +56,7 @@ test {
     refAll(@import("config.zig"));
     refAll(native);
     refAll(rank_cache);
+    refAll(weight_overlay);
     refAll(plan);
     refAll(engram);
     refAll(checkpoint);

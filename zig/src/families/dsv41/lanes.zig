@@ -378,6 +378,8 @@ pub const Lanes = struct {
             .graph_evictions = if (self.m.graphs) |*g| g.evicted.load(.monotonic) else 0,
             .drm_reserved_bytes = cv.reserved,
             .drm_used_bytes = cv.used,
+            .weight_overlay_entries = self.m.weight_overlay_entries,
+            .weight_bytes = self.m.w.bytes,
             .rdma_failed = if (self.m.ring) |r| r.failure() != null else false,
             .adaptive_generation = self.adaptive_generation,
             .budgeted_generation = self.budgeted_generation,

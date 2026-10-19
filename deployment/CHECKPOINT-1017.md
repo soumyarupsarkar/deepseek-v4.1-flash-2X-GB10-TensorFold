@@ -8,8 +8,10 @@ was reviewed separately and was **not applied**. Its published target is the
 LibertAIDAI 3.5 bpw pack on four GB10s. Its 26 replacement `wo_b` matrices use
 6-bit trellises with shape `[512, 320, 96]`; our 2.9 bpw pack uses 5-bit trellises
 with shape `[512, 320, 80]`. The installer therefore rejects a direct overlay.
-The native loader can infer per-tensor widths, so a mixed-precision adaptation
-may be possible, but would be a separate configuration requiring qualification.
+The original stock qualification did not include that sidecar. The optional
+[Keys mixed-precision integration](KEYS-1017.md) now provides a separately
+prepared TP2 overlay, explicit stock/Keys selection and paired rollback.
+Its qualification is separate from the original stock migration.
 The FP8 sidecar is not substituted for the EXL3 tensors.
 
 ## Inputs and compatibility

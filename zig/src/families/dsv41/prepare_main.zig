@@ -20,8 +20,9 @@ pub fn main(init: std.process.Init) !u8 {
     const a = init.arena.allocator();
     const io = init.io;
     const args = try init.minimal.args.toSlice(a);
-    if (args.len != 6) {
-        std.debug.print("usage: tf-dsv41-prepare MODEL_DIR CACHE_DIR RANK WORLD INPUT_SHA256\n", .{});
+    const overlay_dir: ?[]const u8 = if (args.len == 8 and std.mem.eql(u8, args[6], "--keys-overlay")) args[7] else null;
+    if (args.len != 6 and overlay_dir == null) {
+        std.debug.print("usage: tf-dsv41-prepare MODEL_DIR CACHE_DIR RANK WORLD INPUT_SHA256 [--keys-overlay SIDECAR_DIR]\n", .{});
         return 2;
     }
     const rank = try std.fmt.parseInt(u32, args[3], 10);
@@ -36,8 +37,9 @@ pub fn main(init: std.process.Init) !u8 {
         return error.RankCacheAlreadyExists;
     } else |err| if (err != error.NoRankCache) return err;
     const cfg = try ds.Config.read(a, io, args[1]);
-    const want = try ds.plan.wants(a, cfg, .{ .rank = rank, .world = world }, true);
-    var shards = try ds.checkpoint.Shards.open(init.gpa, io, args[1]);
+    const want = if (overlay_dir != null) try ds.weight_overlay.wants(a, rank, world) else
+        try ds.plan.wants(a, cfg, .{ .rank = rank, .world = world }, true);
+    var shards = try ds.checkpoint.Shards.open(init.gpa, io, overlay_dir orelse args[1]);
     defer shards.close(io);
     const name = try std.fmt.allocPrint(a, "rank{d}of{d}-native-{s}.bin", .{ rank, world, key });
     const partial = try std.fmt.allocPrint(a, "{s}.partial", .{name});

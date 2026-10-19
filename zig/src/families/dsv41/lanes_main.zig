@@ -51,6 +51,7 @@ pub fn main(init: std.process.Init) !u8 {
     var o: dsv41.model.Options = .{
         .model_dir = args[1],
         .cache_dir = args[2],
+        .weight_overlay_dir = if (std.c.getenv("TF_DS_WEIGHT_OVERLAY")) |v| std.mem.span(v) else null,
         .rank = try std.fmt.parseInt(u32, args[3], 10),
         .world = try std.fmt.parseInt(u32, args[4], 10),
         .master = try dsv41.link.parseIp(args[5]),
@@ -133,7 +134,7 @@ pub fn main(init: std.process.Init) !u8 {
     const t0 = std.Io.Timestamp.now(io, .awake);
     const m = try dsv41.model.Model.open(gpa, io, &ctx, o);
     defer m.close();
-    try w.print("{{\"rank\": {d}, \"loaded_s\": {d:.1}, \"pool\": {d}, \"drafts\": {}, \"arena_used\": {d}, \"arena_reserved\": {d}}}\n", .{ o.rank, seconds(t0, io), o.pool, m.drafting(), m.arena.used, m.arena.reserved });
+    try w.print("{{\"rank\": {d}, \"loaded_s\": {d:.1}, \"pool\": {d}, \"drafts\": {}, \"arena_used\": {d}, \"arena_reserved\": {d}, \"weight_overlay_entries\": {d}, \"weight_bytes\": {d}}}\n", .{ o.rank, seconds(t0, io), o.pool, m.drafting(), m.arena.used, m.arena.reserved, m.weight_overlay_entries, m.w.bytes });
     try w.flush();
 
     if (o.rank != 0) {

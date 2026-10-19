@@ -361,7 +361,7 @@ class Pair:
                                 display=self.snapshot(host))
         return result
 
-    def start(self):
+    def start(self, weight_variant=None):
         if not self.config['allow_temporary_drm']:
             raise ValueError('Set allow_temporary_drm=true after reviewing the display takeover and rollback')
         self.ownership()
@@ -371,7 +371,9 @@ class Pair:
         if any(self.containers(h) for h in ('head','worker')):
             raise RuntimeError('Owned rank containers exist; stop the pair before another start')
         from assets import verify
-        p = profile(); image = build['id']
+        from keys_overlay import selected, variant, verify as verify_overlay
+        weight_variant = selected(self) if weight_variant is None else variant(weight_variant)
+        p = profile(weight_variant); image = build['id']
         precompile = read(self.state/'precompile.json')
         if precompile['image'] != image or precompile['status'] != 'passed':
             raise RuntimeError('Precompile the selected image with model weights unloaded')
@@ -389,6 +391,8 @@ class Pair:
                 or compatibility['assets_sha256'] != hashlib.sha256((self.state/'runtime-assets.json').read_bytes()).hexdigest()
                 or compatibility['kit_revision'] != read(CONFIG/'native-inputs.json')['kernel_kit']['revision']):
             raise RuntimeError('Check both prepared caches with the selected native image before loading')
+        if weight_variant == 'keys':
+            verify_overlay(self,image)
         for host in ('head','worker'):
             self.roots(host); self.idle(host); verify(self,host,full=False)
             from native_assets import verify_kit
@@ -422,9 +426,10 @@ class Pair:
                 cards[host] = '/dev/dri/'+found[0]
             for host in ('worker','head'):
                 args = launch_args(self.config,host,self.ownership(),image,rails[host],cards[host],
-                                   prepared_readonly=prepared_readonly)
+                                   prepared_readonly=prepared_readonly,weight_variant=weight_variant)
                 started[host] = self.docker(host,*args,timeout=90).stdout.strip()
-            atomic(self.state/'launch.json',dict(time=now(),config=self.config,profile=p,image=image,containers=started))
+            atomic(self.state/'launch.json',dict(time=now(),config=self.config,profile=p,image=image,
+                                               variant=weight_variant,containers=started))
             deadline = time.monotonic()+3600
             while time.monotonic() < deadline:
                 for host in ('head','worker'):
@@ -443,11 +448,63 @@ class Pair:
                 time.sleep(5)
             else:
                 raise TimeoutError('Pair startup timed out')
-            atomic(self.state/'active.json',dict(time=now(),running=True,image=image,containers=started))
+            atomic(self.state/'active.json',dict(time=now(),running=True,image=image,variant=weight_variant,containers=started))
             self.start_monitor()
+            atomic(self.state/'variant.json',dict(time=now(),variant=weight_variant))
         except BaseException:
             self.stop()
             raise
+
+    def switch(self, weight_variant):
+        """Restart the pair with another verified weight set; restore on failure.
+
+        The CLI holds operation.lock across this whole transition. Reject active
+        requests so an ordinary switch cannot silently cancel client work.
+        """
+        from keys_overlay import selected, variant, verify as verify_overlay
+        from engine_health import healthy, busy
+        weight_variant = variant(weight_variant)
+        build = read(self.state/'build.json')
+        if build['revision'] != source_revision():
+            raise RuntimeError('Switch requires the exact committed source of the built image')
+        if weight_variant == 'keys':
+            verify_overlay(self,build['id'])
+        present = {host:self.containers(host) for host in ('head','worker')}
+        was_running = any(present.values())
+        previous = selected(self)
+        if was_running:
+            launch = read(self.state/'launch.json')
+            previous = variant(launch.get('variant','stock'))
+            if any(len(rows)!=1 or not rows[0]['State']['Running']
+                   or rows[0]['Id']!=launch['containers'][host] or rows[0]['Image']!=build['id']
+                   for host,rows in present.items()):
+                raise RuntimeError('Pair is incomplete or changed; use stop before recovering it')
+            health = self.get('/health')
+            if (not healthy(health) or busy(health) or health.get('native',{}).get('weight_overlay_entries',0)
+                    != (78 if previous=='keys' else 0)):
+                raise RuntimeError('Switch requires a healthy idle pair; finish requests or explicitly stop first')
+            if previous == weight_variant:
+                return
+        record = dict(time=now(),previous=previous,requested=weight_variant,status='running',was_running=was_running)
+        atomic(self.state/'switch.json',record)
+        try:
+            if was_running:
+                self.stop()
+            self.start(weight_variant)
+            record['status']='passed'
+        except BaseException as exc:
+            record.update(status='failed',error=type(exc).__name__+': '+str(exc))
+            if was_running:
+                try:
+                    self.stop()
+                    self.start(previous)
+                    record['status']='rolled-back'
+                except BaseException as recovery:
+                    record['recovery_error']=type(recovery).__name__+': '+str(recovery)
+            raise
+        finally:
+            record['finished']=now()
+            atomic(self.state/'switch.json',record)
 
     def watch(self):
         with self.watch_connection():

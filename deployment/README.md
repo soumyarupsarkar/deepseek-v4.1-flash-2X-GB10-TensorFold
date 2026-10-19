@@ -69,6 +69,12 @@ original model. See [the checkpoint migration notes](CHECKPOINT-1017.md). Extrac
 retains stock files. Replication uses rsync without deletion. Completed files
 whose hashes differ are refused.
 
+The optional [1017 Keys mixed-precision variant](KEYS-1017.md) uses a separate
+small prepared overlay over the same stock caches. After normal stock
+precompilation, `cluster setup-keys` installs it once; `cluster start --variant
+keys` selects it. Both variants keep the same model names and context aliases.
+Use the qualification report before selecting a newly built variant.
+
 For a migration from an installation with the same pinned assets, initialize
 new empty roots, then reuse the files instead:
 

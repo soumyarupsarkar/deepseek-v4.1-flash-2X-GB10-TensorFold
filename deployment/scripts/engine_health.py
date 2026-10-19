@@ -14,6 +14,7 @@ def ready(value, profile):
             and native.get('pool_tokens') == profile['pool_tokens']
             and native.get('context_tokens') == profile['context']
             and native.get('stream_slots') == profile['parallel']
+            and native.get('weight_overlay_entries',0) == (78 if profile.get('keys_overlay') else 0)
             and value.get('max_batch_size') == profile['parallel']
             and value.get('max_model_len') == profile['context']
             and value.get('structured_outputs') is True)

@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "name": "keys",
+  "base_repo": "LibertAIDAI/DeepSeek-V4.1-Flash-1017-EXL3-2.9bpw",
+  "base_revision": "c178a01284fc5c0e859d8668cffaac81ca8f4042",
+  "repo": "drowzeys/keys-DeepSeek-V4.1-Flash-1017-Abliterated",
+  "revision": "c61b5dcce6add8a282395f030d2ca7c664de5423",
+  "files": [{
+    "path": "exl3_wo_b_l10_35_1017.safetensors",
+    "size": 818590872,
+    "sha256": "ce06dfb0e75a40a471bdff60676a687cf6efe4a126d33f54c2af482795ac6609"
+  }],
+  "layers": [10, 35],
+  "tensor_count": 104,
+  "prepared_entries_per_rank": 78,
+  "prepared_tensor_bytes_per_rank": 409423872,
+  "additional_resident_bytes_per_rank": 68157440,
+  "format": "EXL3 mul1 K6; stock K5 wo_b remains available",
+  "world": 2
+}

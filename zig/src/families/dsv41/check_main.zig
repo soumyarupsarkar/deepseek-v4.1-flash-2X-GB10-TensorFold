@@ -4,7 +4,7 @@
 const std = @import("std");
 const dsv41 = @import("dsv41");
 
-const usage = "usage: tf-dsv41-check MODEL_DIR CACHE_DIR RANK WORLD [--no-dspark] [--bytes EVERY]\n";
+const usage = "usage: tf-dsv41-check MODEL_DIR CACHE_DIR RANK WORLD [--no-dspark] [--bytes EVERY] [--keys-overlay SIDECAR_DIR --base-cache STOCK_CACHE_DIR]\n";
 
 pub fn main(init: std.process.Init) !u8 {
     const a = init.arena.allocator();
@@ -18,23 +18,42 @@ pub fn main(init: std.process.Init) !u8 {
     const world = try std.fmt.parseInt(u32, args[4], 10);
     var dspark = true;
     var every: usize = 0;
+    var overlay_dir: ?[]const u8 = null;
+    var base_dir: ?[]const u8 = null;
     var ai: usize = 5;
     while (ai < args.len) : (ai += 1) {
-        if (std.mem.eql(u8, args[ai], "--no-dspark")) dspark = false;
-        if (std.mem.eql(u8, args[ai], "--bytes") and ai + 1 < args.len) {
+        if (std.mem.eql(u8, args[ai], "--no-dspark")) {
+            dspark = false;
+        } else if (std.mem.eql(u8, args[ai], "--bytes") and ai + 1 < args.len) {
             every = try std.fmt.parseInt(usize, args[ai + 1], 10);
             ai += 1;
-        }
+        } else if (std.mem.eql(u8, args[ai], "--keys-overlay") and ai + 1 < args.len) {
+            overlay_dir = args[ai + 1];
+            ai += 1;
+        } else if (std.mem.eql(u8, args[ai], "--base-cache") and ai + 1 < args.len) {
+            base_dir = args[ai + 1];
+            ai += 1;
+        } else return error.BadArgument;
     }
+    if ((overlay_dir == null) != (base_dir == null)) return error.BadArgument;
     const cfg = try dsv41.Config.read(a, io, args[1]);
     var dir = try std.Io.Dir.cwd().openDir(io, args[2], .{ .iterate = true });
     defer dir.close(io);
     const name = try dsv41.rank_cache.find(a, io, dir, rank, world);
     var ix = try dsv41.rank_cache.open(init.gpa, io, dir, name);
     defer ix.deinit();
+    if (base_dir) |path| {
+        var base = try std.Io.Dir.cwd().openDir(io, path, .{ .iterate = true });
+        defer base.close(io);
+        const base_name = try dsv41.rank_cache.find(a, io, base, rank, world);
+        var base_index = try dsv41.rank_cache.open(init.gpa, io, base, base_name);
+        defer base_index.deinit();
+        try dsv41.weight_overlay.validate(init.gpa, &base_index, &ix, rank, world);
+    }
     // four ranks: the exact 2D split (node g = TP2 rank g % 2 of pair g / 2); the cache file is still rank g of 4
     const split: dsv41.plan.Split = if (world == 4) .{ .rank = rank % 2, .world = 2, .pair = rank / 2 } else .{ .rank = rank, .world = world };
-    const want = try dsv41.plan.wants(a, cfg, split, dspark);
+    const want = if (overlay_dir != null) try dsv41.weight_overlay.wants(a, rank, world) else
+        try dsv41.plan.wants(a, cfg, split, dspark);
     var out_buf: [4096]u8 = undefined;
     var out = std.Io.File.stdout().writer(io, &out_buf);
     const w = &out.interface;
@@ -65,7 +84,7 @@ pub fn main(init: std.process.Init) !u8 {
         }
     }
     // the checkpoint reader: every entry's layout, and with --bytes the bytes themselves against the cache file's
-    var sh = try dsv41.checkpoint.Shards.open(init.gpa, io, args[1]);
+    var sh = try dsv41.checkpoint.Shards.open(init.gpa, io, overlay_dir orelse args[1]);
     defer sh.close(io);
     var layout_bad: usize = 0;
     var compared: usize = 0;

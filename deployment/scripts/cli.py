@@ -10,9 +10,9 @@ import tarfile
 from configuration import CONFIG, SOURCE, STATE, BASE_IMAGE, load, profile, launch_args, read, source_revision
 from runtime import Pair, atomic, now
 
-def plan(config):
+def plan(config, weight_variant='stock'):
     # Do not probe SSH, Docker, credentials, files under data_root or host configuration.
-    p=profile()
+    p=profile(weight_variant)
     return dict(mode='read-only plan; no commands executed',
         profile={k:v for k,v in p.items() if k!='environment'},
         environment=p['environment'],
@@ -87,22 +87,32 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--config',type=Path,default=SOURCE/'deployment/local.json')
     parser.add_argument('action',choices=('plan','init','doctor','fetch','fetch-kit','replicate-kit','prepare','reuse','reuse-prepared','replicate','verify','build',
-                                         'precompile','start','stop','status','check-host','watch'))
+                                         'precompile','setup-keys','start','switch','stop','status','check-host','watch'))
+    parser.add_argument('--variant',choices=('stock','keys'),help='Weight set for plan/start/switch; start remembers the last successful choice')
+    parser.add_argument('--overlay-source',type=Path,help='Verified local Keys sidecar for setup-keys, avoiding a download')
     parser.add_argument('--from-head',help='Existing head asset root for reuse (never adopted)')
     parser.add_argument('--from-worker',help='Existing worker asset root for reuse (never adopted)')
     parser.add_argument('--reuse-prepared',action='store_true',help='Import completed rank caches, mounted read-only')
     args=parser.parse_args()
+    if args.variant and args.action not in ('plan','start','switch'):
+        parser.error('--variant applies only to plan/start/switch')
+    if args.action=='switch' and not args.variant:
+        parser.error('switch requires --variant stock or keys')
+    if args.overlay_source and args.action!='setup-keys':
+        parser.error('--overlay-source applies only to setup-keys')
     if args.action not in ('reuse','reuse-prepared') and (args.from_head or args.from_worker or args.reuse_prepared):
         parser.error('Asset source arguments apply only to reuse')
     config=load(args.config)
     if args.action=='plan':
-        print(json.dumps(plan(config),indent=2));return
+        print(json.dumps(plan(config,args.variant or 'stock'),indent=2));return
     pair=Pair(config)
     if args.action=='doctor':
         print(json.dumps(pair.doctor(),indent=2));return
     if args.action=='watch':
         pair.watch();return
     if args.action=='status':
+        from keys_overlay import selected
+        print('selected_weight_variant',selected(pair))
         for host in ('head','worker'):
             print(host,json.dumps([dict(id=r['Id'],image=r['Image'],state=r['State']['Status']) for r in pair.containers(host)]))
         try:print(json.dumps(pair.get('/health'),indent=2))
@@ -141,7 +151,11 @@ def main():
                     print(host+': all runtime asset hashes verified',flush=True)
         elif args.action=='build':build(pair)
         elif args.action=='precompile':precompile(pair)
-        elif args.action=='start':pair.start()
+        elif args.action=='setup-keys':
+            from keys_overlay import setup
+            print(json.dumps(setup(pair,args.overlay_source),indent=2))
+        elif args.action=='start':pair.start(args.variant)
+        elif args.action=='switch':pair.switch(args.variant)
         elif args.action=='stop':pair.stop()
         elif args.action=='check-host':check_host(pair)
 

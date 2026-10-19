@@ -9,6 +9,7 @@ const std = @import("std");
 const cuda = @import("cuda");
 const Config = @import("config.zig").Config;
 const rank_cache = @import("rank_cache.zig");
+const weight_overlay = @import("weight_overlay.zig");
 const weights = @import("weights.zig");
 const prompt = @import("prompt.zig");
 const prompt2d = @import("prompt2d.zig");
@@ -41,6 +42,7 @@ pub const ring_bytes = 4456448 * (round.max_rows / 16);
 pub const Options = struct {
     model_dir: []const u8, // config.json
     cache_dir: []const u8, // the lane's per-rank weight file (TF_DS_RANK_CACHE)
+    weight_overlay_dir: ?[]const u8 = null, // optional 1017 Keys prepared replacements; stock cache stays immutable
     kit_dir: []const u8, // a gate dir's layout: aot/, cubins/, rope-{plain,compressed}-{cos,sin}.f32, engram.json
     aot_dir: ?[]const u8 = null, // the recorded Triton set (aot.json and its cubins; null: kit_dir/aot)
     rank: u32,
@@ -83,6 +85,7 @@ pub const Model = struct {
     cache_file: std.Io.File,
     ix: rank_cache.Index,
     w: weights.Weights,
+    weight_overlay_entries: u64,
     fan: prompt2d.Fan,
     comm: comm_mod.Comm,
     rdma_mod: ?cuda.Module = null, // the RDMA kernels (TP2's ring or world 4's rings)
@@ -206,7 +209,15 @@ pub const Model = struct {
         m.cache_file = try m.cache_dir.openFile(io, cache_name, .{});
         errdefer m.cache_file.close(io);
         const sp = try prompt2d.split(o.rank, o.world);
-        m.w = try weights.load(gpa, d, .{ .cache = .{ .file = m.cache_file, .index = &m.ix, .io = io } }, c.*, sp, o.drafts);
+        // Both sources are resolved before allocating GPU weights: an overridden
+        // tensor is uploaded only once, and all other entries come from stock.
+        var overlay: ?weight_overlay.Opened = null;
+        defer if (overlay) |*v| v.close(io);
+        if (o.weight_overlay_dir) |path| overlay = try weight_overlay.Opened.open(gpa, io, path, &m.ix, o.rank, o.world);
+        var source: weights.CacheSource = .{ .file = m.cache_file, .index = &m.ix, .io = io };
+        if (overlay) |*v| source.overlay = .{ .file = v.file, .index = &v.index };
+        m.w = try weights.load(gpa, d, .{ .cache = source }, c.*, sp, o.drafts);
+        m.weight_overlay_entries = if (overlay != null) weight_overlay.entry_count else 0;
         errdefer m.w.deinit();
         if (o.drafts and m.w.dspark == null) return error.NoDrafter;
 
