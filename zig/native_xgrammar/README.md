@@ -21,8 +21,14 @@ library that cannot load makes startup fail; constraints are never silently
 dropped. `TF_DSV41_TOOL_GRAMMAR=all` constrains every offered function to its
 schema. `required` constrains required/named/strict tools; `off` disables tool
 constraints and refuses required calls. JSON/schema/regex/choice/EBNF remain
-independent of this tool setting. Compiled grammar caches are bounded at
-256 MiB each for plain and DSML vocabularies, with four compiler threads.
+independent of this tool setting. `TENSORFOLD_GRAMMAR_CACHE_MIB` bounds each
+compiled-grammar LRU (plain and DSML vocabularies independently), with four
+compiler threads. The runtime default is 256 MiB per vocabulary; this recipe
+sets 64 MiB per vocabulary to leave more host memory for request processing.
+Accepted values are 1–1024 MiB; invalid values fail startup. Active matchers
+retain their grammar while using it, so this cache limit is not a bound on all
+grammar memory during concurrent compilation or generation. Evicted entries
+are compiled again when needed; grammar constraints remain enforced.
 
 The CPU tests check actual token masks, invalid schemas, padded vocabulary,
 added special tokens, JSON-object semantics, regex/choice/EBNF and DSML tool

@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "upstream_base": "4e80f05ecba89a4e90d16375ade2eddbdc0a10c4",
-  "status": "Optional 1017 Keys overlay and bounded request-plan lifetime; hardware qualification in progress",
+  "status": "Keys 1017 host-cache budget candidate; hardware requalification pending",
   "scope": "Build, native engine, grammar bridge, deployment controller/configuration and checkpoint-specific compiled test resources. This manifest is not serving qualification.",
   "files": [
     {
@@ -66,7 +66,7 @@
     },
     {
       "path": "deployment/config/profile.json",
-      "sha256": "c6f23d048aec7642532d63bf9f881dc430662df61db9f4964f7e20298985c0d1"
+      "sha256": "a111c04d86d5563b04c8f000716d851f1d5422a06bdae7da85318627778ce00e"
     },
     {
       "path": "deployment/config/requirements-resolved.txt",
@@ -1242,7 +1242,7 @@
     },
     {
       "path": "zig/native_xgrammar/README.md",
-      "sha256": "fe3c87ffd422817588957ec50327040e703a31d264fbf5a3c4d5081cfd8cc5c5"
+      "sha256": "67b9f0830857d0451575c8e67a966cc91bfc2aad2d003422c9d9bb4a5d0280e4"
     },
     {
       "path": "zig/native_xgrammar/bridge.cc",
@@ -2998,7 +2998,7 @@
     },
     {
       "path": "zig/src/server/xgrammar.zig",
-      "sha256": "4363d39378bceca8cb9d98a5ec791e45ec7237fbbd578fc5db07bcb7c8289064"
+      "sha256": "3a5145722ed8fd19d7943865027316600af999f158f20edd5e0eeeba8eda6672"
     },
     {
       "path": "zig/src/tensorfold.zig",

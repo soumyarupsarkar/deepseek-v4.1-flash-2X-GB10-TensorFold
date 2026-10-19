@@ -14,6 +14,23 @@ const Abi = struct {
     tf_xg_cache_bytes: *const fn (*anyopaque) callconv(.c) u64,
 };
 
+/// Each vocabulary has its own LRU. Matchers keep their compiled grammar
+/// alive while a request uses it, even if that entry is evicted from the LRU.
+fn cacheLimit(raw: ?[]const u8) !i64 {
+    const mib = if (raw) |text| std.fmt.parseInt(u32, text, 10) catch return error.BadGrammarCacheLimit else 256;
+    if (mib < 1 or mib > 1024) return error.BadGrammarCacheLimit;
+    return @as(i64, mib) << 20;
+}
+
+test "grammar cache limit is per vocabulary and rejects invalid budgets" {
+    try std.testing.expectEqual(@as(i64, 256 << 20), try cacheLimit(null));
+    try std.testing.expectEqual(@as(i64, 64 << 20), try cacheLimit("64"));
+    try std.testing.expectEqual(@as(i64, 1024 << 20), try cacheLimit("1024"));
+    for ([_][]const u8{ "", "0", "1025", "-1", "1.5", "bad" }) |text| {
+        try std.testing.expectError(error.BadGrammarCacheLimit, cacheLimit(text));
+    }
+}
+
 pub const Compiler = struct {
     gpa: std.mem.Allocator,
     lib: std.DynLib,
@@ -29,7 +46,8 @@ pub const Compiler = struct {
             @field(fns, name) = lib.lookup(T, name) orelse return error.MissingGrammarSymbol;
         }
         if (fns.tf_xg_abi_version() != 1) return error.WrongGrammarAbi;
-        const handle = fns.tf_xg_compiler_create(tokenizer.ptr, tokenizer.len, stop.ptr, stop.len, 4, 256 << 20, problem.ptr, problem.len) orelse return error.GrammarCompilerFailed;
+        const budget = try cacheLimit(if (std.c.getenv("TENSORFOLD_GRAMMAR_CACHE_MIB")) |v| std.mem.span(v) else null);
+        const handle = fns.tf_xg_compiler_create(tokenizer.ptr, tokenizer.len, stop.ptr, stop.len, 4, budget, problem.ptr, problem.len) orelse return error.GrammarCompilerFailed;
         errdefer fns.tf_xg_compiler_destroy(handle);
         const self = try gpa.create(Compiler);
         self.* = .{ .gpa = gpa, .lib = lib, .fns = fns, .handle = handle, .stop = stop };
