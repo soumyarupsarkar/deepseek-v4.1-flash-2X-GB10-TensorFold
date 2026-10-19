@@ -359,4 +359,8 @@ from Mia-AiLab's original EXL3 V4.1 chat template, updated for the 1017 encoder.
 The pinned 1017 EXL3 quantization is by
 [LibertAIDAI](https://huggingface.co/LibertAIDAI/DeepSeek-V4.1-Flash-1017-EXL3-2.9bpw).
 Weights are downloaded separately and retain their upstream licenses.
-The prior drowzeys / Keys overlay is not applied to the new checkpoint.
+The prior drowzeys / Keys overlay is not applied to the new checkpoint. The optional
+[1017 Keys sidecar](https://huggingface.co/drowzeys/keys-DeepSeek-V4.1-Flash-1017-Abliterated/tree/c61b5dcce6add8a282395f030d2ca7c664de5423)
+is downloaded separately from drowzeys and attributed to Keys/drowzeys. No
+model or sidecar weights are bundled in this repository. The mixed-precision
+TP2 overlay reader and deployment controls are local integration work.

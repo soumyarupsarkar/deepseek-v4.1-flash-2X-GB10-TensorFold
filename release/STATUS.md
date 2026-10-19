@@ -1,8 +1,86 @@
 # Native release status
 
-## Current checkpoint: 1017
+## Current: 1017 with optional Keys mixed precision
 
-The stock **DeepSeek-V4.1-Flash-1017** migration uses LibertAIDAI's pinned EXL3
+The selected deployment uses the **stock** LibertAIDAI 1017 2.9 bpw pack.
+The separately qualified optional Keys variant adds drowzeys' pinned 1017 K6
+attention replacements in layers 10–35. Both variants share immutable base downloads and prepared
+stock caches, expose identical model IDs and retain 32 slots with an
+8,650,752-token pool. [Setup, switching and rollback](../deployment/KEYS-1017.md).
+
+Runtime source `9f8d14e349be3811147b1fd5b35bcbdac6f824fd`, image
+`sha256:eedc8c3acc3109262c92ccb4fcd8221b115f992cc34f644acd1bc40034c1a84a`. Later documentation and evidence commits do not change
+this measured image. [Numeric qualification report](native-keys-1017-20261018.json).
+
+The build passed 327 native tests and the C++ grammar check. Both hosts passed
+nine preparation checks, every stock prepared-tensor byte comparison, and all
+78 Keys slice comparisons. Only the selected tensors are uploaded; the measured
+resident-weight increase is **65 MiB per GPU**, without a second full cache.
+
+Initial Keys qualification found a host-memory guard stop during full-C32
+raw-token request admission. Parsed JSON trees were retained throughout each
+reply; the head's anonymous memory rose by about 373 MiB. The replacement
+runtime releases parsing scratch after making an owned, compact request plan.
+Two native regressions check data ownership and a full-window plan below
+2 MiB. The complete finite suite below was repeated on the replacement image,
+including the failing workload, with the KV capacity and 2 GiB guard unchanged.
+The numeric report preserves the original failure evidence.
+
+A second attempt then reached the host-memory floor during retention, after
+warming 144 CUDA graphs and about 360 MiB of cached grammars. This image keeps
+64 graph executables and limits each grammar vocabulary's LRU to 64 MiB.
+Evicted graphs/grammars are recreated when needed; active matchers retain their
+constraints. These disposable-cache budgets leave more room for requests and
+retained snapshots without reducing the shared KV pool. All tests and the
+matched stock/Keys throughput campaign below use these smaller cache limits.
+
+The stock → Keys → stock → Keys rehearsal preserved aliases and replayed all
+six fixed-seed synthetic prompts identically within each variant. Both ranks
+reported the intended 0/78 overlay counts. Stock cache fingerprints stayed
+unchanged throughout switching. All 792 generated texts and token counts in
+the new stock campaign also matched the retained stock runtime's campaign.
+Controller tests cover rejected switches
+and automatic previous-variant restoration after a failed start; fault recovery
+was not deliberately injected into the live hardware rehearsal.
+
+All 21 Keys finite checks passed: serving/vision/tool-image features, strict
+outputs, sampling replay, ordinary/drafted parity through C32, retention,
+compaction, request-memory behavior and full-context capacity. Both C32 waves
+used 261,120 prompt plus 1,024 reply tokens per stream; all 32 streams decoded
+together and replayed identical token sequences. This fixture primes a shared
+document while giving active streams independent reservations. The cold
+million-token request recovered all three passphrases with 1,048,320 prompt
+and 256 reply tokens.
+
+Fresh stock and Keys campaigns each completed 48 waves and 792 requests.
+[All stock repetitions](../benchmarks/NATIVE-WORKLOADS.md),
+[all Keys repetitions](../benchmarks/NATIVE-WORKLOADS-KEYS-1017-20261019.md) and the
+[matched comparison](../benchmarks/KEYS-1017-COMPARISON.md) preserve every
+result. Different weight variants can change replies and draft acceptance;
+these measurements do not establish model quality or refusal behavior.
+
+The bounded half-hour diagnostic completed 25 mixed
+cycles and 2 cold deep requests, totaling 1085 requests.
+Both ranks remained healthy with no restart, OOM, poisoned runtime or RoCE
+failure. Minimum available memory was 2.86 GiB
+on the head and 3.57 GiB on the worker.
+Across matched quiet windows, rank anonymous memory plus swap changed by
++2.32 MiB and
++2.20 MiB respectively.
+This bounded observation is separate from long-duration endurance qualification.
+
+The LAN installation repeated both hosts' preparation and tensor-byte checks
+after the private pair stopped and restoration passed. Twelve fresh synthetic
+startup requests passed all context aliases, strict JSON, tools, vision, random
+seeds, replay and streaming. Worker-to-head LAN access and the paired monitor
+passed on these new rank epochs with zero overlay entries reported on both ranks.
+Stock is selected; the prepared Keys option remains available without a model
+redownload. The previous stock checkout,
+image, assets and current recovery journals remain available for full rollback.
+
+## Original stock 1017 migration
+
+The original stock **DeepSeek-V4.1-Flash-1017** migration used LibertAIDAI's pinned EXL3
 2.9 bpw conversion and the matching 1017 Engram and vision inputs. The new
 Keys sidecar was reviewed and left off because its K6 replacements differ from
 this pack's K5 tensors. [Compatibility, storage and checkpoint rollback](../deployment/CHECKPOINT-1017.md).

@@ -1,18 +1,17 @@
 # DeepSeek V4.1 Flash 1017 migration
 
-The deployment uses the stock **DeepSeek-V4.1-Flash-1017** checkpoint. The original
-Keys overlay contains replacement attention weights, not deltas. Applying it
-to 1017 would replace updated weights with weights from the previous model.
+The base is the stock **DeepSeek-V4.1-Flash-1017** checkpoint. The original
+September Keys overlay contains full replacement attention weights and belongs
+to the previous model. It must not be applied to 1017.
+
 The newer [1017 Keys EXL3 sidecar](https://huggingface.co/drowzeys/keys-DeepSeek-V4.1-Flash-1017-Abliterated/blob/c61b5dcce6add8a282395f030d2ca7c664de5423/TENSORFOLD.md)
-was reviewed separately and was **not applied**. Its published target is the
-LibertAIDAI 3.5 bpw pack on four GB10s. Its 26 replacement `wo_b` matrices use
-6-bit trellises with shape `[512, 320, 96]`; our 2.9 bpw pack uses 5-bit trellises
-with shape `[512, 320, 80]`. The installer therefore rejects a direct overlay.
-The original stock qualification did not include that sidecar. The optional
-[Keys mixed-precision integration](KEYS-1017.md) now provides a separately
-prepared TP2 overlay, explicit stock/Keys selection and paired rollback.
-Its qualification is separate from the original stock migration.
-The FP8 sidecar is not substituted for the EXL3 tensors.
+was published for LibertAIDAI's 3.5 bpw / four-GB10 setup. Its K6 `wo_b` tensors
+have shape `[512, 320, 96]`, while this 2.9 bpw base uses K5 `[512, 320, 80]`.
+The initial stock migration left it off. The separately qualified
+[Keys mixed-precision integration](KEYS-1017.md) supports these replacements
+on TP2 through a small prepared overlay, without overwriting stock files or
+substituting the native FP8 sidecar. Stock and Keys remain selectable with
+the same aliases and KV capacity. Their measurements are recorded separately.
 
 ## Inputs and compatibility
 

@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "upstream_base": "4e80f05ecba89a4e90d16375ade2eddbdc0a10c4",
-  "status": "Keys 1017 host-cache budget candidate; hardware requalification pending",
+  "status": "Optional 1017 Keys runtime accepted; qualification metadata updated after the measured 9f8d14e349be image",
   "scope": "Build, native engine, grammar bridge, deployment controller/configuration and checkpoint-specific compiled test resources. This manifest is not serving qualification.",
   "files": [
     {
@@ -66,7 +66,7 @@
     },
     {
       "path": "deployment/config/profile.json",
-      "sha256": "a111c04d86d5563b04c8f000716d851f1d5422a06bdae7da85318627778ce00e"
+      "sha256": "ed334c874a7e61bfa2fc8c3df55250419f2269df59cc851bb89d5914d481c388"
     },
     {
       "path": "deployment/config/requirements-resolved.txt",

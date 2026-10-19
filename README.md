@@ -1,22 +1,22 @@
 # DeepSeek-V4.1-Flash-1017 · 2× GB10 · TensorFold
 
-**Vision · Strict JSON and tools · A large shared KV pool**
+**Vision · Optional Keys abliteration · Strict JSON and tools · A large shared KV pool**
 
-Run DeepSeek-V4.1-Flash-1017 across two NVIDIA GB10s using LibertAIDAI's EXL3 weights, the matching 1017 Engram tables and Bertholomus's native Zig TP2 engine. This fork adds the recipe's context aliases, structured output, shared-pool capacity and reversible deployment controls to that engine.
+Run DeepSeek-V4.1-Flash-1017 across two NVIDIA GB10s using LibertAIDAI's EXL3 weights, the matching 1017 Engram tables and Bertholomus's native Zig TP2 engine. This fork adds context aliases, structured output, shared-pool capacity, optional Keys mixed-precision weights and reversible deployment controls to that engine.
 
 | Headline | Setting or measured result |
 |---|---|
 | Shared KV pool | **8,650,752 logical tokens** shared by active and retained sessions (supporting 32 × 262k resident sessions, 8 × 1M, 4 × 1M + 8 × 524k, or any combination within the pool capacity) |
 | Concurrent active slots | **32** |
 | Maximum context | **1,048,576 tokens per request**, prompt plus reply |
-| C1 greedy decode — code / prose / counting | **93.7 / 59.3 / 138.2 tok/s** |
-| C32 greedy decode — code / prose / counting | **301.1 / 252.8 / 371.0 aggregate tok/s** |
-| C1 sampled decode — code / prose / counting | **94.1 / 56.2 / 132.4 tok/s** |
-| C32 sampled decode — code / prose / counting | **264.2 / 239.5 / 362.4 aggregate tok/s** |
+| C1 greedy decode — code / prose / counting | **94.0 / 59.6 / 134.2 tok/s** |
+| C32 greedy decode — code / prose / counting | **302.2 / 253.5 / 372.6 aggregate tok/s** |
+| C1 sampled decode — code / prose / counting | **96.2 / 56.3 / 130.7 tok/s** |
+| C32 sampled decode — code / prose / counting | **264.1 / 241.0 / 360.8 aggregate tok/s** |
 | Features | Vision, strict JSON/schema/tools, random and explicit request seeds |
 | Session KV writes to NVMe | **Off** |
 
-C1 is one session; C32 is 32 concurrent sessions. Decode measurements use short prompts and a 384-token reply cap, at temperature 0 (greedy) or 1 (sampled). [Workloads, timing methods and all repetitions](benchmarks/NATIVE-WORKLOADS.md).
+Measured with the **1017 stock variant**. C1 is one session; C32 is 32 concurrent sessions. Decode measurements use short prompts and a 384-token reply cap, at temperature 0 (greedy) or 1 (sampled). [Workloads, timing methods and all repetitions](benchmarks/NATIVE-WORKLOADS.md).
 
 Slots and maximum context are separate limits: 32 slots do not mean 32 simultaneously full million-token histories.
 
@@ -37,7 +37,7 @@ This work builds on the following projects and contributors:
 | [Capicua25x](https://github.com/bertholomus/deepseek-v4.1-tensorfold-tp2-2xgb10/pull/9) | Novelty signal used by Bertholomus's optional reasoning-loop guard |
 | [LibertAIDAI](https://huggingface.co/LibertAIDAI/DeepSeek-V4.1-Flash-1017-EXL3-2.9bpw) | Current 1017 EXL3 2.9-bpw checkpoint |
 | [Mia-AiLab](https://huggingface.co/Mia-AiLab/DeepSeek-V4.1-Flash-EXL3-2.9bpw) | Earlier EXL3 checkpoint and the serving kit, quantization layout and kernels used by this recipe |
-| [drowzeys / Keys](https://huggingface.co/drowzeys/DeepSeek-V4.1-Flash-Abliterated-Cybersecurity-Unleashed) | Keys attention overlay used by the previous checkpoint deployment |
+| [drowzeys / Keys](https://huggingface.co/drowzeys/keys-DeepSeek-V4.1-Flash-1017-Abliterated) | Optional 1017 Keys attention replacements; also provided the previous checkpoint overlay |
 | [DeepSeek](https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash-1017) | Original 1017 model, reference implementation, Engram/vision assets and model research |
 | [Urtho](https://github.com/urtho/TensorFold) | Adapted structured-output/DRM work and approaches to graph and memory budgeting |
 | [Jay Leaton](https://github.com/jayleaton/deepseek-v41-tensorfold-spark) | Parsing/grammar work adapted through Urtho, with its MIT notice retained |
@@ -88,7 +88,7 @@ python3 cluster replicate
 python3 cluster verify
 ```
 
-Acquisition pins the stock 1017 weights, matching Engram/vision assets and native kernel kit. The older Keys overlay replaces weights from the previous checkpoint and is excluded from this deployment. [Checkpoint compatibility and reversible migration](deployment/CHECKPOINT-1017.md). The [reuse path](deployment/README.md#acquire-verified-inputs) can instead hardlink verified compatible assets from a retained installation without copying private journals or mutable caches. Shared files must remain immutable.
+Acquisition pins the stock 1017 weights, matching Engram/vision assets and native kernel kit. The older Keys overlay belongs to the previous checkpoint. The optional [1017 Keys variant](deployment/KEYS-1017.md) uses a separate, pinned sidecar. [Checkpoint compatibility and reversible migration](deployment/CHECKPOINT-1017.md). The [reuse path](deployment/README.md#acquire-verified-inputs) can instead hardlink verified compatible assets from a retained installation without copying private journals or mutable caches. Shared files must remain immutable.
 
 ### Build and start
 
@@ -105,6 +105,35 @@ python3 cluster status
 `build` verifies the compiler pin, runs CPU/server and C++ grammar tests and installs the same image on both hosts. `prepare` creates missing rank caches with a CPU-only native writer and prepares the Engram token map. `precompile` exercises GPU primitives and router widths, then independently compares every prepared tensor byte to the intended checkpoint. Existing completed caches are not overwritten.
 
 `start` verifies both hosts, journals temporary display/module settings, and launches the worker, head and paired monitor. The monitor stops both ranks after repeated health/memory failures or stalled progress. A poisoned rank pair requires a coordinated restart; no inference service is enabled at boot.
+
+### Optional Keys variant
+
+The [1017 Keys integration](deployment/KEYS-1017.md) replaces only layers 10–35
+attention `wo_b` weights with K6 tensors. It reuses the stock 2.9 bpw model and
+rank caches, adds about 1.23 GB of disk space per host and 65 MiB of resident
+weights per GPU, and keeps the same aliases, 32 slots and shared KV capacity.
+
+Prepare it once with both ranks stopped:
+
+```bash
+python3 cluster stop
+python3 cluster setup-keys
+python3 cluster start --variant keys
+```
+
+After preparation, pause client submissions, let requests finish, and switch
+the idle pair without downloading or rebuilding:
+
+```bash
+python3 cluster switch --variant stock
+python3 cluster switch --variant keys
+```
+
+Both ranks restart and retained sessions are cleared. Plain `cluster start`
+remembers the last successful selection; a fresh installation defaults to
+stock. [Measurements, verification and rollback](deployment/KEYS-1017.md).
+
+### Try the API
 
 With the default bind and port:
 
