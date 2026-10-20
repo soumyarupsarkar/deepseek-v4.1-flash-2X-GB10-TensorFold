@@ -26,6 +26,8 @@ Slots and maximum context are separate limits: 32 slots do not mean 32 simultane
 
 I have personally been using this with model aliases suffixed with `-1m` and `-262k` (variants differing only in context window) configured in my coding agent: `-1m` interactively and `-262k` for 32 parallel sessions, and I've been seeing ~140 aggregate tok/s for long-running code review/refactor agent sessions. As far as I know, this is the only dual GB10 recipe for this model that supports this (C32 at full 262k) as of today, 2026-10-08.
 
+Abliteration, while supported, is not a default as it may be more likely to follow instructions placed in tool calls (prompt injection risk), [ToNYD2WiLD reports](https://github.com/tonyd2wild/DeepSeek-V4.1-Flash-vLLM-DGX-Spark/blob/9fa230d3eb119f588e690bf9b87ce41ed902db60/README.md#uncensored-variant-keys-1017-overlay). NVMe KV caching is not supported in this recipe to avoid wearing down SSD endurance.
+
 ## Credits
 
 This work builds on the following projects and contributors:
