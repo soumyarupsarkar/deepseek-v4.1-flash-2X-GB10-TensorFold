@@ -119,7 +119,7 @@ def profile(weight_variant=None):
     value['keys_overlay'] = weight_variant == 'keys'
     if weight_variant == 'keys':
         value['name'] += '-keys'
-        value['description'] = 'Stock 1017 2.9 bpw with separately prepared Keys K6 wo_b replacements'
+        value['description'] = 'Stock Mia EAQ 1017 2.9 bpw with separately prepared matching Keys K5 wo_b replacements'
     return value
 
 

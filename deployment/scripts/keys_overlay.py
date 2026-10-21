@@ -20,7 +20,7 @@ def spec():
     base = read(CONFIG/'assets.json')['model']
     if (value['schema'] != 1 or value['world'] != 2 or 'keys' in read(CONFIG/'assets.json')
             or base['repo'] != value['base_repo'] or base['revision'] != value['base_revision']):
-        raise ValueError('Keys overlay requires the pinned stock 1017 2.9 bpw base')
+        raise ValueError('Keys overlay requires its pinned stock 1017 quantization')
     return value
 
 
@@ -82,7 +82,9 @@ with f.open('rb') as stream:
  h=json.loads(stream.read(n));h.pop('__metadata__',None)
  wanted={f'layers.{i}.attn.wo_b.{part}' for i in range(10,36) for part in ('trellis','suh','svh','mul1')}
  if set(h)!=wanted:raise ValueError('Unexpected overlay tensor scope')
- widths={'trellis':('I16',[512,320,96],512*320*96*2),'suh':('F16',[8192],8192*2),'svh':('F16',[5120],5120*2),'mul1':('I32',[],4)}
+ words=p['spec']['trellis_words']
+ if words not in (80,96):raise ValueError('Unsupported pinned Keys width')
+ widths={'trellis':('I16',[512,320,words],512*320*words*2),'suh':('F16',[8192],8192*2),'svh':('F16',[5120],5120*2),'mul1':('I32',[],4)}
  spans=[]
  for key,e in h.items():
   dtype,shape,size=widths[key.rsplit('.',1)[1]];lo,hi=e['data_offsets']
@@ -182,7 +184,7 @@ def setup(pair, source=None):
             if entry is None or entry['name']!=expected_name:
                 raise ValueError('Prepared overlay belongs to different inputs; preserve it for review')
             # The native reader independently checks every slice against the raw
-            # sidecar, including TP2 scope and the base K5 -> replacement K6 shape.
+            # sidecar, including the complete TP2 scope and the allowed width.
             mounts[-1] += ':ro'
             checked=pair.docker(host,*mounts,'--entrypoint','/opt/tensorfold/bin/tf-dsv41-check',build['id'],
                 '/model','/overlay-prepared',str(rank),'2','--keys-overlay','/overlay-source',

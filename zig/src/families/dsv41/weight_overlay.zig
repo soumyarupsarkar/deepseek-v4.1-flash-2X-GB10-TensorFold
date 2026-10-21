@@ -6,6 +6,8 @@ const cache = @import("rank_cache.zig");
 const plan = @import("plan.zig");
 
 pub const entry_count = 26 * 3;
+/// Conservative preflight allowance: K5 replacements add no resident bytes;
+/// the retained LibertAI K5 -> K6 option adds at most 65 MiB per rank.
 pub const extra_bytes_per_rank = 65 * 1024 * 1024;
 
 pub fn wants(a: std.mem.Allocator, rank: u32, world: u32) ![]plan.Want {
@@ -28,7 +30,9 @@ pub fn wants(a: std.mem.Allocator, rank: u32, world: u32) ![]plan.Want {
 }
 
 /// Both indexes have already passed rank_cache's offset/size/duplicate checks.
-/// Require all 78 entries, exactly the expected TP2 slices and K5 -> K6 change.
+/// Require all 78 entries and the exact TP2 scope. Mia's matching overlay is
+/// K5 -> K5; the earlier LibertAI integration is K5 -> K6. A single overlay
+/// must use one of these two widths consistently across all 26 projections.
 pub fn validate(a: std.mem.Allocator, base: *const cache.Index, overlay: *const cache.Index, rank: u32, world: u32) !void {
     const expected = try wants(a, rank, world);
     defer {
@@ -36,6 +40,8 @@ pub fn validate(a: std.mem.Allocator, base: *const cache.Index, overlay: *const 
         a.free(expected);
     }
     if (overlay.entries.count() != entry_count) return error.IncompleteWeightOverlay;
+    const words = overlay.entries.values()[0].shape[2];
+    if (words != 80 and words != 96) return error.WeightOverlayShape;
     for (expected, overlay.entries.keys()) |want, key| {
         if (!std.mem.eql(u8, want.key, key)) return error.UnexpectedWeightOverlayKey;
         const old = base.get(key) orelse return error.WeightOverlayBaseMissing;
@@ -44,7 +50,7 @@ pub fn validate(a: std.mem.Allocator, base: *const cache.Index, overlay: *const 
         if (want.k16 != null) {
             if (old.rank != 3 or replacement.rank != 3 or
                 !std.mem.eql(usize, old.shape[0..3], &.{ 256, 320, 80 }) or
-                !std.mem.eql(usize, replacement.shape[0..3], &.{ 256, 320, 96 }))
+                !std.mem.eql(usize, replacement.shape[0..3], &.{ 256, 320, words }))
                 return error.WeightOverlayShape;
         } else {
             const width: usize = if (std.mem.endsWith(u8, key, "|suh")) 4096 else 5120;
@@ -80,7 +86,7 @@ pub const Opened = struct {
     }
 };
 
-test "Keys overlay accepts only the complete pinned K5 to K6 TP2 scope" {
+test "Keys overlay accepts complete K5 and K6 TP2 scope and rejects mixed widths" {
     const a = std.testing.allocator;
     var arena = std.heap.ArenaAllocator.init(a);
     defer arena.deinit();
@@ -103,8 +109,18 @@ test "Keys overlay accepts only the complete pinned K5 to K6 TP2 scope" {
         }
         try validate(a, &base, &over, @intCast(rank), 2);
         try std.testing.expectError(error.UnexpectedWeightOverlayKey, validate(a, &base, &over, @intCast(1 - rank), 2));
+        // A matching-width Mia overlay is valid, but mixing widths is not.
         over.entries.values()[0].shape[2] = 80;
         try std.testing.expectError(error.WeightOverlayShape, validate(a, &base, &over, @intCast(rank), 2));
+        for (over.entries.values()) |*entry| if (entry.rank == 3) {
+            entry.shape[2] = 80;
+        };
+        try validate(a, &base, &over, @intCast(rank), 2);
+        over.entries.values()[0].shape[2] = 64;
+        try std.testing.expectError(error.WeightOverlayShape, validate(a, &base, &over, @intCast(rank), 2));
+        for (over.entries.values()) |*entry| if (entry.rank == 3) {
+            entry.shape[2] = 96;
+        };
         over.entries.values()[0].shape[2] = 96;
         over.entries.values()[1].dtype = .f32;
         try std.testing.expectError(error.WeightOverlayDType, validate(a, &base, &over, @intCast(rank), 2));

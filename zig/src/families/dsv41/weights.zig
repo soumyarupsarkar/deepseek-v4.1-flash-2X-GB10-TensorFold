@@ -120,6 +120,14 @@ pub const Source = union(enum) {
     cache: CacheSource,
     shards: *const checkpoint.Shards,
 
+    pub fn requireDType(s: Source, key: []const u8, expected: rank_cache.DType) !void {
+        const actual = switch (s) {
+            .cache => |c| (try c.locate(key)).entry.dtype,
+            .shards => |sh| (try checkpoint.describe(sh, key)).dtype,
+        };
+        if (actual != expected) return error.UnexpectedDType;
+    }
+
     pub fn size(s: Source, key: []const u8) !usize {
         return switch (s) {
             .cache => |c| (try c.locate(key)).entry.bytes,
@@ -399,6 +407,12 @@ const Loader = struct {
 
 /// Every tensor of rank `s` on device `d`, from `src` (weights.py _load, in its order).
 pub fn load(gpa: std.mem.Allocator, d: *const cuda.Driver, src: Source, c: Config, s: plan.Split, dspark: bool) !Weights {
+    if (dspark and c.dspark_block > 0) {
+        var name: [128]u8 = undefined;
+        const key = try std.fmt.bufPrint(&name, "mtp.{d}.confidence_head.proj.weight|None", .{c.draft_layers - 1});
+        // f16ToF32 in draft.zig expects FP16 storage; fail before uploading.
+        try src.requireDType(key, .f16);
+    }
     var w: Weights = .{ .gpa = gpa };
     errdefer w.deinit();
     var L: Loader = .{ .gpa = gpa, .d = d, .src = src, .w = &w };
@@ -467,6 +481,26 @@ test "overlay bytes and sizes override stock while untouched entries still read 
     const stock: Source = .{ .cache = .{ .file = base, .index = &bi, .io = io } };
     try stock.read("changed", out[0..4]);
     try std.testing.expectEqualStrings("abcd", out[0..4]);
+}
+
+test "confidence storage dtype is checked before the GPU FP16 conversion" {
+    const a = std.testing.allocator;
+    const io = std.testing.io;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    try tmp.dir.writeFile(io, .{ .sub_path = "cache", .data = "\x00\x3c\x00\x00\x80\x3f" });
+    var file = try tmp.dir.openFile(io, "cache", .{});
+    defer file.close(io);
+    var ix = try rank_cache.parseIndex(a,
+        "[[\"fp16\",\"float16\",[1],0,2],[\"fp32\",\"float32\",[1],2,4]]", 6);
+    defer ix.deinit();
+    const src: Source = .{ .cache = .{ .file = file, .index = &ix, .io = io } };
+    try src.requireDType("fp16", .f16);
+    try std.testing.expectError(error.UnexpectedDType, src.requireDType("fp32", .f16));
+    try std.testing.expectError(error.MissingEntry, src.requireDType("absent", .f16));
+    var bytes: [2]u8 = undefined;
+    try src.read("fp16", &bytes);
+    try std.testing.expectEqualSlices(u8, "\x00\x3c", &bytes);
 }
 
 test "strips: each 128-column block's tiles in k order" {

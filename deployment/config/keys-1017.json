@@ -1,20 +1,26 @@
 {
   "schema": 1,
   "name": "keys",
-  "base_repo": "LibertAIDAI/DeepSeek-V4.1-Flash-1017-EXL3-2.9bpw",
-  "base_revision": "c178a01284fc5c0e859d8668cffaac81ca8f4042",
+  "base_repo": "Mia-AiLab/DeepSeek-V4.1-Flash-1017-EXL3-EAQ-v1-2.9-bpw",
+  "base_revision": "45ee5d0fd106c94a3d77f721e09cbb2f50e5a16b",
   "repo": "drowzeys/keys-DeepSeek-V4.1-Flash-1017-Abliterated",
-  "revision": "c61b5dcce6add8a282395f030d2ca7c664de5423",
-  "files": [{
-    "path": "exl3_wo_b_l10_35_1017.safetensors",
-    "size": 818590872,
-    "sha256": "ce06dfb0e75a40a471bdff60676a687cf6efe4a126d33f54c2af482795ac6609"
-  }],
-  "layers": [10, 35],
+  "revision": "de412d2249632903dace23399526e00a145aada5",
+  "files": [
+    {
+      "path": "exl3_wo_b_l10_35_mia29.safetensors",
+      "size": 682275992,
+      "sha256": "dcefb4a735f4985e4a5097cad69a059d85453f3bba148af3fc98269c7ee1ff7c"
+    }
+  ],
+  "layers": [
+    10,
+    35
+  ],
   "tensor_count": 104,
   "prepared_entries_per_rank": 78,
-  "prepared_tensor_bytes_per_rank": 409423872,
-  "additional_resident_bytes_per_rank": 68157440,
-  "format": "EXL3 mul1 K6; stock K5 wo_b remains available",
-  "world": 2
+  "prepared_tensor_bytes_per_rank": 341266432,
+  "additional_resident_bytes_per_rank": 0,
+  "format": "EXL3 mul1 K5; matching Mia EAQ K5 stock wo_b remains available",
+  "world": 2,
+  "trellis_words": 80
 }

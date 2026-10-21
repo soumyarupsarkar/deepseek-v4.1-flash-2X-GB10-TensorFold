@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "upstream_base": "4e80f05ecba89a4e90d16375ade2eddbdc0a10c4",
-  "status": "Optional 1017 Keys runtime accepted; qualification metadata updated after the measured 9f8d14e349be image",
+  "status": "Mia EAQ 1017 and matching optional Keys candidate; serving qualification pending",
   "scope": "Build, native engine, grammar bridge, deployment controller/configuration and checkpoint-specific compiled test resources. This manifest is not serving qualification.",
   "files": [
     {
@@ -26,7 +26,7 @@
     },
     {
       "path": "deployment/config/assets.json",
-      "sha256": "e86bc92a0714c0311b1bf60acd73d4416a9f9ef3cd9fcc3011f9c0c19bef9c77"
+      "sha256": "1bc19ebfbf7c4c4aff7f1bde72ecc7559b650fabf3bc309cbc7542f3d064f75b"
     },
     {
       "path": "deployment/config/chat-template-1017.jinja",
@@ -50,7 +50,7 @@
     },
     {
       "path": "deployment/config/keys-1017.json",
-      "sha256": "40b4c5c3dd73439c7cd07460e42783deae0ff215a439a4b844868eb47bddfa1d"
+      "sha256": "e5819a0399b69252319de4818fd09d968d18a85f4a8334a5774ea195a3091573"
     },
     {
       "path": "deployment/config/native-inputs.json",
@@ -66,7 +66,7 @@
     },
     {
       "path": "deployment/config/profile.json",
-      "sha256": "ed334c874a7e61bfa2fc8c3df55250419f2269df59cc851bb89d5914d481c388"
+      "sha256": "30d30a3a347e33f7c80ed3e3de68ce86bcd9ea6b6338e9045d80b2ce2b91b6ec"
     },
     {
       "path": "deployment/config/requirements-resolved.txt",
@@ -90,7 +90,7 @@
     },
     {
       "path": "deployment/scripts/configuration.py",
-      "sha256": "aa9757f0da0051092816ddb2e2057054ccf1c7dec0ba2c119d14eed3105d62ab"
+      "sha256": "86a9af011b820d29c252e06410d747db9a6079390dc1badbf7d96990bf5677a4"
     },
     {
       "path": "deployment/scripts/engine_health.py",
@@ -98,7 +98,7 @@
     },
     {
       "path": "deployment/scripts/keys_overlay.py",
-      "sha256": "ef3591f15d96cff8afa8ea0da493b03c32dc9d32987527521df3357cd76ff42a"
+      "sha256": "9113da0a663ecbf9d38ae09142baad0c75401fb2ebb411ebf77c9e512b240241"
     },
     {
       "path": "deployment/scripts/memory_probe.py",
@@ -2118,7 +2118,7 @@
     },
     {
       "path": "zig/src/families/dsv41/plan.zig",
-      "sha256": "d7fbe9bb396291de9cf6d1723dc7ee2196eab5c5f8c5df994ee06da014e6a5d5"
+      "sha256": "8e5f3c2d1242841214ffcf3ad6f4301f008ce8fae47071137940de4e6f909f40"
     },
     {
       "path": "zig/src/families/dsv41/prepare_main.zig",
@@ -2218,11 +2218,11 @@
     },
     {
       "path": "zig/src/families/dsv41/weight_overlay.zig",
-      "sha256": "c6db7c7151361460054559ec87545652441ad8e7fd0cbc3ddd1514dd6014a7ad"
+      "sha256": "759f8fdba37dc7b2fdef0693535521979be0eb72823206b4d7d39df2507a7fdd"
     },
     {
       "path": "zig/src/families/dsv41/weights.zig",
-      "sha256": "2284969e4e5f50dc80f13ee1262cbced5b7106d949c289985c57ae1d40062f51"
+      "sha256": "73dfa0dbc37391c27564740a1e8d4fd1d301e26271fd81aded3c46353b884535"
     },
     {
       "path": "zig/src/families/flashnext/affine.zig",

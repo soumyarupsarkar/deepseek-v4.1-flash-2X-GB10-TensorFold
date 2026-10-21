@@ -5,10 +5,10 @@
   "drafts": 5,
   "drm": true,
   "vision": true,
-  "name": "native-c32-1017",
+  "name": "native-c32-mia-1017",
   "engine": "native-zig",
-  "qualification": "1017 stock/Keys switching, Keys finite and bounded diagnostics, both throughput campaigns and stock LAN checks passed; see release/STATUS.md",
-  "description": "Pinned 1017 stock checkpoint with native Zig serving, shared KV, vision, grammar constraints and reversible DRM",
+  "qualification": "Mia EAQ 1017 candidate: hardware qualification pending; see release/STATUS.md",
+  "description": "Pinned Mia EAQ 1017 stock checkpoint with native Zig serving, shared KV, vision, grammar constraints and reversible DRM",
   "minimum_available_gib": 2,
   "environment": {
     "MALLOC_TRIM_THRESHOLD_": "131072",

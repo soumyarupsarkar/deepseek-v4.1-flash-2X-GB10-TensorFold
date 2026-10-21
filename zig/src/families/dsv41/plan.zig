@@ -214,6 +214,9 @@ pub fn wants(a: std.mem.Allocator, c: Config, s: Split, dspark: bool) ![]Want {
         try b.plain(try b.fmt("{s}.markov_head.embed.weight", .{last}), null);
         try b.plain(try b.fmt("{s}.markov_head.head.weight", .{last}), null);
         try b.plain(try b.fmt("{s}.confidence_head.proj.weight", .{last}), null);
+        // draft.zig converts this stored FP16 tensor to FP32 on the GPU.
+        // Keep the historical |None key, but reject preconverted sidecars.
+        b.out.items[b.out.items.len - 1].dtype = .f16;
     }
     return b.out.items;
 }
@@ -242,6 +245,7 @@ test "a rank's tensors in load order: the split's ranges, keys as Python prints 
     try std.testing.expect(seen_wq_b and seen_down and seen_engram);
     try std.testing.expectEqual(@as(usize, 4), wo_a);
     try std.testing.expectEqualStrings("mtp.2.confidence_head.proj.weight|None", w[w.len - 1].key);
+    try std.testing.expectEqual(@as(?DType, .f16), w[w.len - 1].dtype);
 }
 
 test "each split tensor's ranges: TP2's slices, a 2D node's pair parts of them" {
