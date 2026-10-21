@@ -1,12 +1,71 @@
 # Native release status
 
-## Current: 1017 with optional Keys mixed precision
+## Current: Mia EAQ 1017 with optional matching Keys
 
-The selected deployment uses the **stock** LibertAIDAI 1017 2.9 bpw pack.
+The selected deployment runs **stock Mia-AiLab EAQ v1 2.9-bpw 1017 weights**.
+The matching Keys K5 sidecar is prepared and selectable, but off. It retains
+32 active slots, 8,650,752 shared logical KV tokens, a 1,048,576-token request
+ceiling, the same aliases, vision, structured output and random request seeds.
+
+Measured runtime source: `7ebfbdbf3b01da8ab56a4d995324205104082efa`. Both hosts use image
+`sha256:304b45701d11c6e852d26984990a6105c64473cef56eb148d9aa5e96dfe1eb87`. The running owning checkout stays pinned to that
+tested runtime; subsequent documentation commits do not rebuild it.
+
+- Every prepared stock tensor byte and every overlay slice passed comparison
+  on both ranks, and all nine GPU preparation checks passed per host. The
+  container build passed 328 native CPU/server and one C++ grammar test.
+- Both variants passed all 21 finite gates, full-window C32 exact replay and
+  cold million-token retrieval. Successful five-stage switching ended stock,
+  with exact within-variant replay and unchanged aliases/base caches.
+- All three matched campaigns retain 48 waves / 792 requests each. Mia stock's
+  six C32 medians improved 0.10–2.57% versus the fresh LibertAI baseline. C1
+  sampled code slowed 6.22%; other results and all repetitions remain visible.
+- Loaded stock weights use 79.97 MiB less per rank. The matching Keys overlay
+  adds zero resident GPU weight bytes; pool size and guard floors are unchanged.
+- The one-hour stock and half-hour Keys diagnostics passed workload and memory
+  review. These are bounded observations, not 12/24-hour endurance qualification.
+  A separate new LAN startup passed all twelve synthetic requests, both-rank
+  stock checks and remote reachability.
+
+| Variant | Observed duration, including final normalization and quiet window | Mixed cycles | Cold deep-context requests | Total requests |
+| --- | ---: | ---: | ---: | ---: |
+| Mia stock | 65.1 min | 28 | 5 | 1,379 |
+| Mia keys | 34.6 min | 25 | 2 | 1,085 |
+
+| Variant | Host | Lowest sampled available RAM across validation | Quiet-window rank anonymous + swap change |
+| --- | --- | ---: | ---: |
+| Mia stock | head | 2.589 GiB | +2.29 MiB |
+| Mia stock | worker | 2.183 GiB | +2.15 MiB |
+| Mia keys | head | 2.706 GiB | +2.57 MiB |
+| Mia keys | worker | 3.724 GiB | +2.03 MiB |
+
+No OOM increments, poisoned/RDMA runtime, rank restarts or monitor failures
+were observed. The memory deltas use normalized retained caches and at least
+two quiet minutes; host available RAM is not a direct GPU allocation measure.
+The earliest approximately 35 minutes of stock use the retained minute-series
+observations after older high-resolution files rotated out; later stock and
+all Keys retain roughly five-second observations. Sampling coverage and file
+hashes are explicit in the numeric report.
+
+[Numeric release evidence](native-mia-1017-20261020.json) ·
+[Current workload measurements](../benchmarks/NATIVE-WORKLOADS.md) ·
+[LibertAI/Mia comparison](../benchmarks/MIA-1017-COMPARISON.md) ·
+[Stock/Keys comparison](../benchmarks/KEYS-1017-COMPARISON.md) ·
+[Setup and reversible migration](../deployment/MIA-1017.md).
+
+The previous source, images, installation journals and prepared caches remain
+retained. Reclaimed worker source files have verified head-side backups;
+restoring the previous deployment requires copy-back and content verification.
+That full copy-back has not been rehearsed. No model-quality ranking, refusal
+rate or long-term leak-freedom claim follows from this qualification.
+
+## Previous: LibertAIDAI 1017 with optional Keys mixed precision
+
+The previous deployment used the **stock** LibertAIDAI 1017 2.9 bpw pack.
 The separately qualified optional Keys variant adds drowzeys' pinned 1017 K6
 attention replacements in layers 10–35. Both variants share immutable base downloads and prepared
 stock caches, expose identical model IDs and retain 32 slots with an
-8,650,752-token pool. [Setup, switching and rollback](../deployment/KEYS-1017.md).
+8,650,752-token pool. [Setup, switching and rollback](../deployment/KEYS-LIBERT-1017.md).
 
 Runtime source `9f8d14e349be3811147b1fd5b35bcbdac6f824fd`, image
 `sha256:eedc8c3acc3109262c92ccb4fcd8221b115f992cc34f644acd1bc40034c1a84a`. Later documentation and evidence commits do not change
@@ -53,9 +112,9 @@ million-token request recovered all three passphrases with 1,048,320 prompt
 and 256 reply tokens.
 
 Fresh stock and Keys campaigns each completed 48 waves and 792 requests.
-[All stock repetitions](../benchmarks/NATIVE-WORKLOADS.md),
+[All stock repetitions](../benchmarks/NATIVE-WORKLOADS-LIBERT-STOCK-20261019.md),
 [all Keys repetitions](../benchmarks/NATIVE-WORKLOADS-KEYS-1017-20261019.md) and the
-[matched comparison](../benchmarks/KEYS-1017-COMPARISON.md) preserve every
+[matched comparison](../benchmarks/KEYS-LIBERT-1017-COMPARISON.md) preserve every
 result. Different weight variants can change replies and draft acceptance;
 these measurements do not establish model quality or refusal behavior.
 
@@ -113,7 +172,7 @@ relocation checks passed on the same ranks and unchanged image, including
 independent uncached continuation comparisons. The original failed attempt
 remains recorded; it was not evidence of a server corruption fault.
 
-The [fresh workload campaign](../benchmarks/NATIVE-WORKLOADS.md) completed all
+The [fresh workload campaign](../benchmarks/NATIVE-WORKLOADS-STOCK-1017-20261018.md) completed all
 48 waves and 792 requests. Three-repetition greedy medians were 93.7/59.3/138.2
 tok/s for C1 code/prose/counting and 301.1/252.8/371.0 aggregate tok/s at C32.
 Sampled medians were 94.1/56.2/132.4 and 264.2/239.5/362.4 respectively.

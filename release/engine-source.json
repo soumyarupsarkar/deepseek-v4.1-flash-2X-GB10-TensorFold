@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "upstream_base": "4e80f05ecba89a4e90d16375ade2eddbdc0a10c4",
-  "status": "Mia EAQ 1017 and matching optional Keys candidate; serving qualification pending",
+  "status": "Mia EAQ 1017 stock and optional matching Keys qualified on runtime 7ebfbdb; see release/STATUS.md for evidence and limits",
   "scope": "Build, native engine, grammar bridge, deployment controller/configuration and checkpoint-specific compiled test resources. This manifest is not serving qualification.",
   "files": [
     {
@@ -66,7 +66,7 @@
     },
     {
       "path": "deployment/config/profile.json",
-      "sha256": "30d30a3a347e33f7c80ed3e3de68ce86bcd9ea6b6338e9045d80b2ce2b91b6ec"
+      "sha256": "ce8cceea6be174a55e4dedd52acce90c009e58a66fbafae9b43d545daa97abf0"
     },
     {
       "path": "deployment/config/requirements-resolved.txt",

@@ -61,19 +61,19 @@ python3 cluster replicate
 python3 cluster verify
 ```
 
-The manifests pin LibertAIDAI's stock 1017 EXL3 weights, matching 1017
-Engram/vision assets, the adapted chat template and Bertholomus's native
-kernel kit to immutable revisions and hashes. The previous Keys overlay is
-not applied to this checkpoint; it contains replacement weights from the
-original model. See [the checkpoint migration notes](CHECKPOINT-1017.md). Extraction creates a separate verified model view and
-retains stock files. Replication uses rsync without deletion. Completed files
-whose hashes differ are refused.
+The manifests pin Mia-AiLab's stock 1017 EXL3 EAQ v1 weights, original 1017
+Engram/vision assets, the adapted chat template and Bertholomus's native kernel
+kit to immutable revisions and hashes. Extraction creates a separate verified
+model view and retains stock files. Replication uses rsync without deletion;
+completed files whose hashes differ are refused. See [Mia compatibility and
+reversible migration](MIA-1017.md).
 
-The optional [1017 Keys mixed-precision variant](KEYS-1017.md) uses a separate
-small prepared overlay over the same stock caches. After normal stock
-precompilation, `cluster setup-keys` installs it once; `cluster start --variant
-keys` selects it. Both variants keep the same model names and context aliases.
-Use the qualification report before selecting a newly built variant.
+The optional [matching Mia Keys overlay](KEYS-1017.md) uses a separate small
+prepared cache over the stock rank caches. After stock precompilation,
+`cluster setup-keys` installs it once. Start explicitly with `--variant stock`
+to leave the overlay off, or `--variant keys` to select it. Both variants keep
+the same model names and context aliases. Use the qualification report before
+selecting a newly built variant.
 
 For a migration from an installation with the same pinned assets, initialize
 new empty roots, then reuse the files instead:

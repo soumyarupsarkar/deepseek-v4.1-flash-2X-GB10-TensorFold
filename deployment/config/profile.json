@@ -7,7 +7,7 @@
   "vision": true,
   "name": "native-c32-mia-1017",
   "engine": "native-zig",
-  "qualification": "Mia EAQ 1017 candidate: hardware qualification pending; see release/STATUS.md",
+  "qualification": "Mia EAQ 1017 stock and matching optional Keys: finite C32/1M and bounded diagnostics passed on runtime 7ebfbdb; see release/STATUS.md",
   "description": "Pinned Mia EAQ 1017 stock checkpoint with native Zig serving, shared KV, vision, grammar constraints and reversible DRM",
   "minimum_available_gib": 2,
   "environment": {

@@ -1,5 +1,8 @@
 # DeepSeek V4.1 Flash 1017 migration
 
+This records the earlier LibertAIDAI 1017 migration. The current weight pack
+and its separate migration/rollback procedure are documented in [Mia EAQ 1017](MIA-1017.md).
+
 The base is the stock **DeepSeek-V4.1-Flash-1017** checkpoint. The original
 September Keys overlay contains full replacement attention weights and belongs
 to the previous model. It must not be applied to 1017.
@@ -8,7 +11,7 @@ The newer [1017 Keys EXL3 sidecar](https://huggingface.co/drowzeys/keys-DeepSeek
 was published for LibertAIDAI's 3.5 bpw / four-GB10 setup. Its K6 `wo_b` tensors
 have shape `[512, 320, 96]`, while this 2.9 bpw base uses K5 `[512, 320, 80]`.
 The initial stock migration left it off. The separately qualified
-[Keys mixed-precision integration](KEYS-1017.md) supports these replacements
+[Keys mixed-precision integration](KEYS-LIBERT-1017.md) supports these replacements
 on TP2 through a small prepared overlay, without overwriting stock files or
 substituting the native FP8 sidecar. Stock and Keys remain selectable with
 the same aliases and KV capacity. Their measurements are recorded separately.
@@ -120,7 +123,7 @@ mixed/deep-context diagnostic, followed by verified LAN startup. Runtime source
 `e2de6d1b2159a311c65ab8433ef0dc9957f32b6b` and its exact image digest remain
 identified separately from later documentation and qualification-client commits.
 See [current release status](../release/STATUS.md) and the
-[full workload measurements](../benchmarks/NATIVE-WORKLOADS.md). The prior
+[full workload measurements](../benchmarks/NATIVE-WORKLOADS-STOCK-1017-20261018.md). The prior
 source/image/head assets and verified worker-cache backup are preserved; a full
 520 GB old-worker restoration has not been rehearsed.
 

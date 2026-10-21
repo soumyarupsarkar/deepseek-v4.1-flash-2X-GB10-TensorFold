@@ -356,11 +356,13 @@ record reference outputs, not user conversations.
 
 The Jinja template in `deployment/config/chat-template-1017.jinja` is adapted
 from Mia-AiLab's original EXL3 V4.1 chat template, updated for the 1017 encoder.
-The pinned 1017 EXL3 quantization is by
-[LibertAIDAI](https://huggingface.co/LibertAIDAI/DeepSeek-V4.1-Flash-1017-EXL3-2.9bpw).
+The current pinned 1017 EXL3 EAQ v1 quantization is by
+[Mia-AiLab](https://huggingface.co/Mia-AiLab/DeepSeek-V4.1-Flash-1017-EXL3-EAQ-v1-2.9-bpw/tree/45ee5d0fd106c94a3d77f721e09cbb2f50e5a16b).
+[LibertAIDAI](https://huggingface.co/LibertAIDAI/DeepSeek-V4.1-Flash-1017-EXL3-2.9bpw)
+provided the previous 1017 pack retained in the historical reports.
 Weights are downloaded separately and retain their upstream licenses.
-The prior drowzeys / Keys overlay is not applied to the new checkpoint. The optional
-[1017 Keys sidecar](https://huggingface.co/drowzeys/keys-DeepSeek-V4.1-Flash-1017-Abliterated/tree/c61b5dcce6add8a282395f030d2ca7c664de5423)
+The optional matching Mia `exl3_wo_b_l10_35_mia29.safetensors`
+[1017 Keys sidecar](https://huggingface.co/drowzeys/keys-DeepSeek-V4.1-Flash-1017-Abliterated/tree/de412d2249632903dace23399526e00a145aada5)
 is downloaded separately from drowzeys and attributed to Keys/drowzeys. No
 model or sidecar weights are bundled in this repository. The mixed-precision
 TP2 overlay reader and deployment controls are local integration work.

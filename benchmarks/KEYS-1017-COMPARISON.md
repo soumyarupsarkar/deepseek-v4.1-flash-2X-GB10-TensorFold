@@ -1,48 +1,54 @@
-# Stock and Keys on the same 1017 runtime
+# Mia EAQ stock and its matching Keys overlay
 
-Both campaigns use runtime `9f8d14e349be3811147b1fd5b35bcbdac6f824fd` and image
-`sha256:eedc8c3acc3109262c92ccb4fcd8221b115f992cc34f644acd1bc40034c1a84a` on the same two GB10s, with 32 slots,
-8,650,752 shared KV tokens and the same drafting, context and memory settings.
-The Keys variant substitutes only the 26 attention `wo_b` projections in
-layers 10–35, using the pinned 1017 K6 sidecar over the stock 2.9 bpw pack.
+Matched campaigns on the same two GB10s, retaining 32 slots, an
+8,650,752-token shared pool, a 1,048,576-token request ceiling and the
+same drafting policy, graph/grammar budgets and 2 GiB memory guard.
 
-Every cell is the median of three scored repetitions, with one warm-up per
-configuration. C1 uses first-to-last-content decode timing; C32 uses aggregate
-steady decode while all 32 requests are active. Both campaigns include all
-48 waves and 792 requests. [Protocol and stock repetitions](NATIVE-WORKLOADS.md) ·
-[Keys repetitions](NATIVE-WORKLOADS-KEYS-1017-20261019.md).
+Every value is the median of three scored waves. C1 uses first-to-last-
+content decode timing; C32 is aggregate steady output tok/s with all 32
+decoders active. Each campaign includes all 48 waves and 792 requests.
 
-| Configuration | Task | Stock tok/s | Keys tok/s | Difference |
+| Configuration | Task | Mia stock tok/s | Mia + Keys tok/s | Difference |
 | --- | --- | ---: | ---: | ---: |
-| C1 greedy | Code | 94.0 | 90.5 | -3.7% |
-| C1 greedy | Prose | 59.6 | 58.0 | -2.5% |
-| C1 greedy | Counting | 134.2 | 137.4 | +2.4% |
-| C32 greedy | Code | 302.2 | 273.7 | -9.4% |
-| C32 greedy | Prose | 253.5 | 267.0 | +5.4% |
-| C32 greedy | Counting | 372.6 | 372.0 | -0.2% |
-| C1 sampled | Code | 96.2 | 90.1 | -6.3% |
-| C1 sampled | Prose | 56.3 | 54.2 | -3.8% |
-| C1 sampled | Counting | 130.7 | 136.4 | +4.4% |
-| C32 sampled | Code | 264.1 | 256.8 | -2.7% |
-| C32 sampled | Prose | 241.0 | 245.2 | +1.7% |
-| C32 sampled | Counting | 360.8 | 362.4 | +0.4% |
+| C1 greedy | Code | 97.8 | 94.6 | -3.2% |
+| C1 greedy | Prose | 63.9 | 60.2 | -5.8% |
+| C1 greedy | Counting | 141.4 | 138.3 | -2.2% |
+| C32 greedy | Code | 306.9 | 299.8 | -2.3% |
+| C32 greedy | Prose | 256.9 | 271.6 | +5.7% |
+| C32 greedy | Counting | 380.4 | 374.1 | -1.7% |
+| C1 sampled | Code | 89.3 | 87.2 | -2.4% |
+| C1 sampled | Prose | 62.8 | 61.6 | -1.9% |
+| C1 sampled | Counting | 139.5 | 139.0 | -0.3% |
+| C32 sampled | Code | 264.6 | 261.5 | -1.2% |
+| C32 sampled | Prose | 242.2 | 247.0 | +2.0% |
+| C32 sampled | Counting | 367.3 | 361.5 | -1.6% |
 
-The stock campaign ran first; the Keys campaign ran after switching and finite
-validation. Prompts, seeds and output caps match, but changed weights can
-change replies, stopping points and draft acceptance. These are end-to-end
-model variants, not an isolated comparison of K5 and K6 kernel speed. This
-workload suite does not measure model quality or refusal behavior.
+Prompts, seeds, caps and timing methods match. Changed weights can change
+replies, stopping points and draft acceptance. These are comparisons of
+complete model variants, not isolated kernel-speed measurements or a
+model-quality/refusal-rate evaluation. No repetition is discarded.
 
-All raw waves remain available for [stock](evidence/native-workloads-1017-stock-comparison-20261018.json)
-and [Keys](evidence/native-workloads-1017-keys-20261018.json). The earlier
-[stock migration campaign](NATIVE-WORKLOADS-STOCK-1017-20261018.md) uses a
-different runtime and remains separate.
+[Mia stock repetitions and protocol](NATIVE-WORKLOADS.md) ·
+[Mia Keys repetitions](NATIVE-WORKLOADS-MIA-KEYS-20261020.md) ·
+[Fresh LibertAI baseline](NATIVE-WORKLOADS-LIBERT-STOCK-20261020.md).
 
-The stock → Keys → stock → Keys rehearsal preserved every model alias and
-replayed all six fixed-seed synthetic prompts identically within each variant.
-Both ranks reported 78 loaded replacement slices for Keys and zero for stock.
-The measured resident-weight increase was 65 MiB on each GPU; the immutable
-stock-cache fingerprints stayed unchanged through the switches.
+## Variant and switching
 
-[Setup, switching and rollback](../deployment/KEYS-1017.md) ·
-[Qualification evidence](../release/native-keys-1017-20261018.json).
+The matching Mia sidecar replaces only layers 10–35 `wo_b` tensors. Both
+the stock tensors and replacements are EXL3 K5; experts, MTP, Engram and
+vision remain stock. Both variants use the same tested source and image.
+
+The stock → Keys → stock → Keys → stock rehearsal preserved aliases and
+replayed six fixed-seed synthetic prompts identically within each variant,
+including the final stock selection. Both ranks reported 78 loaded slices
+for Keys and zero for stock. Additional resident GPU weight bytes were
+**zero on both ranks**. Base-cache fingerprints remained unchanged.
+
+[Setup and rollback](../deployment/KEYS-1017.md) ·
+[Numeric qualification](../release/native-mia-1017-20261020.json) ·
+[Earlier LibertAI/K6 comparison](KEYS-LIBERT-1017-COMPARISON.md).
+
+## Runtime identities
+
+- mia-stock: source `7ebfbdbf3b01da8ab56a4d995324205104082efa`, image `sha256:304b45701d11c6e852d26984990a6105c64473cef56eb148d9aa5e96dfe1eb87`.
+- mia-keys: source `7ebfbdbf3b01da8ab56a4d995324205104082efa`, image `sha256:304b45701d11c6e852d26984990a6105c64473cef56eb148d9aa5e96dfe1eb87`.

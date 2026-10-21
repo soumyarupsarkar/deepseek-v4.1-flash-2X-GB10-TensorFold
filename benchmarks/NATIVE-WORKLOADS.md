@@ -1,114 +1,85 @@
-# Native decode by workload and concurrency
+# Mia EAQ stock 1017: decode by workload and concurrency
 
-These measurements use **stock DeepSeek-V4.1-Flash-1017** on two GB10s,
-with LibertAIDAI's EXL3 2.9 bpw pack and no Keys replacements loaded.
-The same runtime also supports the separately qualified optional Keys variant. C1 is one request; C32 is 32 concurrent requests
-of the same task type. Greedy means temperature 0; sampled means temperature 1
-with explicit per-request seeds.
-
-Measured on 2026-10-19 (UTC). Each value is the median of all three scored waves.
-C32 rates are aggregate output tok/s across all 32 active decoders.
+Measured on 2026-10-21 (UTC) on two GB10s. Every value is the median
+of three scored waves. C1 is one request; C32 is aggregate output tok/s
+with all 32 decoders active. Greedy uses temperature 0; sampled uses
+temperature 1 with explicit seeds.
 
 | Decode configuration | Code | Prose | Counting |
 | --- | ---: | ---: | ---: |
-| C1 greedy | **94.0** | **59.6** | **134.2** |
-| C32 greedy | **302.2** | **253.5** | **372.6** |
-| C1 sampled | **96.2** | **56.3** | **130.7** |
-| C32 sampled | **264.1** | **241.0** | **360.8** |
+| C1 greedy | **97.8** | **63.9** | **141.4** |
+| C32 greedy | **306.9** | **256.9** | **380.4** |
+| C1 sampled | **89.3** | **62.8** | **139.5** |
+| C32 sampled | **264.6** | **242.2** | **367.3** |
 
-[Complete evidence: every request, health sample and repetition](evidence/native-workloads-1017-stock-comparison-20261018.json).
-The campaign completed 36 scored waves (594 requests) and 12 warm-up
-waves (198 requests), for 792 requests total. All 18
-scored C32 waves reached 32 active decoders, with 28.3–48.2
-seconds of eligible steady observations each. Request and token counters
-matched exactly. Both ranks stayed running with zero restarts and the paired
-monitor active.
+[Every request, health sample and repetition](evidence/native-workloads-mia-stock-20261020.json).
+The campaign completed 36 scored waves (594 requests) and 12 warm-up waves
+(198 requests). All 18 scored C32 waves reached 32 decoders, with 28.1–47.7
+seconds of eligible steady observations. Exact request and token counters
+matched. Both ranks stayed running with zero restarts and the paired monitor active.
 
 ## All measured repetitions
 
-C1 uses first-to-last-content decode timing. C32 uses aggregate steady decode.
-The final column includes admission, prefill and completion tails. Prompt and
-reply ranges retain early stopping; a 384-token cap does not mean every reply
-reaches that length.
+Decode uses first-to-last-content timing at C1 and aggregate steady timing
+at C32. End-to-end includes admission, prefill and completion tails.
+Reply ranges preserve early stopping.
 
 | Configuration | Task | Decode repetitions, output tok/s | Prompt tokens | Reply tokens | End-to-end median, output tok/s |
 | --- | --- | --- | --- | --- | ---: |
-| C1 greedy | Code | 87.54 / 94.00 / 94.63 | 43 | 384 | 90.6 |
-| C1 greedy | Prose | 59.21 / 59.90 / 59.56 | 23 | 384 | 58.4 |
-| C1 greedy | Counting | 133.67 / 135.54 / 134.22 | 23 | 384 | 129.5 |
-| C32 greedy | Code | 304.00 / 301.83 / 302.17 | 48 | 384 | 261.3 |
-| C32 greedy | Prose | 251.88 / 253.47 / 254.04 | 28 | 322–384 | 229.1 |
-| C32 greedy | Counting | 375.61 / 372.26 / 372.60 | 28 | 384 | 332.7 |
-| C1 sampled | Code | 95.89 / 96.19 / 96.23 | 43 | 384 | 92.6 |
-| C1 sampled | Prose | 56.30 / 56.75 / 55.83 | 23 | 384 | 55.3 |
-| C1 sampled | Counting | 131.89 / 127.63 / 130.70 | 23 | 384 | 125.0 |
-| C32 sampled | Code | 264.81 / 263.69 / 264.06 | 48 | 384 | 233.9 |
-| C32 sampled | Prose | 238.74 / 240.98 / 241.38 | 28 | 383–384 | 220.6 |
-| C32 sampled | Counting | 360.83 / 358.11 / 361.87 | 28 | 384 | 321.6 |
+| C1 greedy | Code | 97.24 / 97.82 / 98.47 | 43 | 384 | 94.3 |
+| C1 greedy | Prose | 63.74 / 63.89 / 64.02 | 23 | 384 | 62.8 |
+| C1 greedy | Counting | 141.59 / 141.44 / 140.28 | 23 | 384 | 136.2 |
+| C32 greedy | Code | 306.33 / 307.40 / 306.88 | 48 | 384 | 265.7 |
+| C32 greedy | Prose | 256.34 / 256.93 / 256.92 | 28 | 353–384 | 233.2 |
+| C32 greedy | Counting | 380.45 / 379.43 / 380.57 | 28 | 384 | 339.2 |
+| C1 sampled | Code | 89.28 / 89.35 / 89.45 | 43 | 384 | 86.3 |
+| C1 sampled | Prose | 62.75 / 62.88 / 62.75 | 23 | 384 | 61.7 |
+| C1 sampled | Counting | 138.56 / 139.54 / 139.46 | 23 | 384 | 134.3 |
+| C32 sampled | Code | 265.78 / 264.62 / 263.52 | 48 | 384 | 234.4 |
+| C32 sampled | Prose | 242.19 / 242.83 / 242.18 | 28 | 373–384 | 222.4 |
+| C32 sampled | Counting | 366.52 / 367.31 / 367.45 | 28 | 384 | 327.5 |
 
-Returned-text hashes matched at every request index across all three scored
-repetitions in 12 of the 12 configurations. Repetitions reuse fixed
-prompt/seed fixtures. All repetitions remain in the report.
+Returned-text hashes matched across all three repetitions in 12 of
+12 configurations. Fixed prompts and seeds are reused; every repetition is retained.
+
+## Runtime
+
+Source `7ebfbdbf3b01da8ab56a4d995324205104082efa`, image
+`sha256:304b45701d11c6e852d26984990a6105c64473cef56eb148d9aa5e96dfe1eb87`. Capacity remains 32 slots, an
+8,650,752-token shared pool and 1,048,576 tokens per request.
 
 ## Workloads and timing
 
-The inputs come from [Bertholomus's benchmark kit, set b](../tools/dsv41/kit_bench.py):
+The inputs are [Bertholomus's benchmark kit, set b](../tools/dsv41/kit_bench.py):
+Python LRU-cache implementation with tests, a 400-word essay about the printing
+press, and a count from 1 to 200 with one number per line. Counting is
+ordinary text generation, not JSON-schema constrained output. C32 appends the
+kit's numbered ` (variant N)` suffix, for N=0..31.
 
-- Code: implement a Python LRU cache with O(1) operations and unit tests.
-- Prose: write a 400-word essay about the printing press and its effect on Europe.
-- Counting: count from 1 to 200, one number per line. The kit calls this task
-  `structured`; it uses text output without a JSON grammar.
+Thinking is disabled. Each concurrency/task/temperature shape has one unscored
+warm-up (32-token cap at C1, 64 at C32), then three scored waves with a
+384-token reply cap. EOS is allowed. Seeds are `42000 + request index` and
+repeat across repetitions. Order is temperature, task, concurrency. This is a
+warm throughput measurement; lazy graph captures remain in the timings.
+No repetition is discarded or replaced.
 
-C1 uses the original prompt. C32 uses the same task with the kit's
-` (variant N)` suffix for request indices 0 through 31. There is no random-word
-padding. All requests use the chat endpoint with thinking off, the default
-drafting policy, a 384-token output cap and normal stopping enabled. Actual
-reply lengths are retained, including replies that finish before the cap.
-These are public benchmark prompts; no inference-user prompts were used or
-adapted.
+C1 uses `(output tokens - 1) / first-to-last-content seconds`, excluding time
+to first content. C32 counts output tokens in adjacent health observations
+while all 32 decoders are active, with no prefill or queued work. Polls are
+0.25 seconds apart; gaps over three seconds are excluded and at least two
+seconds of eligible observations are required. Admission and completion tails
+are excluded from that steady rate. Individual request rates are not summed.
 
-Each concurrency/task/temperature combination has one unscored warm-up wave,
-with a 32-token cap at C1 or 64 at C32, followed by three scored waves. Request
-seeds are `42000 + index` and repeat across the three repetitions. The order is
-temperature, task, then concurrency. Repetitions reuse the same prompt/seed
-fixtures. This is a warm throughput measurement with no cold-prefix claim.
-Lazy graph captures during scored waves remain in the timings, and their
-counts are retained per wave. No repetition is discarded or replaced.
-
-**C1 decode** uses the kit's `(output tokens - 1) / first-to-last-content time`
-calculation, excluding time to first content. **C32 aggregate decode** counts
-generated tokens through adjacent health samples while all 32 decoders are
-active, with no prefill or queued work. Samples are taken every 0.25 seconds;
-eligible observations must span at least two seconds, and gaps over three
-seconds are excluded. Request arrival and completion tails are excluded from
-that steady rate. Summing individual request rates is not used.
-
-End-to-end aggregate throughput divides all returned output tokens by the time
-from the earliest request start to the latest response end. It includes
-admission, prefill and completion tails. The complete receipt keeps both timing
-methods, individual request timings and lengths, and all health samples.
-
-
-
-## Runtime and verification
-
-Runtime source `9f8d14e349be3811147b1fd5b35bcbdac6f824fd`, image
-`sha256:eedc8c3acc3109262c92ccb4fcd8221b115f992cc34f644acd1bc40034c1a84a`. The profile has 32 slots, an
-8,650,752-token shared KV pool and a 1,048,576-token request limit. This
-benchmark uses short text requests; it does not independently qualify full
-context capacity, vision, structured outputs or long-run stability.
-
-The [runner](native_workloads.py) checks the owned rank/image identities,
-readiness, graph budget, paired monitor and exact completed-request and
-input/output-token counters. Every scored C32 wave must show all 32 active
-decoders and sufficient eligible steady time. No host or server configuration
-is changed.
+End-to-end throughput includes all returned output tokens from the earliest
+request start to the latest response end. Raw evidence retains every request's
+length and timing, prompt/output hashes, health observations, graph captures,
+warm-up and scored repetition. All prompts are public benchmark fixtures;
+no private inference history is used.
 
 ## Reproduction
 
-Use an otherwise idle deployment and a new receipt filename. Run the helper
-from this checkout, pointing `--source` at the clean, pinned checkout that owns
-the running deployment; use `.` if it is the same checkout.
+Use an otherwise idle deployment and a new receipt filename. Point `--source`
+to the clean checkout that owns the running image:
 
 ```bash
 mkdir -p deployment/.local/measurements
@@ -116,22 +87,17 @@ python3 -B benchmarks/native_workloads.py --source . \
   --out deployment/.local/measurements/native-workloads-new.json
 ```
 
-The complete campaign consists of 48 waves: 12 unscored warm-ups and 36 scored
-waves, covering both concurrency levels, all three task types and both
-temperatures. The runner refuses existing receipt paths, preserves failed or
-interrupted attempts, and rejects counter contamination. It leaves the ranks
-running.
+The runner checks rank/image identity, paired monitor, graph budget, readiness,
+C32 occupancy and exact request/input/output counters. It refuses existing
+receipts and preserves failures. The 48-wave campaign leaves both ranks running.
+This short-prompt test alone does not qualify full-context capacity, vision,
+structured output, long-term stability or model quality.
 
 
+## Related measurements
 
-## Earlier measurements
-
-The [stock 1017 workload report](NATIVE-WORKLOADS-STOCK-1017-20261018.md)
-preserves the original stock migration results. A new matched stock/Keys
-comparison is recorded in [Keys qualification](KEYS-1017-COMPARISON.md).
-
-The [previous Keys workload report](NATIVE-WORKLOADS-KEYS-20261011.md) preserves
-its original measurements and evidence. Those results use a different
-checkpoint. The [earlier unchanged-kit C1 run](NATIVE-DECODE.md) and
-[mixed C32 drafting investigation](NATIVE-DRAFTING.md) retain their original
-protocols and runtime identities as well.
+[Matched LibertAI/Mia comparison](MIA-1017-COMPARISON.md) and
+[Mia stock/Keys comparison](KEYS-1017-COMPARISON.md) retain variant differences.
+The earlier [LibertAI stock campaign](NATIVE-WORKLOADS-LIBERT-STOCK-20261019.md)
+and [original 1017 migration](NATIVE-WORKLOADS-STOCK-1017-20261018.md)
+remain scoped to their original images and weights.
