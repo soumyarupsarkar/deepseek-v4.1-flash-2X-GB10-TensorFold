@@ -403,7 +403,7 @@ const Got = struct {
         return .{ .ctx = g, .vt = &.{ .open = open, .event = event, .reply = reply } };
     }
 
-    fn open(ctx: *anyopaque, _: usize) error{Closed}!void {
+    fn open(ctx: *anyopaque) error{Closed}!void {
         const g: *Got = @ptrCast(@alignCast(ctx));
         g.status = 200;
     }

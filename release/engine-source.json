@@ -2814,7 +2814,7 @@
     },
     {
       "path": "zig/src/server/dsml_test.zig",
-      "sha256": "6059ec2c28dca628c7e18b79d3f5134829cde46d3c70d2e378ae22675e42cccc"
+      "sha256": "e1797351e47dcdddd8012f3f3430b2dc1622025c8e8e4c6f177b4503600e1eeb"
     },
     {
       "path": "zig/src/server/effort_values_test.zig",
@@ -2942,7 +2942,7 @@
     },
     {
       "path": "zig/src/server/root.zig",
-      "sha256": "99cbb952186c295b84602b2b6eb6d18e1efab1f9c6a2f2948283063c0ed6a935"
+      "sha256": "640dea792f680f0d954da7d1f0f5cdb55bdadf43c1cbf2352d097c99eff35dce"
     },
     {
       "path": "zig/src/server/routes.zig",

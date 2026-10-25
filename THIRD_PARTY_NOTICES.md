@@ -1,5 +1,14 @@
 # Third-party notices
 
+The October 25 native-server integration includes Bertholomus/Manrique and
+akol1's DSML parsing work; fixes by Jay Leaton, Blackwellboy and Nathan McBride;
+and Mia recipe patches contributed by Coinupbtc, Robert Wojciechowski (`wojo`)
+and Maciej Kowalik (`koniaik`). These TensorFold/Mia source adaptations are
+Apache-2.0. Lucas Peters's additional Triton kernel is acquired as a pinned
+external kit asset, with that kit's notices retained. Exact revisions and the
+scope of each adaptation are listed in the
+[October 25 integration record](deployment/UPSTREAM-20261025.md).
+
 TensorFold uses [MLX](https://github.com/ml-explore/mlx) and
 [mlx-lm](https://github.com/ml-explore/mlx-lm), MIT License, Copyright © 2023 Apple Inc.
 They are installed as dependencies.

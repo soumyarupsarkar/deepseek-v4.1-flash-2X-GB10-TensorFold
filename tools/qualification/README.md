@@ -17,6 +17,7 @@ Run these separately, stopping after any failure:
 
 ```bash
 python3 -B tools/qualification/native_features.py baseline --record native-baseline-01
+python3 -B tools/qualification/native_boundaries.py --record native-topk-boundaries-01
 python3 -B tools/qualification/native_prefill.py --latency-limit 30 --record native-prefill-01
 python3 -B tools/qualification/native_features.py structured --record native-structured-01
 python3 -B tools/qualification/native_features.py sampling --record native-sampling-01
@@ -38,6 +39,10 @@ execution, and exercises cancellation while a prompt is still being filled.
 The image-format client uses generated colored squares to exercise JPEG and
 WebP through all three APIs and requires a malformed image to return HTTP 400.
 It needs no client-side image libraries; the encoded fixtures are included.
+The top-k boundary client sends exact 511/512/513/514-token prompts, requires
+64 identical ordinary/drafted output tokens for each, and verifies actual
+drafting and uninterrupted ownership. It covers the previously missing
+N=KK=256 native kernel without relying on a model-generated prompt length.
 
 ## Capacity, replay and compaction
 

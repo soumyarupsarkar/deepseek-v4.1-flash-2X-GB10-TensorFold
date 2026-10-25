@@ -213,6 +213,8 @@ host allocator retention during structured-output compilation. The
 [stability and memory investigation](deployment/STABILITY.md) records the
 reproduction, fix and fresh capacity/performance checks;
 [release status](release/STATUS.md) identifies the currently deployed image.
+The [October 25 upstream review](deployment/UPSTREAM-20261025.md) records the
+selected parser, prompt-reuse and boundary-kernel improvements and their sources.
 
 This diagnostic uses a different cache protocol from the historical Python
 comparison above. The
