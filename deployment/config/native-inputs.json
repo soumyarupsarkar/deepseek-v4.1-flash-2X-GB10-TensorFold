@@ -12,12 +12,12 @@
   },
   "kernel_kit": {
     "repo": "bertholomus/DeepSeek-V4.1-Flash-TensorFold-TP2-2xGB10",
-    "revision": "789625a7081e91643cb61ceafd15f588850c511a",
-    "manifest_sha256": "0df6bbbd49c9f3419b83a2cfe978182fc664dc036e9979c900b599ff84b4f9f3",
-    "recipe_revision": "5e90ec9302149049e8f019ea035827cb24c206f8",
+    "revision": "4996441a82d95b9a7853b01a1255e1dafc926387",
+    "manifest_sha256": "8c6dcb712a7557a8aeb794d68daf85b07befae7bb1bdfa470223e957718f2845",
+    "recipe_revision": "58186d120bfa4a7f19cc0da03b53f64de2685239",
     "manifest_equal": true,
     "files": "native-kit-files.json",
-    "files_sha256": "a284600537e1af62f0eeedbbd5887f257364e8fdb6660589297748e4cd62774a"
+    "files_sha256": "62858c2e6c673ca5f3a672688471dda70b4f5ff8e40f39f2f90a6893f4421319"
   },
   "prepared_cache_producer": {
     "repository": "https://github.com/soumyarupsarkar/deepseek-v4.1-flash-2X-GB10-TensorFold.git",

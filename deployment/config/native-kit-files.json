@@ -36,18 +36,18 @@
   },
   {
     "path": "kit/MANIFEST",
-    "sha256": "0df6bbbd49c9f3419b83a2cfe978182fc664dc036e9979c900b599ff84b4f9f3",
-    "size": 31272
+    "sha256": "8c6dcb712a7557a8aeb794d68daf85b07befae7bb1bdfa470223e957718f2845",
+    "size": 31509
   },
   {
     "path": "kit/README.md",
-    "sha256": "74e41330f2acf26328133fc066a28590c4fe1c7bb6b80a7eda881217431c8c3a",
-    "size": 2791
+    "sha256": "2f43be735e02381c54b02655407089c370273d84556cc9e91a2fed2cef29f997",
+    "size": 3127
   },
   {
     "path": "kit/aot/aot.json",
-    "sha256": "092b6d274a5f86b5fd69fa3cd04703686e4e998ceb3ecc997be8359c89b841b0",
-    "size": 279469
+    "sha256": "29dccbcfdfc327a2ca83f40eb88c2bad83f9f61128e0cd27c29a1243d6fcd603",
+    "size": 280174
   },
   {
     "path": "kit/aot/cubins/0224cd0dd05b5f3055ce8917aef29f782e4c15794cb410b0fc8cf3f605ba8d5a.cubin",
@@ -650,6 +650,11 @@
     "size": 107448
   },
   {
+    "path": "kit/aot/cubins/a2c0ea5eb9a9c7aa6028441066bea0a479431badcf841a4892fe735ac8bb805a.cubin",
+    "sha256": "b3bbb9b0d874a8875c9a6e18975588aa547d03db6aeb614c155324cb5bf76f8f",
+    "size": 83560
+  },
+  {
     "path": "kit/aot/cubins/a3f2c6cf6ddf5cbd50095a184ae3162898d334d4ecca904423e4837e60d75064.cubin",
     "sha256": "9ee648bd06c30dc4a010568860d8c9831d892eb09f648514d2061bd92d2b5e44",
     "size": 93968
@@ -1093,6 +1098,11 @@
     "path": "kit/tools/make_rope.py",
     "sha256": "1b7a7691db5c9cffb0fbd16ee7e8dcbcd69916d1df1161f901608bde81a75af2",
     "size": 1773
+  },
+  {
+    "path": "kit/tools/make_topk_sel.py",
+    "sha256": "2bde42abfbbb37ef5c5b7a955a078c546673c9668151035496df752f49360140",
+    "size": 11144
   },
   {
     "path": "kit/tools/verify_kit.sh",

@@ -424,7 +424,7 @@ const Generation = struct {
         }
         if (g.calls) |*c| {
             var out: std.ArrayList(Value) = .empty;
-            try c.feed(tool_parse.beforeDsml(answer), &out); // never the reasoning, nor a DSML block's arguments: a call they quote is not made
+            try c.feed(answer, &out); // the streamer isolates DSML blocks before reading other call forms
             for (out.items) |d| try g.emit(sink, d);
         }
     }

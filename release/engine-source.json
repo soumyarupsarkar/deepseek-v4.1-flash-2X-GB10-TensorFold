@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "upstream_base": "4e80f05ecba89a4e90d16375ade2eddbdc0a10c4",
-  "status": "Mia EAQ 1017 stock and optional matching Keys qualified on runtime 7ebfbdb; see release/STATUS.md for evidence and limits",
+  "status": "October 25 upstream correctness integration candidate; runtime qualification pending",
   "scope": "Build, native engine, grammar bridge, deployment controller/configuration and checkpoint-specific compiled test resources. This manifest is not serving qualification.",
   "files": [
     {
@@ -54,11 +54,11 @@
     },
     {
       "path": "deployment/config/native-inputs.json",
-      "sha256": "dd75d9328ef27bab2d23df96d28fae236cdf4b5b771498091785a020f4470f92"
+      "sha256": "535fdcb793d5700ef8c7df6644ee9465d4a07ef1eea3a1e715d7f4817c1c1012"
     },
     {
       "path": "deployment/config/native-kit-files.json",
-      "sha256": "a284600537e1af62f0eeedbbd5887f257364e8fdb6660589297748e4cd62774a"
+      "sha256": "62858c2e6c673ca5f3a672688471dda70b4f5ff8e40f39f2f90a6893f4421319"
     },
     {
       "path": "deployment/config/native-shared-costs-20261010.json",
@@ -1714,7 +1714,7 @@
     },
     {
       "path": "zig/src/core/template/eval.zig",
-      "sha256": "82c783f3b69bbf21c3daa256411aaaccdd496f9d4795474d2964ba2efccb402f"
+      "sha256": "cd07f7bb60afbc5c44bcf43dfbcd72fe5828c0d8e13d1e5146890eec40ee11e0"
     },
     {
       "path": "zig/src/core/template/filters.zig",
@@ -1750,7 +1750,7 @@
     },
     {
       "path": "zig/src/core/template/tests.zig",
-      "sha256": "0eb5768c703194d4f3b0083f4b8c690280276b3412e4ecfed505875f5cbad16d"
+      "sha256": "5e9aadbf0bd5978717df410cbb43aa507478b40a9cca20b119a0822d58abd39a"
     },
     {
       "path": "zig/src/core/template/unicode.zig",
@@ -2014,7 +2014,7 @@
     },
     {
       "path": "zig/src/families/dsv41/engram_aio.zig",
-      "sha256": "a73bbe779f94dd7f52515a0415ddd2c373201a37ea1507d3531f1f8914013133"
+      "sha256": "0602563e21889abb48411b7b2d08de3a4a58ce081499a0526979b0bba9d05307"
     },
     {
       "path": "zig/src/families/dsv41/engram_check_main.zig",
@@ -2094,7 +2094,7 @@
     },
     {
       "path": "zig/src/families/dsv41/model.zig",
-      "sha256": "b543f4950efdc14d7efc723c366f669117c39776cf5d2075631716b276d99b19"
+      "sha256": "ebb01516340faace855e920cfedfc4b89ae8f13b662058d104f024486bfb2769"
     },
     {
       "path": "zig/src/families/dsv41/native.zig",
@@ -2126,7 +2126,7 @@
     },
     {
       "path": "zig/src/families/dsv41/prompt.zig",
-      "sha256": "46e59b703a50f9230e0716f4ccaa8ea780dd95cef65198e9966284da424734c8"
+      "sha256": "bd2f9c2afff4ca28b8e4c5d74b4e41e77a3b23faa1be13ea80c0f0e94a586bd5"
     },
     {
       "path": "zig/src/families/dsv41/prompt2d.zig",
@@ -2754,7 +2754,7 @@
     },
     {
       "path": "zig/src/server/anthropic_translate.zig",
-      "sha256": "e2f7845d38e4c99feeed3600a38149dc986b68bc774d3cc2a1ffb71924c91886"
+      "sha256": "b1f8ae1acd600671d4ac09c9540c99e796eb62a24a9089ccb25ce1af7f1807d0"
     },
     {
       "path": "zig/src/server/auth.zig",
@@ -2762,7 +2762,7 @@
     },
     {
       "path": "zig/src/server/chat.zig",
-      "sha256": "25fd0908636a2d01e5c45eb8c89b538e294d6bda8426ce7668ae9c3c3894fa51"
+      "sha256": "14ec6ff527c5d9c7d51d63e0b240b239a302188a55f74edbde548cb719072595"
     },
     {
       "path": "zig/src/server/checkpoint_1017_test.zig",
@@ -2807,6 +2807,14 @@
     {
       "path": "zig/src/server/decisions_test.zig",
       "sha256": "2ad024c5c6bdfa938c780cd8947c60f2e414e76ef79a93fbb65aee59f373d608"
+    },
+    {
+      "path": "zig/src/server/dsml.zig",
+      "sha256": "24ece674ef151e409c4d97c38f24ba32235e5f357223070a080499514f847f89"
+    },
+    {
+      "path": "zig/src/server/dsml_test.zig",
+      "sha256": "6059ec2c28dca628c7e18b79d3f5134829cde46d3c70d2e378ae22675e42cccc"
     },
     {
       "path": "zig/src/server/effort_values_test.zig",
@@ -2862,7 +2870,7 @@
     },
     {
       "path": "zig/src/server/json_write.zig",
-      "sha256": "3d28843cc4efdb8050a60be4f9f28013f1af5b159ee09651d93a549f3a6e8205"
+      "sha256": "ae13620049f2bc970b7f61545a47aab88fb87d1310a6b95b5b50e30808971870"
     },
     {
       "path": "zig/src/server/late_system_test.zig",
@@ -2902,7 +2910,7 @@
     },
     {
       "path": "zig/src/server/openai.zig",
-      "sha256": "9788739a008c055e16a904e6a28488accc631aa4aa4ba1220587eae540af25ae"
+      "sha256": "be078b85eb90f248dbb4b034d6861882334de4ae83d9458ca8c7f47acb45a774"
     },
     {
       "path": "zig/src/server/prompt.zig",
@@ -2918,7 +2926,7 @@
     },
     {
       "path": "zig/src/server/reply_text.zig",
-      "sha256": "cf6c9af94342e3f1ea44238962318e3f9b3b9d1e3c312d913170b58337ffcf0e"
+      "sha256": "1b93fa201d2fc5342c9e9f7c8d76ad9dbf9dea2979274f4eb3d1280530e2efa3"
     },
     {
       "path": "zig/src/server/request_log.zig",
@@ -2934,7 +2942,7 @@
     },
     {
       "path": "zig/src/server/root.zig",
-      "sha256": "791c0f2047e1c1205eed3cdef50ee35e2eab0f767a65c48e68416818721014f1"
+      "sha256": "99cbb952186c295b84602b2b6eb6d18e1efab1f9c6a2f2948283063c0ed6a935"
     },
     {
       "path": "zig/src/server/routes.zig",
@@ -2962,7 +2970,7 @@
     },
     {
       "path": "zig/src/server/stream_preflight_test.zig",
-      "sha256": "49a6e72348f757cc5797860244db23d8be34b0a8a448e6fe63949ff47de101bf"
+      "sha256": "fe8d63c440b693b0e17fd2bcbb49894dd860780ade7e9e5738157ba7ab38f957"
     },
     {
       "path": "zig/src/server/tokens.zig",
@@ -2978,11 +2986,11 @@
     },
     {
       "path": "zig/src/server/tool_parse.zig",
-      "sha256": "211918aed38ccbf5081f9427374d2a33c7e5b903a1481ebd8859950e8a3b5bb0"
+      "sha256": "e81e8daf61c590198e5fc666a2b9da1825e32857e017ab1dfcc7385b1d143861"
     },
     {
       "path": "zig/src/server/tool_parse_test.zig",
-      "sha256": "53e8a544a1604af7f01715148800af0cdcad09874c94f15123cd723fee0c0fa4"
+      "sha256": "4bfa6b0a09ab0748f708eabc80c2d00306c98ba2ca14c2e8c477c85246a5a1eb"
     },
     {
       "path": "zig/src/server/tool_specs.zig",
@@ -2990,7 +2998,11 @@
     },
     {
       "path": "zig/src/server/tool_stream.zig",
-      "sha256": "94c35581c722d4392de0494c497f97704388d386f3dc30f133e0050aa56d7d32"
+      "sha256": "8678635658c3355792051324709f92304dc604339531f4d8dfb79c1bd1e3be8d"
+    },
+    {
+      "path": "zig/src/server/tool_stream_test.zig",
+      "sha256": "9b9a307964c24294cbf16e4ba9330731a2dc1b11972f1f06c1ed95873c35a4c4"
     },
     {
       "path": "zig/src/server/tool_streaming.zig",

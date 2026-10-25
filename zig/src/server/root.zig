@@ -22,6 +22,9 @@ test {
     _ = @import("reply_text.zig");
     _ = @import("tool_parse.zig");
     _ = @import("tool_stream.zig");
+    _ = @import("tool_stream_test.zig");
+    _ = @import("dsml.zig");
+    _ = @import("dsml_test.zig");
     _ = @import("tool_params.zig");
     _ = @import("pyrepr.zig");
     _ = @import("metrics.zig");
@@ -36,6 +39,7 @@ test {
     _ = @import("host_heap.zig");
     _ = @import("log.zig");
     _ = @import("messages.zig");
+    _ = @import("anthropic_translate.zig");
     _ = @import("checkpoint_1017_test.zig");
     _ = @import("stream_preflight_test.zig");
     _ = @import("late_system_test.zig");

@@ -579,6 +579,10 @@ pub const Model = struct {
 
     pub fn fillBegin(m: *Model, slot: usize, base: usize) !void {
         if (slot >= m.streams) return error.BadSlot;
+        // A cancelled/interleaved prompt may leave completed rows at the same
+        // chunk position but hashed from different ids (Mia/wojo patch 0012).
+        m.joinAhead();
+        if (m.eh) |*eh| eh.resetAhead();
         m.spans.clearRetainingCapacity();
         m.ch.spans = &.{};
         m.view = try m.caches.view(&m.eng, slot, base);

@@ -1118,6 +1118,14 @@ pub const EngramHost = struct {
     p_gate: u64 = 0,
     p_calls: u64 = 0,
 
+    /// Call only after joining the producer. Completed rows belong to one
+    /// prompt, even when a later prompt resumes at the same chunk position.
+    pub fn resetAhead(eh: *EngramHost) void {
+        eh.ahead_ready = .{ false, false };
+        eh.ahead_n = 0;
+        eh.ahead_err = null;
+    }
+
     pub fn init(gpa: std.mem.Allocator, c: *const Config, hasher: engram.Hasher, tables: *const engram_io.Tables, pool: *engram_io.Pool, rank: usize, world: usize, cap: usize) !EngramHost {
         const cols = hasher.cols();
         const lo = rank * cols / world;
@@ -1400,4 +1408,19 @@ test "index row blocks cover every row within scratch and alignment bounds" {
 fn notPorted(src: std.builtin.SourceLocation) error{NotPortedYet} {
     std.debug.print("{{\"not_ported\": \"{s}:{d}\"}}\n", .{ src.file, src.line });
     return error.NotPortedYet;
+}
+
+test "switching prompts invalidates completed Engram read-ahead and its error" {
+    // Unrelated GPU/IO fields are never touched by invalidation.
+    var eh: EngramHost = undefined;
+    eh.ahead_start = 1024;
+    eh.ahead_n = 1024;
+    eh.ahead_ready = .{ true, true };
+    eh.ahead_err = error.RowOutOfRange;
+    eh.resetAhead();
+    for (eh.ahead_ready) |ready| try std.testing.expect(!ready);
+    try std.testing.expectEqual(@as(usize, 0), eh.ahead_n);
+    try std.testing.expect(eh.ahead_err == null);
+    // Starting at the same position cannot consume the old prompt's rows.
+    try std.testing.expect(!(eh.ahead_ready[0] and eh.ahead_start == 1024 and eh.ahead_n == 1024));
 }

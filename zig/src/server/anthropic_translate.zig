@@ -284,10 +284,35 @@ pub fn translate(cx: *Cx, body: Value, count: bool) errors.Refused!Value {
     try chat.put(a, "chat_template_kwargs", .{ .object = kwargs });
     if (!enabled) try chat.put(a, "reasoning_effort", .{ .string = "none" });
     if (std.mem.eql(u8, t, "enabled")) {
-        const budget = positiveInt(thinking.get("budget_tokens"));
-        const limit = if (body.get("max_tokens")) |m| m.int64() orelse std.math.maxInt(i64) else 0;
-        if (budget == null or (!count and budget.? >= limit)) return cx.refuse("thinking.budget_tokens must be positive and less than max_tokens");
-        try chat.put(a, "thinking_budget", thinking.get("budget_tokens").?);
+        // no budget_tokens (absent or null): the server's --thinking-budget default, as an OpenAI request without
+        // thinking_budget gets; one that is there is checked and passed on as before
+        if (thinking.get("budget_tokens")) |given| if (given != .null) {
+            const budget = positiveInt(given);
+            const limit = if (body.get("max_tokens")) |m| m.int64() orelse std.math.maxInt(i64) else 0;
+            if (budget == null or (!count and budget.? >= limit)) return cx.refuse("thinking.budget_tokens must be positive and less than max_tokens");
+            try chat.put(a, "thinking_budget", given);
+        };
     }
     return .{ .object = chat };
+}
+
+test "enabled thinking accepts the server default but refuses explicit invalid budgets" {
+    var arena: std.heap.ArenaAllocator = .init(std.testing.allocator);
+    defer arena.deinit();
+    const a = arena.allocator();
+    const base = "{\"model\":\"m\",\"max_tokens\":64,\"messages\":[{\"role\":\"user\",\"content\":\"hello\"}],\"thinking\":{\"type\":\"enabled\"";
+    for ([_][]const u8{ "", ",\"budget_tokens\":null", ",\"budget_tokens\":32" }) |suffix| {
+        var cx: Cx = .{ .a = a };
+        const body = (try json.parse(a, try std.mem.concat(a, u8, &.{ base, suffix, "}}" }))).ok;
+        const chat = try translate(&cx, body, false);
+        try std.testing.expect(chat.get("chat_template_kwargs").?.get("enable_thinking").?.bool);
+        if (std.mem.endsWith(u8, suffix, "32")) {
+            try std.testing.expectEqual(@as(i64, 32), chat.get("thinking_budget").?.int64().?);
+        } else try std.testing.expect(chat.get("thinking_budget") == null);
+    }
+    for ([_][]const u8{ "0", "-1", "64", "65", "1.5", "true", "\"32\"" }) |budget| {
+        var cx: Cx = .{ .a = a };
+        const body = (try json.parse(a, try std.mem.concat(a, u8, &.{ base, ",\"budget_tokens\":", budget, "}}" }))).ok;
+        try std.testing.expectError(error.Refused, translate(&cx, body, false));
+    }
 }
