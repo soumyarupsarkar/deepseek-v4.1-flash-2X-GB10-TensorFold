@@ -1,15 +1,64 @@
 # Native release status
 
-## Current: Mia EAQ 1017 with optional matching Keys
+## Current: October 25 upstream correctness update with stock Mia
 
-The selected deployment runs **stock Mia-AiLab EAQ v1 2.9-bpw 1017 weights**.
+Runtime `1163c7ce79aee5b523cff5130790937c4be0ea51`, image
+`sha256:369b10a3d8872375879a46b17399a0fa523469fd1f3480215b0bc603d8761739`,
+passed isolated qualification and is serving on the LAN. The model and
+optional Keys pins are unchanged: stock Mia EAQ v1 remains selected, with
+32 active slots, 8,650,752 shared logical KV tokens and a 1,048,576-token
+request ceiling. Aliases, vision, structured outputs and random seeds remain.
+
+The update incorporates malformed DSML envelope handling, streamed tool-call
+parsing and accompanying prose, UTF-8 bounds checks, prompt-change Engram
+read-ahead invalidation, AIO index validation, template append allocation,
+optional Anthropic thinking budgets and the missing 512/513-token top-k kernel.
+[Changes, upstream attribution and deferred updates](../deployment/UPSTREAM-20261025.md).
+
+- The build passed 374 native tests and one C++ grammar test; publication and
+  controller suites passed 115 Python tests. Both hosts passed nine GPU checks,
+  complete stock tensor-byte comparison and all 78 optional Keys slice checks.
+- All 17 finite stock gates passed on uninterrupted rank processes, including
+  greedy/sampled drafting parity through C32, vision and protocols, retention,
+  prefill/cancellation, compaction, full-window C32 replay and million-token
+  retrieval. Exact 511/512/513/514-token boundary cases also passed.
+- Both C32 waves decoded 32 sessions of 261,120 input + 1,024 output tokens,
+  with exact replay. They use a shared primed document with independent active
+  reservations, rather than 32 unrelated cold prefills. The cold million-token
+  request recovered all three passphrases and generated 256 output tokens.
+- A short matched greedy diagnostic produced 198 identical replies and token
+  counts across retained and updated runtimes. C32 throughput changed by
+  −3.08% to +0.66% across code, prose and counting. Its one scored repetition
+  per shape is a regression screen, separate from the repeated headline campaign.
+- Stock → Keys → stock preserved aliases and exact stock replay. Keys passed
+  baseline and structured-output checks and added zero resident weight bytes.
+- Across about 56 minutes, 632 memory samples recorded no monitor failures;
+  minimum available RAM was 2.45 GiB on the head and 3.73 GiB on the worker.
+  The 2 GiB stop threshold is unchanged. No new 12/24-hour endurance claim is made.
+- The separate LAN installation repeated both hosts' preparation and complete
+  tensor comparisons. All twelve fresh synthetic requests passed, including
+  aliases, strict output, tools, vision, random seeds/replay and streaming.
+  Both ranks reported stock; worker-to-head LAN reachability and the paired
+  monitor passed. The serving checkout stays pinned to the tested runtime;
+  later documentation commits do not rebuild or replace it.
+
+[Numeric qualification evidence](native-upstream-20261025.json) ·
+[Matched diagnostic and rollback](../deployment/UPSTREAM-20261025.md#qualification-and-rollback).
+The prior source, image, assets and restoration journals are retained. Creating
+the new installation's hardlinks changes inode ctime; revalidate the retained
+owner's assets and prepared caches before rollback startup. No weight redownload
+or reboot is required while those retained assets remain intact.
+
+## Previous: initial Mia EAQ 1017 qualification with optional matching Keys
+
+The initial Mia deployment used **stock Mia-AiLab EAQ v1 2.9-bpw 1017 weights**.
 The matching Keys K5 sidecar is prepared and selectable, but off. It retains
 32 active slots, 8,650,752 shared logical KV tokens, a 1,048,576-token request
 ceiling, the same aliases, vision, structured output and random request seeds.
 
-Measured runtime source: `7ebfbdbf3b01da8ab56a4d995324205104082efa`. Both hosts use image
-`sha256:304b45701d11c6e852d26984990a6105c64473cef56eb148d9aa5e96dfe1eb87`. The running owning checkout stays pinned to that
-tested runtime; subsequent documentation commits do not rebuild it.
+Measured runtime source: `7ebfbdbf3b01da8ab56a4d995324205104082efa`. Both hosts used image
+`sha256:304b45701d11c6e852d26984990a6105c64473cef56eb148d9aa5e96dfe1eb87`.
+That tested runtime remains retained for rollback.
 
 - Every prepared stock tensor byte and every overlay slice passed comparison
   on both ranks, and all nine GPU preparation checks passed per host. The

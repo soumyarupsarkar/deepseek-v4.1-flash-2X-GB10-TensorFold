@@ -1,0 +1,475 @@
+{
+  "schema": 1,
+  "status": "deployed-stock",
+  "assembled": "2026-10-25T12:34:51.134684+00:00",
+  "runtime_source": "1163c7ce79aee5b523cff5130790937c4be0ea51",
+  "runtime_image": "sha256:369b10a3d8872375879a46b17399a0fa523469fd1f3480215b0bc603d8761739",
+  "selected_variant": "stock",
+  "reviewed_upstream": {
+    "bertholomus_native_tp2": "a57deb9d470b27e1e3fab2a9494915a0049415aa",
+    "bertholomus_previous_native_branch": "fbbc97132cd004237d9887b8d3185896efaedc5c",
+    "dsml_snapshot": "a90b0b5e7df5ad2fbc2a3ebcd8f83829f55cabc7",
+    "mia_recipe": "27741e176a9e5b98c10c9c7d012fd3e4fcdc19b6"
+  },
+  "model": {
+    "repo": "Mia-AiLab/DeepSeek-V4.1-Flash-1017-EXL3-EAQ-v1-2.9-bpw",
+    "revision": "45ee5d0fd106c94a3d77f721e09cbb2f50e5a16b"
+  },
+  "optional_overlay": {
+    "repo": "drowzeys/keys-DeepSeek-V4.1-Flash-1017-Abliterated",
+    "revision": "de412d2249632903dace23399526e00a145aada5",
+    "prepared_entries_per_rank": 78,
+    "prepared_tensor_bytes_per_rank": 341266432,
+    "additional_resident_bytes_per_rank": 0
+  },
+  "weight_changes": false,
+  "build_tests": {
+    "native": 374,
+    "cpp_grammar": 1,
+    "python_publication": 92,
+    "python_controller": 23
+  },
+  "preparation": {
+    "status": "passed",
+    "gpu_checks_per_host": {
+      "head": 9,
+      "worker": 9
+    },
+    "stock": {
+      "head": {
+        "ok": true,
+        "entries": 143770,
+        "compared": 143770,
+        "bytes": 106107109192,
+        "compared_bytes": 106107109192,
+        "byte_mismatches": 0,
+        "layout_mismatches": 0,
+        "mismatches": 0
+      },
+      "worker": {
+        "ok": true,
+        "entries": 143770,
+        "compared": 143770,
+        "bytes": 106107109192,
+        "compared_bytes": 106107109192,
+        "byte_mismatches": 0,
+        "layout_mismatches": 0,
+        "mismatches": 0
+      }
+    },
+    "keys": {
+      "head": {
+        "ok": true,
+        "entries": 78,
+        "compared": 78,
+        "bytes": 341266432,
+        "compared_bytes": 341266432,
+        "byte_mismatches": 0,
+        "layout_mismatches": 0,
+        "mismatches": 0
+      },
+      "worker": {
+        "ok": true,
+        "entries": 78,
+        "compared": 78,
+        "bytes": 341266432,
+        "compared_bytes": 341266432,
+        "byte_mismatches": 0,
+        "layout_mismatches": 0,
+        "mismatches": 0
+      }
+    }
+  },
+  "kernel_update": {
+    "old_revision": "789625a7081e91643cb61ceafd15f588850c511a",
+    "new_revision": "4996441a82d95b9a7853b01a1255e1dafc926387",
+    "previous_variants_preserved": 197,
+    "added_variants": 1,
+    "new_variant": {
+      "function": "_topk_sel",
+      "N": 256,
+      "KK": 256
+    },
+    "changed_files": [
+      "kit/MANIFEST",
+      "kit/README.md",
+      "kit/aot/aot.json",
+      "kit/aot/cubins/a2c0ea5eb9a9c7aa6028441066bea0a479431badcf841a4892fe735ac8bb805a.cubin",
+      "kit/tools/make_topk_sel.py"
+    ],
+    "recipe_bytes_identical": true,
+    "boundary_checks": [
+      {
+        "draft_passes": 16,
+        "prompt_sha256": "e7609e92ee84131f34f22e29f6576fb757c527d190da924d3d5ac0d5b0964e99",
+        "prompt_tokens": 511,
+        "reply_tokens": 64,
+        "token_sha": "55c0cf7fc93e"
+      },
+      {
+        "draft_passes": 18,
+        "prompt_sha256": "db03fb269b613e5f2612f3ab27506c878a350ea18c762f1c3d60e658edd21b53",
+        "prompt_tokens": 512,
+        "reply_tokens": 64,
+        "token_sha": "db67f3da9015"
+      },
+      {
+        "draft_passes": 14,
+        "prompt_sha256": "c7ed3aee4c1fa1ba11090cdfc811cc7776526dcbf04390357c0d31002430c516",
+        "prompt_tokens": 513,
+        "reply_tokens": 64,
+        "token_sha": "d61f586c569d"
+      },
+      {
+        "draft_passes": 17,
+        "prompt_sha256": "b65b1cc461b75736ffb8dbdacba3ebaa84bde4b6c59325e5d5971ef54f6f9179",
+        "prompt_tokens": 514,
+        "reply_tokens": 64,
+        "token_sha": "27df112bfe85"
+      }
+    ]
+  },
+  "finite": {
+    "status": "passed",
+    "started": "2026-10-25T10:52:19.478593+00:00",
+    "finished": "2026-10-25T11:48:25.268833+00:00",
+    "original_rank_epochs_preserved": true,
+    "gates": [
+      {
+        "name": "baseline",
+        "status": "passed",
+        "receipt_sha256": "ce192719c11f6472714e9701f34dca9778c1b58b7cf6cde7acb02e2ea16242cb",
+        "seconds": 15.655832
+      },
+      {
+        "name": "structured",
+        "status": "passed",
+        "receipt_sha256": "37139e055efb3d6e67bba58804e4b79be5d1ffaf834e41d3f841eab50cd9d88e",
+        "seconds": 13.193285
+      },
+      {
+        "name": "sampling",
+        "status": "passed",
+        "receipt_sha256": "7e51c810a77367020867d5ac8be7acb41ed0942c1ec02816691340627c647247",
+        "seconds": 7.680468
+      },
+      {
+        "name": "aliases",
+        "status": "passed",
+        "receipt_sha256": "c1bf7c8d906202476e6a574f85c58938c903468640df42341e8c719373e7d72e",
+        "seconds": 2.122248
+      },
+      {
+        "name": "protocols",
+        "status": "passed",
+        "receipt_sha256": "e3e0223d69022a20ba6d26a0f28db457d17f2c9c38b0be73aafbeba3e4401a95",
+        "seconds": 2.236499
+      },
+      {
+        "name": "image-formats",
+        "status": "passed",
+        "receipt_sha256": "01a821384b7adc4c0ae47dfc3b5b8528a6246e6e8964e2961cdd7897a8c8056d",
+        "seconds": 7.089008
+      },
+      {
+        "name": "topk-boundaries",
+        "status": "passed",
+        "receipt_sha256": "fe913e13d78442ae6b2fcdd416f89615d4d6eba75b25ab095637357fd2120b12",
+        "seconds": 15.330392
+      },
+      {
+        "name": "constraints-greedy",
+        "status": "passed",
+        "receipt_sha256": "854e508a368bc85aa3927b0fd8d5350c3e65f38d328623e7dc635117de6af56d",
+        "seconds": 79.489004
+      },
+      {
+        "name": "parity-greedy",
+        "status": "passed",
+        "receipt_sha256": "0bdf146e1cfc1db8da8ee06d3c9b44ae88ce4927bf2fac3b169e3574ad2ef1b1",
+        "seconds": 285.899227
+      },
+      {
+        "name": "constraints-sampled",
+        "status": "passed",
+        "receipt_sha256": "75733993c937e39d0370f52b4fe71d355d100b9f916ff398c6f866f3662bcdb1",
+        "seconds": 84.63281
+      },
+      {
+        "name": "parity-sampled",
+        "status": "passed",
+        "receipt_sha256": "92cef47d2ae7f5ef4273ee2626128ea5daf693bfc7c3144bab6bdd836abff40a",
+        "seconds": 329.646223
+      },
+      {
+        "name": "retention",
+        "status": "passed",
+        "receipt_sha256": "67dad19aed69f358fa652a945dbdc1cc7372f977b263fcb8af306ddba1e3b0c1",
+        "seconds": 559.196232
+      },
+      {
+        "name": "prefill-responsiveness",
+        "status": "passed",
+        "receipt_sha256": "69bc262b9ead1813cefe4cfea3a1b91dd432fdb4e8c5fd04214a0b2069b65a2f",
+        "seconds": 169.289043
+      },
+      {
+        "name": "partial-prefill-compaction",
+        "status": "passed",
+        "receipt_sha256": "24bcd78240475e2ae8283886e16ffe943f38a65a3cdb5d715d2a7eab8abc67a9",
+        "seconds": 525.980938
+      },
+      {
+        "name": "decode-compaction",
+        "status": "passed",
+        "receipt_sha256": "ae590a0c1241479230ff58d2297d55e700adfd6c5baeba7211ddbe971ceb8e19",
+        "seconds": 54.036301
+      },
+      {
+        "name": "c32-full",
+        "status": "passed",
+        "receipt_sha256": "a62095cf955b98259197398d7f5dd22d956d00e53c2f03e8b5081a7c154c1645",
+        "seconds": 518.851464
+      },
+      {
+        "name": "million",
+        "status": "passed",
+        "receipt_sha256": "80870f428113490c39ad958ced49311b4376b595796413c9c6ea66ac25180da8",
+        "seconds": 682.240741
+      }
+    ],
+    "memory": {
+      "scope": "finite stock checks on the original rank epochs",
+      "samples": 632,
+      "first_sample": "2026-10-25T10:52:23.337256+00:00",
+      "last_sample": "2026-10-25T11:48:20.792491+00:00",
+      "monitor_failures": 0,
+      "minimum_available_bytes": {
+        "head": 2625998848,
+        "worker": 4008988672
+      },
+      "sampled_interval_seconds": 3357.455235,
+      "evidence_sha256": "089c4337c7f4dbca81a4fb9865c1b87788e25ddda738d53d3ebb7c02215eb843"
+    }
+  },
+  "capacity": {
+    "stream_slots": 32,
+    "shared_pool_tokens": 8650752,
+    "max_context_tokens": 1048576,
+    "c32": {
+      "prompt_tokens": 261120,
+      "reply_tokens": 1024,
+      "waves": 2,
+      "peak_decoding": [
+        32,
+        32
+      ],
+      "exact_replay": true,
+      "seconds_per_wave": [
+        195.511,
+        193.172
+      ],
+      "fixture": "One shared primed document with independent active session reservations; not 32 unrelated cold document prefills."
+    },
+    "million": {
+      "prompt_tokens": 1048320,
+      "reply_budget": 256,
+      "usage": {
+        "completion_tokens": 256,
+        "completion_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "prompt_tokens": 1048320,
+        "prompt_tokens_details": {
+          "cached_tokens": 0
+        },
+        "total_tokens": 1048576
+      },
+      "retrieved_passphrases": 3,
+      "seconds": 680.356
+    }
+  },
+  "matched_short_diagnostic": {
+    "status": "passed",
+    "scope": "One scored repetition per shape, greedy, 256-token maximum; a regression screen, not new headline measurements or endurance qualification.",
+    "baseline_source": "7ebfbdbf3b01da8ab56a4d995324205104082efa",
+    "candidate_source": "1163c7ce79aee5b523cff5130790937c4be0ea51",
+    "baseline_image": "sha256:304b45701d11c6e852d26984990a6105c64473cef56eb148d9aa5e96dfe1eb87",
+    "candidate_image": "sha256:369b10a3d8872375879a46b17399a0fa523469fd1f3480215b0bc603d8761739",
+    "protocol": {
+      "tasks": [
+        "code",
+        "prose",
+        "counting"
+      ],
+      "streams": [
+        1,
+        32
+      ],
+      "temperatures": [
+        0
+      ],
+      "repetitions": 1,
+      "maximum_reply_tokens": 256,
+      "eos_allowed": true,
+      "thinking": false,
+      "input_padding": false,
+      "c32_variant_suffix": " (variant N), N=0..31",
+      "sampling_seeds": "42000 + request index, repeated across repetitions",
+      "warmup": "One unscored wave per shape, 32 output tokens at C1 and 64 at C32",
+      "order": "Temperature, task, concurrency; warmup then one bounded diagnostic repetition",
+      "c1_rate": "(output tokens - 1) / first-to-last-content seconds",
+      "c32_rate": "health-counter output tokens / eligible full-occupancy decode seconds",
+      "health_poll_seconds": 0.25,
+      "minimum_steady_seconds": 2,
+      "end_to_end": "all output tokens / earliest request start to latest response end",
+      "cache_scope": "Warm per shape; no cold-prefix claim"
+    },
+    "request_and_text_hash_matches": 198,
+    "profile_file_sha256": {
+      "baseline": "30d30a3a347e33f7c80ed3e3de68ce86bcd9ea6b6338e9045d80b2ce2b91b6ec",
+      "candidate": "ce8cceea6be174a55e4dedd52acce90c009e58a66fbafae9b43d545daa97abf0"
+    },
+    "profile_annotation_differences": {
+      "qualification": {
+        "baseline": "Mia EAQ 1017 candidate: hardware qualification pending; see release/STATUS.md",
+        "candidate": "Mia EAQ 1017 stock and matching optional Keys: finite C32/1M and bounded diagnostics passed on runtime 7ebfbdb; see release/STATUS.md"
+      }
+    },
+    "effective_profile_settings_identical": true,
+    "baseline_receipt_sha256": "5ab0f8ccb714d789c1122ad489137f4f537c88ba057c460f2658cdad88a73029",
+    "candidate_receipt_sha256": "713229c354322b27fdcfa0be620720402345265905e195f48ccbd232fc82d9f5",
+    "rows": [
+      {
+        "streams": 1,
+        "task": "code",
+        "temperature": 0,
+        "metric": "c1_content_decode_tps",
+        "baseline": 89.38721857322055,
+        "candidate": 94.25492627716007,
+        "percent_change": 5.4456417613578445,
+        "baseline_e2e": 72.06121642858842,
+        "candidate_e2e": 89.36467557909495
+      },
+      {
+        "streams": 1,
+        "task": "counting",
+        "temperature": 0,
+        "metric": "c1_content_decode_tps",
+        "baseline": 138.64973796605855,
+        "candidate": 138.6438277420557,
+        "percent_change": -0.004262701170276717,
+        "baseline_e2e": 131.43968291312186,
+        "candidate_e2e": 131.32422210682608
+      },
+      {
+        "streams": 1,
+        "task": "prose",
+        "temperature": 0,
+        "metric": "c1_content_decode_tps",
+        "baseline": 67.42080423050533,
+        "candidate": 67.1299063874395,
+        "percent_change": -0.4314659938959964,
+        "baseline_e2e": 65.7089802333746,
+        "candidate_e2e": 65.39411266140479
+      },
+      {
+        "streams": 32,
+        "task": "code",
+        "temperature": 0,
+        "metric": "aggregate_steady_decode_tps",
+        "baseline": 307.44908626474125,
+        "candidate": 309.4896952643727,
+        "percent_change": 0.6637225774267952,
+        "baseline_e2e": 254.40781908146857,
+        "candidate_e2e": 253.81999133412455
+      },
+      {
+        "streams": 32,
+        "task": "counting",
+        "temperature": 0,
+        "metric": "aggregate_steady_decode_tps",
+        "baseline": 384.9765846044269,
+        "candidate": 373.10687281475487,
+        "percent_change": -3.083229542874255,
+        "baseline_e2e": 322.10309297333066,
+        "candidate_e2e": 314.45820710735006
+      },
+      {
+        "streams": 32,
+        "task": "prose",
+        "temperature": 0,
+        "metric": "aggregate_steady_decode_tps",
+        "baseline": 264.56287561365525,
+        "candidate": 261.1382692073959,
+        "percent_change": -1.2944395158677957,
+        "baseline_e2e": 230.65946947972498,
+        "candidate_e2e": 226.39770196306293
+      }
+    ],
+    "require_followup_below_percent": -10,
+    "flagged": []
+  },
+  "switching": {
+    "status": "passed",
+    "variants": [
+      "stock",
+      "keys",
+      "stock"
+    ],
+    "stock_replay_identical": true,
+    "final_variant": "stock",
+    "aliases_unchanged": true,
+    "additional_resident_weight_bytes_head": 0,
+    "additional_resident_weight_bytes_worker": 0,
+    "keys_feature_gates": [
+      {
+        "name": "baseline",
+        "status": "passed",
+        "receipt_sha256": "0c61c40b3bffb1278e3206b9b742cfea46687a29223a12893c0c76def19104cd"
+      },
+      {
+        "name": "structured",
+        "status": "passed",
+        "receipt_sha256": "6e843761a253f350590528ca0f5ba844253adc30b9f293b0f15a93887f631662"
+      }
+    ]
+  },
+  "lan": {
+    "status": "passed",
+    "synthetic_requests": 12,
+    "checks": {
+      "alias-1m": "passed",
+      "alias-262k": "passed",
+      "alias-524k": "passed",
+      "alias-614k": "passed",
+      "loaded-variant": "passed",
+      "models": "passed",
+      "sampling": "passed",
+      "schema": "passed",
+      "stream": "passed",
+      "tool": "passed",
+      "vision-blue": "passed",
+      "vision-red": "passed",
+      "worker-lan": "passed"
+    },
+    "available_bytes_at_final_sample": {
+      "head": 3957305344,
+      "worker": 4548947968
+    },
+    "preparation_receipt_sha256": "a20b14bf8d752a1741f0f381af714753b655574f25292e8dad63debcf6bfd78d",
+    "serving_receipt_sha256": "448e2e2e7910a3c6ae24a1f72399ed1ed754bb799ab6042d842870132c698ece"
+  },
+  "rollback": {
+    "retained_source": "7ebfbdbf3b01da8ab56a4d995324205104082efa",
+    "retained_image": "sha256:304b45701d11c6e852d26984990a6105c64473cef56eb148d9aa5e96dfe1eb87",
+    "assets_and_host_journals_retained": true,
+    "model_redownload_required": false,
+    "refresh_file_identities_before_retained_restart": true
+  },
+  "limitations": [
+    "Finite qualification is not 12/24-hour endurance or a model-quality comparison.",
+    "Matched workload screen is greedy only, one scored repetition per shape, capped at 256 output tokens.",
+    "After final hardlinks, revalidate assets, prepared caches and optional overlay with the retained controller before rollback startup; source, image, tensor contents and host journals remain retained."
+  ]
+}

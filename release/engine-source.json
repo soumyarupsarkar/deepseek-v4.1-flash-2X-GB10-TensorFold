@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "upstream_base": "4e80f05ecba89a4e90d16375ade2eddbdc0a10c4",
-  "status": "October 25 upstream correctness integration candidate; runtime qualification pending",
+  "status": "October 25 upstream correctness integration qualified on runtime 1163c7ce; see release/STATUS.md for deployment and evidence",
   "scope": "Build, native engine, grammar bridge, deployment controller/configuration and checkpoint-specific compiled test resources. This manifest is not serving qualification.",
   "files": [
     {
@@ -66,7 +66,7 @@
     },
     {
       "path": "deployment/config/profile.json",
-      "sha256": "ce8cceea6be174a55e4dedd52acce90c009e58a66fbafae9b43d545daa97abf0"
+      "sha256": "5a4231f1586605715efdf46816a9af371abc9c629d71322e3cf27923b4f63306"
     },
     {
       "path": "deployment/config/requirements-resolved.txt",
