@@ -147,12 +147,76 @@ pub const PassGraphs = struct {
         };
         var graph = try cuda.graph.endCapture(e.s);
         defer graph.deinit();
-        var exec = try graph.instantiate();
-        errdefer exec.deinit();
-        try g.map.put(g.gpa, key, exec);
-        try exec.launchOn(e.s);
+        try g.keepAndLaunch(key, try graph.instantiate(), e.s);
+    }
+
+    // Match the round cache's ownership rule: after put, even a failed first
+    // launch leaves a live entry for cache teardown (upstream PR #45).
+    fn keepAndLaunch(g: *PassGraphs, key: Key, value: cuda.graph.Exec, stream: cuda.Stream) !void {
+        var exec = value;
+        g.map.put(g.gpa, key, exec) catch |err| {
+            exec.deinit();
+            return err;
+        };
+        try exec.launchOn(stream);
     }
 };
+
+const GraphOwnershipProbe = struct {
+    launched: usize = 0,
+    destroyed: usize = 0,
+
+    fn launch(handle: cuda.abi.GraphExec, _: cuda.abi.Stream) callconv(.c) cuda.abi.Result {
+        const probe: *GraphOwnershipProbe = @ptrCast(@alignCast(handle.?));
+        probe.launched += 1;
+        // Any launch error exercises ownership; NOT_READY avoids an expected
+        // error log in host tests. No CUDA library or device is opened.
+        return cuda.abi.error_not_ready;
+    }
+
+    fn destroy(handle: cuda.abi.GraphExec) callconv(.c) cuda.abi.Result {
+        const probe: *GraphOwnershipProbe = @ptrCast(@alignCast(handle.?));
+        probe.destroyed += 1;
+        return cuda.abi.success;
+    }
+
+    fn driver() cuda.Driver {
+        var d: cuda.Driver = undefined;
+        d.api.cuGraphLaunch = launch;
+        d.api.cuGraphExecDestroy = destroy;
+        return d;
+    }
+};
+
+test "failed first draft graph launch keeps its handle alive until cache teardown" {
+    var probe: GraphOwnershipProbe = .{};
+    const d = GraphOwnershipProbe.driver();
+    var graphs = PassGraphs.init(std.testing.allocator);
+    const key: PassGraphs.Key = .{ .streams = 32, .steps = 5 };
+    const exec: cuda.graph.Exec = .{ .d = &d, .handle = @ptrCast(&probe) };
+    const stream: cuda.Stream = .{ .d = &d, .handle = null };
+    try std.testing.expectError(error.NotReady, graphs.keepAndLaunch(key, exec, stream));
+    try std.testing.expectEqual(@as(usize, 1), graphs.count());
+    try std.testing.expectEqual(@as(usize, 1), probe.launched);
+    try std.testing.expectEqual(@as(usize, 0), probe.destroyed);
+    graphs.deinit();
+    try std.testing.expectEqual(@as(usize, 1), probe.destroyed);
+}
+
+test "draft graph cache allocation failure destroys only the unowned handle" {
+    var probe: GraphOwnershipProbe = .{};
+    const d = GraphOwnershipProbe.driver();
+    var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 0 });
+    var graphs = PassGraphs.init(failing.allocator());
+    const exec: cuda.graph.Exec = .{ .d = &d, .handle = @ptrCast(&probe) };
+    const stream: cuda.Stream = .{ .d = &d, .handle = null };
+    try std.testing.expectError(error.OutOfMemory, graphs.keepAndLaunch(.{ .streams = 32, .steps = 5 }, exec, stream));
+    try std.testing.expectEqual(@as(usize, 0), graphs.count());
+    try std.testing.expectEqual(@as(usize, 0), probe.launched);
+    try std.testing.expectEqual(@as(usize, 1), probe.destroyed);
+    graphs.deinit();
+    try std.testing.expectEqual(@as(usize, 1), probe.destroyed);
+}
 
 pub const Drafter = struct {
     ds: weights.DSpark,
