@@ -7,7 +7,7 @@
   "vision": true,
   "name": "native-c32-mia-1017",
   "engine": "native-zig",
-  "qualification": "October 25 runtime 1163c7ce: 17 stock finite gates including C32/1M, matched short diagnostic and optional Keys switching passed; see release/STATUS.md",
+  "qualification": "October 28 runtime 0a0f7a41: idle/RDMA checks, 12 stock gates, matched C1/C32 diagnostic and optional Keys switching passed; prior full-window C32/1M evidence and current deployment in release/STATUS.md",
   "description": "Pinned Mia EAQ 1017 stock checkpoint with native Zig serving, shared KV, vision, grammar constraints and reversible DRM",
   "minimum_available_gib": 2,
   "environment": {

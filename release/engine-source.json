@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "upstream_base": "4e80f05ecba89a4e90d16375ade2eddbdc0a10c4",
-  "status": "October 25 upstream correctness integration qualified on runtime 1163c7ce; see release/STATUS.md for deployment and evidence",
+  "status": "October 28 idle polling and graph ownership update qualified on runtime 0a0f7a41; see release/STATUS.md for deployment and evidence",
   "scope": "Build, native engine, grammar bridge, deployment controller/configuration and checkpoint-specific compiled test resources. This manifest is not serving qualification.",
   "files": [
     {
@@ -66,7 +66,7 @@
     },
     {
       "path": "deployment/config/profile.json",
-      "sha256": "5a4231f1586605715efdf46816a9af371abc9c629d71322e3cf27923b4f63306"
+      "sha256": "a0c6c7967937e10f7dbf1aa420fed93570274c0016ae89ee4971ea6ab66e2840"
     },
     {
       "path": "deployment/config/requirements-resolved.txt",
@@ -1994,7 +1994,7 @@
     },
     {
       "path": "zig/src/families/dsv41/draft.zig",
-      "sha256": "1f46804befe9a37e89317b883b61892633aa4624682e47cf62896c0fe1b8570a"
+      "sha256": "cf37a9ecdd5602c8877dd63f45d2a3483c51cc7e3dd0c996061e30e511cfbeb8"
     },
     {
       "path": "zig/src/families/dsv41/draft2d.zig",
@@ -2138,11 +2138,11 @@
     },
     {
       "path": "zig/src/families/dsv41/rdma.zig",
-      "sha256": "5334d546dea5422e31b351644b1e8adcc2bcb79c3f31fef1989dc14675e4d394"
+      "sha256": "576e3ba9f2240d15dfcf20d58193a8527d69a0d3e9f4d9577f07e2cf0a8118ac"
     },
     {
       "path": "zig/src/families/dsv41/rdma_bench_main.zig",
-      "sha256": "850ad06c895eed0ef7a80226b39168a62fe9ca21bfe5e323da01700905018ef3"
+      "sha256": "db2d114fb065e7c9ea39c92b3862b5476871709c6decfdb64741903fa16c7d35"
     },
     {
       "path": "zig/src/families/dsv41/rdma_seq.zig",

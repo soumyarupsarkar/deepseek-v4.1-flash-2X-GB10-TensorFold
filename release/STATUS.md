@@ -1,10 +1,50 @@
 # Native release status
 
-## Current: October 25 upstream correctness update with stock Mia
+## Current: October 28 idle polling and graph ownership update
+
+Runtime `0a0f7a41b7050848a995b7c5354c946a569844c3`, image
+`sha256:7c1d043509b7dbaf90d1b6bffd6149b4a298cf3465aa005bd59140d46c3b9db4`,
+is serving stock Mia EAQ v1 on both hosts. C32, the 8,650,752-token shared pool,
+1,048,576-token request ceiling, aliases, vision, strict output and random seeds
+remain unchanged. The matching Keys sidecar remains prepared and optional;
+no model download or weight change was needed.
+
+The update adds RDMA idle backoff and fixes a drafter-cache ownership error after
+a failed first launch. [Selected changes, credits and deferred updates](../deployment/UPSTREAM-20261028.md).
+
+- Matched idle probes measured about 98% less CPU use per rank: head 100.16% →
+  1.60%, worker 100.11% → 2.00%, where one occupied core is 100%. Warm first-token
+  latency stayed near 79 ms. After three seconds idle, the five-pair median
+  increased from 86.01 to 100.83 ms; this is a small HTTP latency sample.
+- The short greedy diagnostic matched all 396 synthetic replies and token
+  counts. Three scored repetitions each for code/prose/counting at C1 and C32
+  produced median changes from −1.89% to +1.66%. The existing longer headline
+  campaign remains separate.
+- The build passed 379 native tests and one C++ grammar test; Python publication
+  and controller suites passed 92 + 23 tests. Both hosts passed nine GPU checks,
+  all stock prepared-tensor bytes and all 78 optional Keys slice checks.
+- Paired RDMA gather/gather-into tests with backoff on and off passed after
+  three-second quiet gaps, with zero mismatches and successful idle shutdown.
+- All 12 finite serving gates passed, including sampled/greedy drafting parity
+  through C32, vision, structured output, protocols, retention and compaction.
+  Across 32.5 minutes, 369 monitor samples recorded no failures; minimum
+  available RAM was 3.16 GiB head / 2.82 GiB worker. The 2 GiB floor is unchanged.
+- Stock → Keys → stock preserved aliases, exact stock replay and zero additional
+  Keys resident weight bytes. The separate LAN installation passed all 12
+  synthetic startup requests and worker-to-head reachability, ending stock.
+
+[Numeric evidence](native-upstream-20261028.json) ·
+[Matched measurements](../deployment/UPSTREAM-20261028.md#matched-measurements) ·
+[Rollback](../deployment/UPSTREAM-20261028.md#rollback).
+The previous source, image, model files and host journals are retained and were
+revalidated after final asset reuse. Full-window C32/1M evidence remains the
+October 25 campaign below; no new endurance or model-quality claim is made.
+
+## Previous: October 25 upstream correctness update with stock Mia
 
 Runtime `1163c7ce79aee5b523cff5130790937c4be0ea51`, image
 `sha256:369b10a3d8872375879a46b17399a0fa523469fd1f3480215b0bc603d8761739`,
-passed isolated qualification and is serving on the LAN. The model and
+passed isolated qualification and served on the LAN until October 28. The model and
 optional Keys pins are unchanged: stock Mia EAQ v1 remains selected, with
 32 active slots, 8,650,752 shared logical KV tokens and a 1,048,576-token
 request ceiling. Aliases, vision, structured outputs and random seeds remain.

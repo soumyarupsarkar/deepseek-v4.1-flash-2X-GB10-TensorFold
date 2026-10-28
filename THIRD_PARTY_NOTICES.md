@@ -1,5 +1,13 @@
 # Third-party notices
 
+The October 28 integration adapts native RDMA idle backoff from willjriley's
+Python change, Mia-AiLab's native port and wiseares's TP2 adaptation, plus a
+draft-graph ownership correction identified in nuk3s's TensorFold PR 45.
+These TensorFold/Mia adaptations are Apache-2.0. Mia's code is Copyright 2026
+MiaAI-Lab; its [upstream NOTICE](LICENSES/Mia-DeepSeek-1017-NOTICE.txt) is retained
+alongside the [Apache-2.0 license](LICENSES/Apache-2.0.txt) and existing notices.
+[Sources and adaptation scope](deployment/UPSTREAM-20261028.md).
+
 The October 25 native-server integration includes Bertholomus/Manrique and
 akol1's DSML parsing work; fixes by Jay Leaton, Blackwellboy and Nathan McBride;
 and Mia recipe patches contributed by Coinupbtc, Robert Wojciechowski (`wojo`)
