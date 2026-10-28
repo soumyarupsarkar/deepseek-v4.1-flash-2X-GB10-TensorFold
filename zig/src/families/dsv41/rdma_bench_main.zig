@@ -5,6 +5,7 @@
 //!   tf-dsv41-rdma-bench RANK WORLD MASTER_IP FATBIN DEVICES [--port P] [--rows 1,6,16,48] [--width 2560] [--reps 500]
 //!                       [--pdl 0|1] [--gid N] [--idle-ms N]
 //! Optional quiet gaps before each timed burst and shutdown exercise idle proxy wake-up.
+//! Use `-` for FATBIN to test the same embedded kernel as the serving binary.
 const std = @import("std");
 const cuda = @import("cuda");
 const dsv41 = @import("dsv41");
@@ -56,7 +57,7 @@ pub fn main(init: std.process.Init) !u8 {
     defer driver.close();
     var ctx = try cuda.Context.init(&driver, 0);
     defer ctx.deinit();
-    const image = try std.Io.Dir.cwd().readFileAlloc(io, args[4], a, .limited(1 << 26));
+    const image = if (std.mem.eql(u8, args[4], "-")) cuda.kernels.dsv41_rdma else try std.Io.Dir.cwd().readFileAlloc(io, args[4], a, .limited(1 << 26));
     var module = try cuda.Module.load(&driver, image);
     defer module.unload();
     const r = try ring.Ring.create(init.gpa, &driver, try ring.Kernels.load(module), devices.items, rank, world, .{ .max_bytes = std.mem.alignForward(usize, @as(usize, most) * width * 4, 64), .pdl = pdl, .gid_index = gid });
