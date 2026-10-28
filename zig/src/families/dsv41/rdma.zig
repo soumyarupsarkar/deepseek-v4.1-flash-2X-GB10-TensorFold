@@ -25,8 +25,84 @@ const mtu_4096 = 5;
 const wc_recv_rdma_with_imm = 129;
 const host_register_portable = 0x01;
 const host_register_devicemap = 0x02;
+const pr_set_timerslack: c_int = 29;
+const default_idle_ns: u64 = 2 * std.time.ns_per_s;
+const default_nap_ns: u64 = 100 * std.time.ns_per_us;
 
-pub const Error = error{ VerbsFailed, PostFailed, BadInfo, TooLarge, Failed, NoHostRegister } || cuda.Error || fabric.verbs.Error || std.posix.MMapError || std.Thread.SpawnError;
+extern "c" fn prctl(option: c_int, arg2: c_ulong, arg3: c_ulong, arg4: c_ulong, arg5: c_ulong) c_int;
+
+pub const Error = error{ VerbsFailed, PostFailed, BadInfo, TooLarge, Failed, NoHostRegister, BadRdmaIdle, BadRdmaNap } || cuda.Error || fabric.verbs.Error || std.posix.MMapError || std.Thread.SpawnError;
+
+// Idle nap policy from willjriley (Python PR #27), MiaAI-Lab's Zig patch 0010,
+// and wiseares's TP2 port (recipe issue #32). Preserve the active polling path;
+// only a quiet proxy sleeps, with posting or either kind of completion waking it.
+fn parseIdleNs(text: []const u8) Error!u64 {
+    const seconds = std.fmt.parseFloat(f64, text) catch return error.BadRdmaIdle;
+    if (!std.math.isFinite(seconds) or seconds < 0) return error.BadRdmaIdle;
+    const ns = seconds * @as(f64, @floatFromInt(std.time.ns_per_s));
+    if (ns > @as(f64, @floatFromInt(3600 * std.time.ns_per_s))) return error.BadRdmaIdle;
+    return @intFromFloat(ns);
+}
+
+fn envIdleNs() Error!u64 {
+    const raw = std.c.getenv("TF_RDMA_IDLE_S") orelse return default_idle_ns;
+    const text = std.mem.span(raw);
+    return if (text.len == 0) default_idle_ns else parseIdleNs(text);
+}
+
+fn parseNapNs(text: []const u8) Error!u64 {
+    const us = std.fmt.parseInt(u64, text, 10) catch return error.BadRdmaNap;
+    if (us < 1 or us > 1_000_000) return error.BadRdmaNap;
+    return us * std.time.ns_per_us;
+}
+
+fn envNapNs() Error!u64 {
+    const raw = std.c.getenv("TF_RDMA_NAP_US") orelse return default_nap_ns;
+    const text = std.mem.span(raw);
+    return if (text.len == 0) default_nap_ns else parseNapNs(text);
+}
+
+fn monotonicNs() u64 {
+    var ts: std.c.timespec = undefined;
+    _ = std.c.clock_gettime(.MONOTONIC, &ts);
+    return @as(u64, @intCast(ts.sec)) * std.time.ns_per_s + @as(u64, @intCast(ts.nsec));
+}
+
+fn nap(ns: u64) void {
+    const ts: std.c.timespec = .{ .sec = @intCast(ns / std.time.ns_per_s), .nsec = @intCast(ns % std.time.ns_per_s) };
+    _ = std.c.nanosleep(&ts, null);
+}
+
+/// Keep clock reads outside the active path. Splitting actions from the clock
+/// makes quiet/wake transitions testable without sleeping or an RDMA device.
+const Idle = struct {
+    threshold_ns: u64,
+    quiet: u64 = 0,
+    quiet_since: u64 = 0,
+    drowsy: bool = false,
+
+    const Action = enum { spin, clock, sleep };
+
+    fn next(idle: *Idle, busy: bool) Action {
+        if (idle.threshold_ns == 0) return .spin;
+        if (busy) {
+            idle.drowsy = false;
+            idle.quiet = 0;
+            return .spin;
+        }
+        if (idle.drowsy) return .sleep;
+        idle.quiet +%= 1;
+        return if (idle.quiet == 1 or (idle.quiet & 1023) == 0) .clock else .spin;
+    }
+
+    fn sample(idle: *Idle, ns: u64) void {
+        if (idle.quiet == 1) {
+            idle.quiet_since = ns;
+        } else if (ns -% idle.quiet_since >= idle.threshold_ns) {
+            idle.drowsy = true;
+        }
+    }
+};
 
 /// The Python build's switches, with their defaults (TF_RDMA_SLOTS, TF_RDMA_STAGE_BLOCKS, ..., TF_RDMA_PDL as served).
 pub const Settings = struct {
@@ -149,6 +225,8 @@ pub const Ring = struct {
     failed: std.atomic.Value(bool) = .init(false),
     reason_ready: std.atomic.Value(bool) = .init(false),
     why: [128]u8 = @splat(0),
+    idle_ns: u64 = default_idle_ns,
+    nap_ns: u64 = default_nap_ns,
 
     // the metadata block: flags [slots][world], doorbell, sizes [slots], sent [slots], abort word
     fn flags(r: *const Ring) [*]u64 {
@@ -174,6 +252,8 @@ pub const Ring = struct {
     pub fn create(gpa: std.mem.Allocator, d: *const cuda.Driver, k: Kernels, devices: []const []const u8, rank: u32, world: u32, s: Settings) Error!*Ring {
         if (world < 2 or world > max_ranks or rank >= world or devices.len == 0 or devices.len > max_devices) return error.BadInfo;
         if (s.slots < 2 or s.slots > seqs.max_slots or s.max_bytes == 0 or s.max_bytes % 64 != 0) return error.BadInfo;
+        const idle_ns = try envIdleNs();
+        const nap_ns = try envNapNs();
         const r = try gpa.create(Ring);
         errdefer gpa.destroy(r);
         var verbs = try Verbs.open(null);
@@ -189,7 +269,7 @@ pub const Ring = struct {
         var scalars = try cuda.DeviceBuffer.alloc(d, 80);
         errdefer scalars.free();
         try scalars.fill8(0, null);
-        r.* = .{ .d = d, .verbs = verbs, .k = k, .s = s, .rank = rank, .world = world, .hr = hr, .send = send, .recv = recv, .meta = meta, .scalars = scalars };
+        r.* = .{ .d = d, .verbs = verbs, .k = k, .s = s, .rank = rank, .world = world, .hr = hr, .send = send, .recv = recv, .meta = meta, .scalars = scalars, .idle_ns = idle_ns, .nap_ns = nap_ns };
         r.v = &r.verbs;
         errdefer for (r.nics[0..r.nd]) |*n| r.closeNic(n);
         for (devices) |name| {
@@ -327,8 +407,13 @@ pub const Ring = struct {
         var arrivals: seqs.Arrivals = .{ .nd = nd };
         var posted: u64 = 0;
         var wc: [64]vabi.Wc = undefined;
+        var idle: Idle = .{ .threshold_ns = r.idle_ns };
+        // Timer slack is per-thread. A nap is a requested duration, not a bound
+        // on OS scheduling latency; the serving tests measure wake-up behavior.
+        if (r.idle_ns > 0) _ = prctl(pr_set_timerslack, 1000, 0, 0, 0);
         while (r.running.load(.monotonic)) {
             const ring = @atomicLoad(u64, r.doorbell(), .acquire);
+            var busy = posted < ring;
             while (posted < ring) {
                 const q = posted + 1;
                 const slot: usize = @intCast(q % r.s.slots);
@@ -355,6 +440,7 @@ pub const Ring = struct {
                     r.fail("ibv_poll_cq failed");
                     return;
                 }
+                busy = busy or k > 0;
                 for (wc[0..@intCast(k)]) |w| {
                     if (w.status != vabi.wc_success) {
                         r.fail(r.v.statusText(w.status));
@@ -376,6 +462,11 @@ pub const Ring = struct {
                         @atomicStore(u64, &r.sent()[@as(usize, @intCast(q % r.s.slots))], q, .release);
                     }
                 }
+            }
+            switch (idle.next(busy)) {
+                .spin => {},
+                .clock => idle.sample(monotonicNs()),
+                .sleep => nap(r.nap_ns),
             }
         }
     }
@@ -498,6 +589,57 @@ pub const Ring = struct {
         return .{ @as(f64, @floatFromInt(host[0])) / n, @as(f64, @floatFromInt(host[1])) / n, @as(f64, @floatFromInt(host[2])) / n, @floatFromInt(host[3]) };
     }
 };
+
+test "RDMA idle settings accept disabled and fractional waits and reject unsafe durations" {
+    try std.testing.expectEqual(default_idle_ns, try parseIdleNs("2"));
+    try std.testing.expectEqual(@as(u64, 0), try parseIdleNs("0"));
+    try std.testing.expectEqual(@as(u64, 1500 * std.time.ns_per_ms), try parseIdleNs("1.5"));
+    try std.testing.expectEqual(@as(u64, 3600 * std.time.ns_per_s), try parseIdleNs("3600"));
+    for ([_][]const u8{ "", "-1", "nan", "inf", "3600.1", "1e100", "invalid" }) |bad|
+        try std.testing.expectError(error.BadRdmaIdle, parseIdleNs(bad));
+    try std.testing.expectEqual(default_nap_ns, try parseNapNs("100"));
+    try std.testing.expectEqual(@as(u64, std.time.ns_per_us), try parseNapNs("1"));
+    try std.testing.expectEqual(@as(u64, std.time.ns_per_s), try parseNapNs("1000000"));
+    for ([_][]const u8{ "", "0", "-1", "1000001", "18446744073709551615", "invalid" }) |bad|
+        try std.testing.expectError(error.BadRdmaNap, parseNapNs(bad));
+}
+
+test "RDMA disabled and active proxies never request a clock read or nap" {
+    var disabled: Idle = .{ .threshold_ns = 0 };
+    var active: Idle = .{ .threshold_ns = default_idle_ns };
+    for (0..4096) |_| {
+        try std.testing.expectEqual(Idle.Action.spin, disabled.next(false));
+        try std.testing.expectEqual(Idle.Action.spin, disabled.next(true));
+        try std.testing.expectEqual(Idle.Action.spin, active.next(true));
+    }
+    try std.testing.expectEqual(@as(u64, 0), disabled.quiet);
+    try std.testing.expectEqual(@as(u64, 0), active.quiet);
+}
+
+test "RDMA quiet threshold uses sparse clock reads and activity restarts the full wait" {
+    var idle: Idle = .{ .threshold_ns = default_idle_ns };
+    const start = 17 * std.time.ns_per_s;
+    try std.testing.expectEqual(Idle.Action.clock, idle.next(false));
+    idle.sample(start);
+    for (0..1022) |_| try std.testing.expectEqual(Idle.Action.spin, idle.next(false));
+    try std.testing.expectEqual(Idle.Action.clock, idle.next(false));
+    idle.sample(start + default_idle_ns - 1);
+    try std.testing.expect(!idle.drowsy);
+    for (0..1023) |_| try std.testing.expectEqual(Idle.Action.spin, idle.next(false));
+    try std.testing.expectEqual(Idle.Action.clock, idle.next(false));
+    idle.sample(start + default_idle_ns);
+    try std.testing.expectEqual(Idle.Action.sleep, idle.next(false));
+    try std.testing.expectEqual(Idle.Action.sleep, idle.next(false));
+    // Both a new post and a reaped completion use this same busy signal.
+    try std.testing.expectEqual(Idle.Action.spin, idle.next(true));
+    try std.testing.expect(!idle.drowsy);
+    try std.testing.expectEqual(Idle.Action.clock, idle.next(false));
+    idle.sample(start + 10 * default_idle_ns);
+    for (0..1022) |_| try std.testing.expectEqual(Idle.Action.spin, idle.next(false));
+    try std.testing.expectEqual(Idle.Action.clock, idle.next(false));
+    idle.sample(start + 11 * default_idle_ns - 1);
+    try std.testing.expect(!idle.drowsy);
+}
 
 fn postRecv(ctx: *vabi.Context, qp: *vabi.Qp) Error!void {
     var wr: vabi.RecvWr = .{};

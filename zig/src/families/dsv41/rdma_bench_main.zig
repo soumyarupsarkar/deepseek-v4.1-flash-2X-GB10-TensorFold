@@ -3,14 +3,15 @@
 //! rank runs back-to-back gathers at each row count (50 a CUDA graph, replayed, as the Python ring's --gather-bench),
 //! the plain gather and the strided gather_into, and checks every float it received. One JSON line a rank and row count.
 //!   tf-dsv41-rdma-bench RANK WORLD MASTER_IP FATBIN DEVICES [--port P] [--rows 1,6,16,48] [--width 2560] [--reps 500]
-//!                       [--pdl 0|1] [--gid N]
+//!                       [--pdl 0|1] [--gid N] [--idle-ms N]
+//! Optional quiet gaps before each timed burst and shutdown exercise idle proxy wake-up.
 const std = @import("std");
 const cuda = @import("cuda");
 const dsv41 = @import("dsv41");
 const ring = dsv41.rdma;
 const posix = std.posix;
 
-const usage = "usage: tf-dsv41-rdma-bench RANK WORLD MASTER_IP FATBIN DEVICES [--port P] [--rows 1,6,16,48] [--width 2560] [--reps 500] [--pdl 0|1] [--gid N]\n";
+const usage = "usage: tf-dsv41-rdma-bench RANK WORLD MASTER_IP FATBIN DEVICES [--port P] [--rows 1,6,16,48] [--width 2560] [--reps 500] [--pdl 0|1] [--gid N] [--idle-ms N]\n";
 
 pub fn main(init: std.process.Init) !u8 {
     const a = init.arena.allocator();
@@ -29,11 +30,12 @@ pub fn main(init: std.process.Init) !u8 {
     var reps: u32 = 500;
     var pdl = true;
     var gid: u8 = 5;
+    var idle_ms: u32 = 0;
     var i: usize = 6;
     while (i + 1 < args.len) : (i += 2) {
         const k = args[i];
         const v = args[i + 1];
-        if (std.mem.eql(u8, k, "--port")) port = try std.fmt.parseInt(u16, v, 10) else if (std.mem.eql(u8, k, "--rows")) rows_text = v else if (std.mem.eql(u8, k, "--width")) width = try std.fmt.parseInt(u32, v, 10) else if (std.mem.eql(u8, k, "--reps")) reps = try std.fmt.parseInt(u32, v, 10) else if (std.mem.eql(u8, k, "--pdl")) pdl = !std.mem.eql(u8, v, "0") else if (std.mem.eql(u8, k, "--gid")) gid = try std.fmt.parseInt(u8, v, 10) else {
+        if (std.mem.eql(u8, k, "--port")) port = try std.fmt.parseInt(u16, v, 10) else if (std.mem.eql(u8, k, "--rows")) rows_text = v else if (std.mem.eql(u8, k, "--width")) width = try std.fmt.parseInt(u32, v, 10) else if (std.mem.eql(u8, k, "--reps")) reps = try std.fmt.parseInt(u32, v, 10) else if (std.mem.eql(u8, k, "--pdl")) pdl = !std.mem.eql(u8, v, "0") else if (std.mem.eql(u8, k, "--gid")) gid = try std.fmt.parseInt(u8, v, 10) else if (std.mem.eql(u8, k, "--idle-ms")) idle_ms = try std.fmt.parseInt(u32, v, 10) else {
             std.debug.print("{s}", .{usage});
             return 2;
         }
@@ -102,6 +104,7 @@ pub fn main(init: std.process.Init) !u8 {
         defer e1.deinit();
         try e1.launchOn(stream);
         try stream.synchronize();
+        if (idle_ms > 0) try std.Io.sleep(io, .fromMilliseconds(idle_ms), .awake);
         var t0 = std.Io.Timestamp.now(io, .awake);
         for (0..loops) |_| try e1.launchOn(stream);
         try stream.synchronize();
@@ -121,6 +124,7 @@ pub fn main(init: std.process.Init) !u8 {
         defer e2.deinit();
         try e2.launchOn(stream);
         try stream.synchronize();
+        if (idle_ms > 0) try std.Io.sleep(io, .fromMilliseconds(idle_ms), .awake);
         t0 = std.Io.Timestamp.now(io, .awake);
         for (0..loops) |_| try e2.launchOn(stream);
         try stream.synchronize();
@@ -130,9 +134,11 @@ pub fn main(init: std.process.Init) !u8 {
         for (0..n_rows) |row| for (0..world) |q| for (0..width) |c| {
             if (host[row * world * width + q * width + c] != value(@intCast(q), row * width + c)) bad_into += 1;
         };
-        try out.interface.print("{{\"rank\": {d}, \"world\": {d}, \"rows\": {d}, \"bytes\": {d}, \"gathers\": {d}, \"pdl\": {d}, \"us_gather\": {d:.2}, \"us_into\": {d:.2}, \"bad\": {d}, \"bad_into\": {d}, \"failure\": \"{s}\"}}\n", .{ rank, world, n_rows, n * 4, loops * per_graph, @intFromBool(pdl), us_gather, us_into, bad, bad_into, r.failure() orelse "" });
+        try out.interface.print("{{\"rank\": {d}, \"world\": {d}, \"rows\": {d}, \"bytes\": {d}, \"gathers\": {d}, \"pdl\": {d}, \"idle_ms\": {d}, \"us_gather\": {d:.2}, \"us_into\": {d:.2}, \"bad\": {d}, \"bad_into\": {d}, \"failure\": \"{s}\"}}\n", .{ rank, world, n_rows, n * 4, loops * per_graph, @intFromBool(pdl), idle_ms, us_gather, us_into, bad, bad_into, r.failure() orelse "" });
         try out.interface.flush();
+        if (bad != 0 or bad_into != 0 or r.failure() != null) return error.GatherMismatch;
     }
+    if (idle_ms > 0) try std.Io.sleep(io, .fromMilliseconds(idle_ms), .awake);
     return 0;
 }
 

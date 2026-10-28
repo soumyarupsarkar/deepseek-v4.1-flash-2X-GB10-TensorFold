@@ -31,6 +31,8 @@
     "TF_DS_HC_SIDE": "1",
     "TF_DS_L2_PREFETCH": "1",
     "TF_DS_ENGRAM_AIO": "1",
+    "TF_RDMA_IDLE_S": "2",
+    "TF_RDMA_NAP_US": "100",
     "TF_CARVEOUT": "1",
     "TF_CARVEOUT_BYTES": "1879048192",
     "TF_DS_MEASURE_COSTS": "1",
