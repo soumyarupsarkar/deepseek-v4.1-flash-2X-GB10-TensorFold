@@ -37,7 +37,10 @@ This work builds on the following projects and contributors:
 | [ashhart / TensorFold contributors](https://github.com/ashhart/TensorFold) | TensorFold framework, EXL3 foundation and inherited kernels |
 | [Bertholomus / Albert Lee](https://github.com/bertholomus/TensorFold/tree/deepseek-v41-tp2) | DeepSeek TP2 native Zig engine, vision/RDMA integration, benchmark kit and CUDA kernels; earlier Python correctness and memory improvements |
 | [willjriley](https://github.com/bertholomus/TensorFold/pull/27), [Mia-AiLab](https://github.com/MiaAI-Lab/DeepSeek-v4.1-Flash-1017-2x-DGX-Sparks), [wiseares](https://github.com/bertholomus/deepseek-v4.1-tensorfold-tp2-2xgb10/issues/32) | RDMA idle backoff, adapted and measured here to reduce idle CPU use |
-| [nuk3s](https://github.com/bertholomus/TensorFold/pull/45) | Draft-graph ownership correction after a failed first launch |
+| [nuk3s](https://github.com/bertholomus/TensorFold/pull/45), [Mia PR 85](https://github.com/MiaAI-Lab/DeepSeek-v4.1-Flash-1017-2x-DGX-Sparks/pull/85) | Draft-graph ownership correction and the constrained speculative path adapted to our xgrammar bridge |
+| [hecisaza](https://github.com/MiaAI-Lab/DeepSeek-v4.1-Flash-1017-2x-DGX-Sparks/pull/79) | Engram read failure handling, allocation cleanup and short-table checks |
+| [koniaik](https://github.com/MiaAI-Lab/DeepSeek-v4.1-Flash-1017-2x-DGX-Sparks/pull/76) | Streaming keepalives during long prefill |
+| [manuel1618](https://github.com/manuel1618), [juliankang4](https://github.com/juliankang4), Mia-AiLab | Cached-token metrics adapted through Mia's recipes |
 | [Capicua25x](https://github.com/bertholomus/deepseek-v4.1-tensorfold-tp2-2xgb10/pull/9) | Novelty signal used by Bertholomus's optional reasoning-loop guard |
 | [LibertAIDAI](https://huggingface.co/LibertAIDAI/DeepSeek-V4.1-Flash-1017-EXL3-2.9bpw) | Previous 1017 EXL3 pack and the matched migration baseline |
 | [Mia-AiLab](https://huggingface.co/Mia-AiLab/DeepSeek-V4.1-Flash-1017-EXL3-EAQ-v1-2.9-bpw) | Current 1017 EAQ quantization; earlier EXL3 pack, serving kit, layout and kernels |
@@ -53,7 +56,7 @@ Performance results describe the combined system. [Detailed attribution and sour
 
 The native grammar bridge uses [MLC-AI xgrammar](https://github.com/mlc-ai/xgrammar) directly from C++; [Zig](https://ziglang.org/) supplies the compiler and standard library. Their pinned revisions and retained notices are included with this source.
 
-The [October 28 upstream review](deployment/UPSTREAM-20261028.md) records the idle CPU improvement, graph ownership fix, measured tradeoffs and updates deferred. [Current deployment evidence](release/STATUS.md).
+The [October 30 upstream review](deployment/UPSTREAM-20261030.md) records opt-in constrained drafting, Engram/replay fixes, streaming keepalives, cache metrics and matched measurements. The [October 28 review](deployment/UPSTREAM-20261028.md) covers the earlier idle CPU and graph ownership changes. [Current deployment evidence](release/STATUS.md).
 
 ## Setup
 

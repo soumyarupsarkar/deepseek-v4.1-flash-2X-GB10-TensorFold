@@ -1,10 +1,42 @@
 # Native release status
 
-## Current: October 28 idle polling and graph ownership update
+## Current: October 30 maintenance and constrained drafting update
+
+Runtime `9ad0c6f3a415436dab22e6d6b7d4daa27b785467`, image
+`sha256:973a4fabe83dd4fefc1f868cf62863079e9b63e1be4004e1c064d3084fd1f6e9`, is serving stock Mia EAQ v1 on both hosts.
+C32, the 8,650,752-token shared pool, million-token request ceiling, aliases,
+vision, random seeds and the optional matching Keys overlay are retained.
+
+The update hardens Engram read cleanup/failure handling, aligns odd replay cuts,
+binds rendezvous ports earlier, sends streaming keepalives and exposes cached-token
+metrics. Opt-in speculative strict output uses the existing xgrammar compiler with
+reversible candidate-prefix masks. Ordinary constrained decoding remains the
+default because the measured benefit at C1 comes with a C32 throughput cost.
+Invalid grammar-plus-ignore-EOS requests are
+rejected before submission.
+
+All 14 finite stock gates passed on the full engine candidate
+`20fcdabd`. The final request-default follow-up passed
+22 format cases and 192 C32 default/ordinary/drafted requests. The final build's
+395 native tests, the C++ bridge
+suite, 92 publication tests, 23 controller tests and both hosts' GPU/tensor checks
+passed. Matched short replies and all 24 cold/cached long-context continuations
+preserved hashes and usage. C1/C32 constrained greedy/sampled comparisons,
+stock → Keys → stock replay and a separate LAN startup check also passed.
+During the finite gates, available RAM stayed above the 2 GiB floor
+(3.02 GiB head / 3.67 GiB worker minimum sampled).
+
+[Changes, measurements and credits](../deployment/UPSTREAM-20261030.md) ·
+[Numeric evidence](native-upstream-20261030.json) ·
+[Rollback](../deployment/UPSTREAM-20261030.md#rollback).
+The preceding source, image, assets and host journals remain retained and were
+revalidated after final asset reuse. No new endurance or model-quality claim is made.
+
+## Previous: October 28 idle polling and graph ownership update
 
 Runtime `0a0f7a41b7050848a995b7c5354c946a569844c3`, image
 `sha256:7c1d043509b7dbaf90d1b6bffd6149b4a298cf3465aa005bd59140d46c3b9db4`,
-is serving stock Mia EAQ v1 on both hosts. C32, the 8,650,752-token shared pool,
+served stock Mia EAQ v1 before the October 30 update. C32, the 8,650,752-token shared pool,
 1,048,576-token request ceiling, aliases, vision, strict output and random seeds
 remain unchanged. The matching Keys sidecar remains prepared and optional;
 no model download or weight change was needed.

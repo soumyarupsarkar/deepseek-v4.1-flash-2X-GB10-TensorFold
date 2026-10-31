@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "upstream_base": "4e80f05ecba89a4e90d16375ade2eddbdc0a10c4",
-  "status": "October 28 idle polling and graph ownership update qualified on runtime 0a0f7a41; see release/STATUS.md for deployment and evidence",
+  "status": "October 30 maintenance and constrained drafting qualified on runtime 9ad0c6f3; see release/STATUS.md for deployment and evidence",
   "scope": "Build, native engine, grammar bridge, deployment controller/configuration and checkpoint-specific compiled test resources. This manifest is not serving qualification.",
   "files": [
     {
@@ -66,7 +66,7 @@
     },
     {
       "path": "deployment/config/profile.json",
-      "sha256": "a0c6c7967937e10f7dbf1aa420fed93570274c0016ae89ee4971ea6ab66e2840"
+      "sha256": "a11aec964bd1721ea94e5855714d2a6c45654702f9c6bf4b931a2c5783a4bd5e"
     },
     {
       "path": "deployment/config/requirements-resolved.txt",
@@ -1242,19 +1242,19 @@
     },
     {
       "path": "zig/native_xgrammar/README.md",
-      "sha256": "67b9f0830857d0451575c8e67a966cc91bfc2aad2d003422c9d9bb4a5d0280e4"
+      "sha256": "1dc01950f06adc885ac2d47c04acb42c574fda1aa70a1be5051bc6e9d79e3cc5"
     },
     {
       "path": "zig/native_xgrammar/bridge.cc",
-      "sha256": "4a27560be96d8ebcee258e34e2b9db73ac5d503d264c3a23580e794f6ac8a1ef"
+      "sha256": "41f82a682ea6c81cf5795a3942fc84e1122ee1dd0ee4603cb9227ec391f15d9f"
     },
     {
       "path": "zig/native_xgrammar/bridge.h",
-      "sha256": "5c142e935e0d1d8815a94e3dec830128509d10ac713af7882f7eab24670376e6"
+      "sha256": "99d3f1ab7567840fbf4ba4c4cafbf41b55408abc3a46165b329497ca034c50cd"
     },
     {
       "path": "zig/native_xgrammar/bridge_test.cc",
-      "sha256": "63431766c0f1ceeba7e8f671c09a41610303aba59cbcbbd778d1d63b8e6bef30"
+      "sha256": "6bd07e2cc75d6ba2b5d0895bfc8cb017ba454a053141b0a957215a25a57bf914"
     },
     {
       "path": "zig/native_xgrammar/native_config.cmake",
@@ -1526,7 +1526,7 @@
     },
     {
       "path": "zig/src/core/engine_api.zig",
-      "sha256": "2b48a8b907deb84bf5d57cc37475d86c13983ca834303bd08d24b0f463ee1a03"
+      "sha256": "70be764c96516c8d3be2c400a58a9f7b1fbee36d259af9401041d0363771be5a"
     },
     {
       "path": "zig/src/core/fence.zig",
@@ -1574,11 +1574,15 @@
     },
     {
       "path": "zig/src/core/lanes/backend.zig",
-      "sha256": "7fe86f3e38cdc2babd24e2a8b831300640aecac5541ec8bbdcf3feed721ad1ce"
+      "sha256": "fa3ca6a8075839e37af68c062ade0d1edd326f47642f8d5bf4a1a8a0e92530cc"
     },
     {
       "path": "zig/src/core/lanes/config.zig",
       "sha256": "7a07b754436e0c1b33a269f7462ce2d10f53fff3f0ba9dae4f7e0f52fe80fa33"
+    },
+    {
+      "path": "zig/src/core/lanes/constrained.zig",
+      "sha256": "b2b64bc9e9b7281e3ab93eb0ba15e6251d92b2636f4f09c685990088238dbf64"
     },
     {
       "path": "zig/src/core/lanes/depth.zig",
@@ -1586,7 +1590,7 @@
     },
     {
       "path": "zig/src/core/lanes/engine.zig",
-      "sha256": "3722a5333ae51ec6c9158160fb5757065d60338a70eac297f24537465666774c"
+      "sha256": "5ff98d831a6b68d27c581d3e149dbdbb3508f8662de0623929637924a6cf0e00"
     },
     {
       "path": "zig/src/core/lanes/engine_test.zig",
@@ -1622,7 +1626,7 @@
     },
     {
       "path": "zig/src/core/lanes/lanes.zig",
-      "sha256": "dab1ec41aa091daf346b43de9147ecee43c8b4aca38b3093e87114341fcbeaf6"
+      "sha256": "f449f6e150421d6ac17b511c52964df19366de616c929cfaee3398d1920d8063"
     },
     {
       "path": "zig/src/core/lanes/measure.zig",
@@ -1646,7 +1650,7 @@
     },
     {
       "path": "zig/src/core/lanes/stream.zig",
-      "sha256": "33f169ed25b986e305a294dca7add810cd9033997ec56ee14c3fa189897f7cef"
+      "sha256": "b53832cf1281239d40dc665e7f6c60658b47f963a45f92f7cf36b8f809e1cf6a"
     },
     {
       "path": "zig/src/core/lanes/table.zig",
@@ -2010,11 +2014,11 @@
     },
     {
       "path": "zig/src/families/dsv41/engram.zig",
-      "sha256": "01c063a405dc1f4d310e77d0e1145e33ec89d9fd3fedfca6fac6b91e8aa9675b"
+      "sha256": "8a3a348297bd5c521a7fd2c2c5ecf7f6872d4c82708379a4a24c8fec587da2af"
     },
     {
       "path": "zig/src/families/dsv41/engram_aio.zig",
-      "sha256": "0602563e21889abb48411b7b2d08de3a4a58ce081499a0526979b0bba9d05307"
+      "sha256": "9c978282048d739c155fbf3442bd84b47ee854ae7cbf47be1d73b664e5198f75"
     },
     {
       "path": "zig/src/families/dsv41/engram_check_main.zig",
@@ -2022,7 +2026,7 @@
     },
     {
       "path": "zig/src/families/dsv41/engram_io.zig",
-      "sha256": "0447c5a40d5afea9e692cfedce81c61205c00dca5137fac4455b6f38f290d22a"
+      "sha256": "98560cc50c2e6dbac3d3858371c0face6f689502eebd1cd59b004d17ea6ca29f"
     },
     {
       "path": "zig/src/families/dsv41/exact.zig",
@@ -2070,7 +2074,7 @@
     },
     {
       "path": "zig/src/families/dsv41/lanes.zig",
-      "sha256": "4398e713612b0cfacb8fbcf7f703d9c9b0e56ca740598a6aaf9306445f514d4a"
+      "sha256": "d47e995b89b199640d1a37ae8b9899fd02864bc80955f5bcecfa58c746e027b5"
     },
     {
       "path": "zig/src/families/dsv41/lanes_main.zig",
@@ -2082,7 +2086,7 @@
     },
     {
       "path": "zig/src/families/dsv41/link.zig",
-      "sha256": "addf490975e28f0afc475a0ebdefca864e00c4f126f06075b93555d99b74c6b2"
+      "sha256": "5d7a2a2f41137d94fd46a8748b7edf4d38ade368902411049ffd3fcd43f8bb0d"
     },
     {
       "path": "zig/src/families/dsv41/load_main.zig",
@@ -2094,11 +2098,11 @@
     },
     {
       "path": "zig/src/families/dsv41/model.zig",
-      "sha256": "ebb01516340faace855e920cfedfc4b89ae8f13b662058d104f024486bfb2769"
+      "sha256": "9092a81719f801e901b8939727927b2ce010905865e514a83eaf14ac98f99cc3"
     },
     {
       "path": "zig/src/families/dsv41/native.zig",
-      "sha256": "b4530dd2026fa9e7f10711ff0d94cf2d2d20c56858ccaa3b8612edea38944ea3"
+      "sha256": "dfda67d7864a2ff4b98c47a1dfe4a415379106993be7db05a5e7570f856b01bc"
     },
     {
       "path": "zig/src/families/dsv41/ops.zig",
@@ -2126,11 +2130,11 @@
     },
     {
       "path": "zig/src/families/dsv41/prompt.zig",
-      "sha256": "bd2f9c2afff4ca28b8e4c5d74b4e41e77a3b23faa1be13ea80c0f0e94a586bd5"
+      "sha256": "3ab61cc742612c9766bd1b45403251b843afc863778a04955c11c73a0f749e30"
     },
     {
       "path": "zig/src/families/dsv41/prompt2d.zig",
-      "sha256": "2db8bda3c0acbac708ffdd4f95e08fcc402a7ab055baa21f488fe930782ed6a9"
+      "sha256": "85a0c40afc73da1390d61d3324258a6febdd0b83ffbf92cad5ddceda77957aac"
     },
     {
       "path": "zig/src/families/dsv41/rank_cache.zig",
@@ -2722,7 +2726,7 @@
     },
     {
       "path": "zig/src/native/cuda.zig",
-      "sha256": "5b52e5f6f8e15d0a2c7aa5f0f39be61bf0fa82c07b50a19dbccabc30c0aadd87"
+      "sha256": "9363c5befb557f6d248fe5aa9788ae9dd5c8ff50e52a8d5a860fb9610ca08ea4"
     },
     {
       "path": "zig/src/native/cuda_memory.zig",
@@ -2750,7 +2754,7 @@
     },
     {
       "path": "zig/src/server/anthropic.zig",
-      "sha256": "edbe2697a53735eddba3c513ff951ad82d7fda8ce6b16c833a670827d090f198"
+      "sha256": "9cdfe4e6f0187ed755758bd695122840314dd3623ad6907e25d7fc173ef85155"
     },
     {
       "path": "zig/src/server/anthropic_translate.zig",
@@ -2762,7 +2766,7 @@
     },
     {
       "path": "zig/src/server/chat.zig",
-      "sha256": "14ec6ff527c5d9c7d51d63e0b240b239a302188a55f74edbde548cb719072595"
+      "sha256": "740cf73cf3ba3ea0a82a620b64db775d03ef20f797777558abd317efec314115"
     },
     {
       "path": "zig/src/server/checkpoint_1017_test.zig",
@@ -2874,7 +2878,7 @@
     },
     {
       "path": "zig/src/server/late_system_test.zig",
-      "sha256": "f01cf2e1e010e21b55545c2f750b00fd5aff3c1ff9a25d2b1f1a344253a7174d"
+      "sha256": "f4e682c0157bf0724079a585ca9b242d2e8c1c51e337f1c65b944a108234dba0"
     },
     {
       "path": "zig/src/server/listener.zig",
@@ -2898,7 +2902,7 @@
     },
     {
       "path": "zig/src/server/metrics.zig",
-      "sha256": "93b1e73e9570a0c2375dd7f65816f1c5dece936d6e34d0ff310b8049627a6270"
+      "sha256": "800671df6bc9dd8b0bd304556739c26db2bf62f2cff218027d86a62e3a1e33fb"
     },
     {
       "path": "zig/src/server/model_text.zig",
@@ -2910,7 +2914,7 @@
     },
     {
       "path": "zig/src/server/openai.zig",
-      "sha256": "be078b85eb90f248dbb4b034d6861882334de4ae83d9458ca8c7f47acb45a774"
+      "sha256": "1a7a911c8297166599bb1473b0c5fa6e020d56468aa8662c36d2abb8bb2f9b75"
     },
     {
       "path": "zig/src/server/prompt.zig",
@@ -2934,7 +2938,7 @@
     },
     {
       "path": "zig/src/server/responses.zig",
-      "sha256": "92a47fb5c13999e007910b74c4cc3b820a5aa81d54c51bc9fb76a90078aed514"
+      "sha256": "5435ae7d883796aab232e7debea66c6f1ddd12bf3202a66969d9ffb270d9b559"
     },
     {
       "path": "zig/src/server/responses_translate.zig",
@@ -2942,7 +2946,7 @@
     },
     {
       "path": "zig/src/server/root.zig",
-      "sha256": "640dea792f680f0d954da7d1f0f5cdb55bdadf43c1cbf2352d097c99eff35dce"
+      "sha256": "a92fc701cbcad6a12d4302c3acd3ed1dba3d0b27cfd8cce81101266dcf32274c"
     },
     {
       "path": "zig/src/server/routes.zig",
@@ -2958,19 +2962,23 @@
     },
     {
       "path": "zig/src/server/server.zig",
-      "sha256": "f76669810db8e03f4046aafaaf679fbc5f5c129bdae664e903abf8c171ef9936"
+      "sha256": "27ca75b9bd1ed40a656f94cabedc25b2bac9e34283b803a0d8f1a18543511a10"
     },
     {
       "path": "zig/src/server/sse.zig",
-      "sha256": "5e17cda7fb66667b0dfb502b6a3366c7a5185444b4fa323f4414ecce3aea3371"
+      "sha256": "a5b71a7a58ade9764507b30476cda7b707d6342f8c3ce500959c7f32713a00b3"
     },
     {
       "path": "zig/src/server/status_routes.zig",
-      "sha256": "5d61915be1fb28f4673a7f4dff9f5a113101300f676a30e869572effee762bb6"
+      "sha256": "56dad2ea9eaeaa8fa759cbc27efdc945f53f1cf9e9eb3b65a19fcb336425d2b7"
+    },
+    {
+      "path": "zig/src/server/status_totals_test.zig",
+      "sha256": "fa1494bab30c4207e9e426d9ae30b6c6764ef64f6dd69025e9a22062e8471dc5"
     },
     {
       "path": "zig/src/server/stream_preflight_test.zig",
-      "sha256": "fe8d63c440b693b0e17fd2bcbb49894dd860780ade7e9e5738157ba7ab38f957"
+      "sha256": "962854fcbee33e7b1a57d7ad08feea902bbd8b45fd59d9b17f5facdff4d9b556"
     },
     {
       "path": "zig/src/server/tokens.zig",
@@ -3010,7 +3018,7 @@
     },
     {
       "path": "zig/src/server/xgrammar.zig",
-      "sha256": "3a5145722ed8fd19d7943865027316600af999f158f20edd5e0eeeba8eda6672"
+      "sha256": "752be09fe859a6649e7d8918cd6af19a4f9d6e7f845aa2e7dd73e61e37b83785"
     },
     {
       "path": "zig/src/tensorfold.zig",

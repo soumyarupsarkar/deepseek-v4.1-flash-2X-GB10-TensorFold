@@ -1,5 +1,13 @@
 # Third-party notices
 
+The October 30 integration adapts Mia-AiLab's Apache-2.0 maintenance patches:
+Engram handling from hecisaza, streaming keepalives from koniaik, cache metrics
+credited to manuel1618/juliankang4, early rendezvous and replay alignment. The
+constrained speculative path adapts nuk3s's Mia PR 85 while retaining the pinned
+MLC-AI xgrammar compiler and its notices. Mia's existing
+[NOTICE](LICENSES/Mia-DeepSeek-1017-NOTICE.txt) is unchanged and retained.
+[Source pins, changes and attribution](deployment/UPSTREAM-20261030.md).
+
 The October 28 integration adapts native RDMA idle backoff from willjriley's
 Python change, Mia-AiLab's native port and wiseares's TP2 adaptation, plus a
 draft-graph ownership correction identified in nuk3s's TensorFold PR 45.

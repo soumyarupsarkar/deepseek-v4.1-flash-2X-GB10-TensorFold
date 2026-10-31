@@ -189,6 +189,18 @@ decodes on from the reply. The model writes the arguments; a malformed call retu
 
 ## Structured output
 
+The native GB10 deployment uses the bundled, pinned xgrammar C++ bridge;
+no Python grammar installation is needed. JSON/schema, regex, choice, EBNF and
+tool constraints use ordinary decoding by default. OpenAI Chat, Completions and
+Responses callers can opt into constrained speculation with `"draft": true`;
+`"draft": false` selects ordinary decoding. Both modes enforce the same matcher.
+The Anthropic adapter keeps ordinary constrained decoding. Health reports
+`structured_drafts` for capability and `structured_drafts_default` for policy.
+See [sampling](../deployment/SAMPLING.md) and the
+[C1/C32 measurements](../deployment/UPSTREAM-20261030.md) for the tradeoff.
+
+The following installation and execution details describe the Python backends.
+
 Every model on both backends enforces `response_format` (`{"type": "json_schema", "json_schema": {"schema": ...}}`
 or `{"type": "json_object"}`) and vLLM's `guided_json`, `guided_regex`, `guided_choice`, `guided_grammar` (EBNF) and
 `structured_outputs` (`json`, `json_object`, `regex`, `choice` or `grammar`): on the Mac, and on CUDA with one or two
@@ -341,8 +353,8 @@ return 404 when the flag is off, and the page polls once per second without addi
 ## The Responses API
 
 `POST /v1/responses` takes OpenAI's Responses request and runs it as the equivalent chat completion, through the
-same handler and engine path. A response has that chat completion's prompt and tokens (the `tensorfold` block's
-`token_sha` matches), drafts, and equals its `"draft": false` run and its solo run.
+same handler and engine path. It uses that chat completion's draft policy. With matched seeds and sampling
+settings, its tokens (`tensorfold.token_sha`) match the equivalent chat request, its `"draft": false` run and its solo run.
 
 - `input` is a string or a list of items: messages (`input_text`, and `input_image` with `--vision`),
   `function_call`, `function_call_output` (its `output` text, or `input_text` and `input_image` parts with
@@ -355,7 +367,7 @@ same handler and engine path. A response has that chat completion's prompt and t
   chat.
 - `reasoning.effort` follows the chat effort rule: unset is the template's default and `none` turns thinking off.
   `reasoning.summary` is accepted, but no summary is written.
-- `text.format` takes `json_schema` or `json_object` through the structured-output path, with drafts.
+- `text.format` takes `json_schema` or `json_object` through the structured-output path, using that backend's draft policy described above.
 - `stream`, `store` (default true) and `metadata` (up to 16 string pairs). The chat extensions `draft`,
   `thinking_budget`, `stop`, `ignore_eos`, `chat_template_kwargs` and `priority` pass through.
 
