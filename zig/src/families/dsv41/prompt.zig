@@ -1224,6 +1224,44 @@ test "Engram local read faults end the pair, other errors retain their classific
         try std.testing.expectEqual(err, rankFault(err));
 }
 
+test "short Engram tables are rejected on both ranks before any row reader runs" {
+    const gpa = std.testing.allocator;
+    var arena = std.heap.ArenaAllocator.init(gpa);
+    defer arena.deinit();
+    const a = arena.allocator();
+    const conf = @import("config.zig");
+    var why: conf.Why = .{};
+    var c = try conf.parse(a, conf.test_config, &why);
+    c.engram_vocab = 10;
+    c.engram_heads = 1;
+    c.engram_pad = 0;
+    var map: [40]i32 = undefined;
+    for (&map, 0..) |*x, i| x.* = @intCast((i * 7 + 3) % 31);
+    const hasher = engram.Hasher.init(c, &map, .{ .{ 3, 5, 7, 9 }, .{ 11, 13, 15, 17 } });
+    try std.testing.expectEqual(@as(u64, 41), hasher.rowsNeeded(0));
+    try std.testing.expectEqual(@as(u64, 71), hasher.rowsNeeded(1));
+    // Metadata validation must not touch a file or submit work to this pool.
+    var pool: engram_io.Pool = undefined;
+    for ([_][2]u64{ .{ 40, 71 }, .{ 41, 70 }, .{ 41, 71 } }, 0..) |rows, case| {
+        var tables: engram_io.Tables = .{ .gpa = gpa };
+        defer tables.close();
+        for (c.engram_layers.slice(), rows) |id, count| try tables.layers.put(gpa, @intCast(id), .{
+            .fd_w = -1,
+            .fd_s = -1,
+            .base_w = 0,
+            .base_s = 0,
+            .row_w = 256,
+            .row_s = 2,
+            .rows = count,
+        });
+        for (0..2) |rank| {
+            if (case < 2) {
+                try std.testing.expectError(error.BadEngramTable, EngramHost.init(a, &c, hasher, &tables, &pool, rank, 2, 8));
+            } else _ = try EngramHost.init(a, &c, hasher, &tables, &pool, rank, 2, 8);
+        }
+    }
+}
+
 /// Layer li's Engram on the chunk (engram_apply, no image span), as _forward_k runs it before the attention mixes: a
 /// pending MoE post into the streams first (hc_post), then the rows of each position's n-grams (hashed on the host from
 /// `seq`, the whole sequence's ids so far; read from the tables; decoded to bf16 as Engram._decode does), their
