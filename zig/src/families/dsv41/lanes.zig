@@ -528,6 +528,8 @@ pub const Lanes = struct {
 
     fn prefillBeginFn(ptr: *anyopaque, s: *lanes.Stream) anyerror!void {
         const self = of(ptr);
+        self.redraw_count = 0;
+        self.redraw_logits = &.{};
         const m = self.m;
         const gpa = self.gpa;
         const t0 = m.now();
@@ -868,7 +870,9 @@ pub const Lanes = struct {
 
     /// The caches are positional: the next window starts at the stream's new length and writes over the rows past it.
     fn keepFn(ptr: *anyopaque, windows: []const be.Window, paths: []const []const u32) anyerror!void {
-        _ = ptr;
+        const self = of(ptr);
+        self.redraw_count = 0;
+        self.redraw_logits = &.{};
         for (windows, paths) |_, path| {
             if (path.len == 0) return error.EmptyPath;
             for (path, 0..) |r, i| if (r != i) return error.TreesNotBuilt;
