@@ -187,6 +187,7 @@ pub const Chunk = struct {
     ids: u64, // int64 [cap]
     pos: u64, // int64 [n]: start .. start + n (after a replay cut a view into pos0, pos[first:])
     pos0: u64, // int64 [cap]: the chunk's positions as begin() wrote them
+    pos1: u64 = 0, // int64 [cap]: a replay cut's positions moved to a 16-byte boundary (replayCut)
     h: u64, // bf16 [cap, hc, D]: the streams
     h_alt: u64, // their second buffer (hc_pre_pf writes the posted streams there)
     x: u64, // bf16 [cap, D]: a block's input rows
@@ -299,6 +300,7 @@ pub const Chunk = struct {
         ch.pending = false;
         ch.ids = try a.take(cap * 8);
         ch.pos0 = try a.take(cap * 8);
+        ch.pos1 = try a.take(cap * 8);
         ch.pos = ch.pos0;
         ch.h = try a.take(cap * hc * d * 2);
         ch.h_alt = try a.take(cap * hc * d * 2);
@@ -1132,6 +1134,15 @@ pub const EngramHost = struct {
         const hi = (rank + 1) * cols / world;
         const k = hi - lo;
         const t = tables.layers.get(@intCast(c.engram_layers.slice()[0])) orelse return error.MissingEngramTable;
+        // a table short of any column's ids would fail one rank's reads and not the other's (the ranks split the
+        // columns): both refuse it here, before any collective, from the same tables and the same hasher
+        for (c.engram_layers.slice(), 0..) |id, l| {
+            const tl = tables.layers.get(@intCast(id)) orelse return error.MissingEngramTable;
+            if (tl.rows < hasher.rowsNeeded(l)) {
+                std.log.warn("dsv41: Engram layer {d}'s table has {d} rows; its hashes reach {d}", .{ id, tl.rows, hasher.rowsNeeded(l) });
+                return error.BadEngramTable;
+            }
+        }
         var aw: [2][]u8 = .{ &.{}, &.{} };
         var as: [2][]u8 = .{ &.{}, &.{} };
         var ar: [2][]u16 = .{ &.{}, &.{} };
@@ -1167,7 +1178,7 @@ pub const EngramHost = struct {
 /// as engramApply would at the layer. Errors land in ahead_err.
 pub fn engramReadAhead(eh: *EngramHost, c: *const Config, seq: []const i32, start: usize, n: usize, j: usize) void {
     engramAhead1(eh, c, seq, start, n, j) catch |err| {
-        eh.ahead_err = err;
+        eh.ahead_err = rankFault(err);
     };
 }
 
@@ -1175,7 +1186,7 @@ pub fn engramReadAhead(eh: *EngramHost, c: *const Config, seq: []const i32, star
 pub fn engramReadAheadAll(eh: *EngramHost, c: *const Config, seq: []const i32, start: usize, n: usize) void {
     for (0..@min(2, c.engram_layers.slice().len)) |j| {
         engramAhead1(eh, c, seq, start, n, j) catch |err| {
-            eh.ahead_err = err;
+            eh.ahead_err = rankFault(err);
             return;
         };
     }
@@ -1195,6 +1206,22 @@ fn engramAhead1(eh: *EngramHost, c: *const Config, seq: []const i32, start: usiz
     if (eh.paio) |aio| try aioGather(aio, t, eh.ahead_flat[j][0..m], eh.ahead_w[j][0 .. m * t.row_w], eh.ahead_s[j][0 .. m * t.row_s]) else try eh.pool.gather(t, eh.ahead_flat[j][0..m], eh.ahead_w[j][0 .. m * t.row_w], eh.ahead_s[j][0 .. m * t.row_s]);
     engram.decodeRows(eh.ahead_w[j][0 .. m * t.row_w], eh.ahead_s[j][0 .. m * t.row_s], eh.ahead_rows[j][0 .. m * t.row_w], m, t.row_w, t.row_s, 8);
     eh.ahead_ready[j] = true;
+}
+
+/// A failed local row read leaves the peer waiting for this rank's collective.
+/// The caller must stop the pair, rather than continue with the next request.
+pub fn rankFault(err: anyerror) anyerror {
+    return switch (err) {
+        error.ReadFailed, error.EndOfFile, error.OutOfMemory, error.RowOutOfRange => error.EngramRankFault,
+        else => err,
+    };
+}
+
+test "Engram local read faults end the pair, other errors retain their classification" {
+    for ([_]anyerror{ error.ReadFailed, error.EndOfFile, error.OutOfMemory, error.RowOutOfRange }) |err|
+        try std.testing.expectEqual(error.EngramRankFault, rankFault(err));
+    for ([_]anyerror{ error.EngramRankFault, error.MissingEngramTable, error.BadSize, error.CommAborted, error.RingFailed }) |err|
+        try std.testing.expectEqual(err, rankFault(err));
 }
 
 /// Layer li's Engram on the chunk (engram_apply, no image span), as _forward_k runs it before the attention mixes: a
@@ -1228,7 +1255,8 @@ pub fn engramApply(e: *const Engine, ch: *Chunk, eh: *EngramHost, li: usize, seq
         for (0..n) |r| {
             for (0..k) |j| eh.flat[r * k + j] = eh.hashes[(r * eh.hasher.layers + l) * cols + eh.lo + j];
         }
-        if (eh.paio) |aio| try aioGather(aio, t, eh.flat[0..m], eh.w[0 .. m * t.row_w], eh.s[0 .. m * t.row_s]) else try eh.pool.gather(t, eh.flat[0..m], eh.w[0 .. m * t.row_w], eh.s[0 .. m * t.row_s]);
+        const read = if (eh.paio) |aio| aioGather(aio, t, eh.flat[0..m], eh.w[0 .. m * t.row_w], eh.s[0 .. m * t.row_s]) else eh.pool.gather(t, eh.flat[0..m], eh.w[0 .. m * t.row_w], eh.s[0 .. m * t.row_s]);
+        read catch |err| return rankFault(err);
         engram.decodeRows(eh.w[0 .. m * t.row_w], eh.s[0 .. m * t.row_s], eh.rows[0 .. m * t.row_w], m, t.row_w, t.row_s, 8); // the rows on 8 threads
     }
     if (m * t.row_w != n * ew.k) return error.EngramShape;
@@ -1323,9 +1351,15 @@ pub fn replayCut(e: *const Engine, ch: *Chunk, cs: *const Caches, sh: *Shared, l
     std.mem.swap(u64, &ch.pre, &ch.pre_f);
     ch.start += first;
     ch.n = n;
-    // pos[first:]: a view, first * 8 bytes in (its alignment is the one the served kernels were specialized for)
+    // pos[first:]: a view, first * 8 bytes in (its alignment is the one the served kernels were specialized for). An odd
+    // `first` leaves it off a 16-byte boundary, and the kit has no variant for some launches with such a view (a short
+    // chunk's split attention: _sparse_attn_part with SPLITS > 1 and no row bases); the same positions copied, in the
+    // stream's order, to a 16-byte boundary then: the kernels read the same values from an address they were captured for.
     _ = host_pos;
-    ch.pos += first * 8;
+    if ((first * 8) % 16 != 0) {
+        try e.d.check(e.d.api.cuMemcpyDtoDAsync_v2(ch.pos1, ch.pos + first * 8, n * 8, e.s.handle), "cuMemcpyDtoDAsync");
+        ch.pos = ch.pos1;
+    } else ch.pos += first * 8;
     return true;
 }
 

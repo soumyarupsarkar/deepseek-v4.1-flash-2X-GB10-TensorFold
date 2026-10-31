@@ -40,7 +40,44 @@ pub const Input = struct {
 pub const Sink = struct {
     ctx: *anyopaque,
     call: *const fn (ctx: *anyopaque, delta: Value) error{Closed}!void,
+    ping: ?*const fn (ctx: *anyopaque) error{Closed}!void = null,
 };
+
+/// SSE traffic only; pings neither count as generated tokens nor change TTFT.
+const ping_after_ns: i96 = 25 * std.time.ns_per_s;
+
+test "stream pings follow silence without counting a token, and propagate a disconnect" {
+    const Probe = struct {
+        count: usize = 0,
+        closed: bool = false,
+        fn call(_: *anyopaque, _: Value) error{Closed}!void {}
+        fn send(ctx: *anyopaque) error{Closed}!void {
+            const p: *@This() = @ptrCast(@alignCast(ctx));
+            if (p.closed) return error.Closed;
+            p.count += 1;
+        }
+    };
+    var probe: Probe = .{};
+    var g: Generation = undefined; // ping touches only the sink and output clock
+    g.last_out_ns = 100;
+    g.sink = .{ .ctx = &probe, .call = Probe.call, .ping = Probe.send };
+    g.first_ns = null;
+    g.last_ns = null;
+    try g.ping(100 + ping_after_ns - 1);
+    try std.testing.expectEqual(@as(usize, 0), probe.count);
+    try g.ping(100 + ping_after_ns);
+    try std.testing.expectEqual(@as(usize, 1), probe.count);
+    try std.testing.expect(g.first_ns == null and g.last_ns == null);
+    try g.ping(100 + 2 * ping_after_ns - 1);
+    try std.testing.expectEqual(@as(usize, 1), probe.count);
+    probe.closed = true;
+    try std.testing.expectError(error.Closed, g.ping(100 + 2 * ping_after_ns));
+    g.sink = null;
+    try g.ping(100 + 3 * ping_after_ns);
+    g.sink = .{ .ctx = &probe, .call = Probe.call };
+    try g.ping(100 + 4 * ping_after_ns);
+    try std.testing.expectEqual(@as(usize, 1), probe.count);
+}
 
 pub const Reply = struct {
     content: []const u8,
@@ -257,8 +294,8 @@ pub fn generate(srv: *Server, cx: *Cx, prepared: Prepared, sink: ?Sink, gone: an
     };
     release(srv, preparing); // a background request waits only while a foreground one prepares
     preparing = false;
-    var gen: Generation = .{ .srv = srv, .a = a, .box = &box, .id = id, .reply_id = input.id, .sink = sink, .thinking = thinking or reply_text.isChannel(srv.markers), .stops = .{ .strings = stops_opt.strings }, .ignore_eos = stops_opt.ignore_eos, .max_tokens = request.max_tokens, .tools = input.tools, .token_ids = input.token_ids, .sampling_seed = if (request.sampling) |s| s.seed else null };
-    defer srv.noteRequest(prepared.prompt_len, gen.collected.items.len, box.stats.drafted, box.stats.accepted, box.stats.rounds, received, gen.first_ns, gen.last_ns, box.stats.prefill_seconds);
+    var gen: Generation = .{ .last_out_ns = submitted, .srv = srv, .a = a, .box = &box, .id = id, .reply_id = input.id, .sink = sink, .thinking = thinking or reply_text.isChannel(srv.markers), .stops = .{ .strings = stops_opt.strings }, .ignore_eos = stops_opt.ignore_eos, .max_tokens = request.max_tokens, .tools = input.tools, .token_ids = input.token_ids, .sampling_seed = if (request.sampling) |s| s.seed else null };
+    defer srv.noteRequest(prepared.prompt_len, box.cached orelse 0, gen.collected.items.len, box.stats.drafted, box.stats.accepted, box.stats.rounds, received, gen.first_ns, gen.last_ns, box.stats.prefill_seconds);
     errdefer if (!gen.engine_done) gen.cancel(); // the engine writes to the mailbox until it says finished
     const result: Failure!Reply = blk: {
         if (sink != null and input.tools.len > 0) gen.calls = tool_stream.Streamer.init(a, input.tools) catch |e| break :blk e;
@@ -322,6 +359,7 @@ const Shown = struct {
 
 /// The token loop and the text it streams.
 const Generation = struct {
+    last_out_ns: i96 = 0,
     srv: *Server,
     a: Allocator,
     box: *Mailbox,
@@ -434,6 +472,16 @@ const Generation = struct {
             g.cancel();
             return error.Cancelled;
         };
+        g.last_out_ns = nowNs(g.srv.io);
+    }
+
+    fn ping(g: *Generation, now: i96) error{Closed}!void {
+        if (g.sink) |sink| if (sink.ping) |send| {
+            if (now - g.last_out_ns >= ping_after_ns) {
+                try send(sink.ctx);
+                g.last_out_ns = now;
+            }
+        };
     }
 
     /// Ends the request and waits for the engine; one it ended unfinished counts as a disconnect, as the Mac scheduler counts it.
@@ -478,8 +526,13 @@ const Generation = struct {
                 g.cancel();
                 return error.Cancelled;
             }
-            const tokens = chunk orelse continue;
-            if (g.reason == null) try g.commit(tokens);
+            if (chunk) |tokens| if (g.reason == null) try g.commit(tokens);
+            // Some tokens are withheld by the tool parser. Time actual output,
+            // not tokens arriving from the engine, so those streams stay alive too.
+            g.ping(nowNs(g.srv.io)) catch {
+                g.cancel();
+                return error.Cancelled;
+            };
         }
     }
 

@@ -16,6 +16,8 @@ pub const Server = server.Server;
 pub const Config = server.Config;
 
 test {
+    _ = @import("chat.zig");
+    _ = @import("status_totals_test.zig");
     @import("std").testing.refAllDecls(@This());
     _ = @import("json.zig");
     _ = @import("fields.zig");

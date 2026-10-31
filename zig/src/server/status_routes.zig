@@ -40,13 +40,18 @@ pub fn health(srv: *Server, conn: *Conn, a: Allocator) !void {
     // Only aggregate counters; request text and API key labels never enter health.
     srv.metrics.mutex.lockUncancelable(srv.io);
     const prompt = srv.metrics.prompt;
+    const cached = srv.metrics.cached;
     const generation = srv.metrics.generation;
     const rounds = srv.metrics.rounds;
     const requests = srv.metrics.latency.n;
     srv.metrics.mutex.unlock(srv.io);
+    try o.put(a, "prompt_tokens_total", try json.intValue(a, prompt));
+    try o.put(a, "generation_tokens_total", try json.intValue(a, generation));
+    if (srv.info.prompt_cache) try o.put(a, "cached_tokens_total", try json.intValue(a, cached));
     const completed = try json.newObject(a);
     try completed.put(a, "requests", try json.intValue(a, requests));
     try completed.put(a, "prompt_tokens", try json.intValue(a, prompt));
+    if (srv.info.prompt_cache) try completed.put(a, "cached_tokens", try json.intValue(a, cached));
     try completed.put(a, "generation_tokens", try json.intValue(a, generation));
     try completed.put(a, "decode_rounds", try json.intValue(a, rounds));
     try o.put(a, "completed", .{ .object = completed });

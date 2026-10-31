@@ -125,6 +125,8 @@ pub const Info = struct {
     /// Prompt plus reply tokens one request may use (0: no limit).
     context_window: u32 = 0,
     context_fitted: bool = false,
+    /// The engine can restore earlier prompt states; exposes cached-token totals.
+    prompt_cache: bool = false,
     /// What the engine enforces; the server refuses requests that need more.
     call_gates: bool = false,
     /// The engine observes loop_guard requests in its lane stream.

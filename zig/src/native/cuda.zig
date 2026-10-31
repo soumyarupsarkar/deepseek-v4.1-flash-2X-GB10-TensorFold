@@ -415,7 +415,7 @@ fn openWith(comptime F: type, a: Allocator, gpa: Allocator, io: std.Io, o: api.O
     };
     // the family cuts its own prompt grid from position 0, as `tensorfold run` does: prefill_step 0
     const vision: ?api.Vision = if (@hasField(@TypeOf(loaded), "vision")) loaded.vision else null;
-    try h.serve(io, loaded.facts, loaded.rows, .{ .lanes = streams, .context_window = @intCast(window), .startup = h.startup, .efforts = familyEfforts(F), .vision = vision, .logit_constraints = if (@hasField(@TypeOf(loaded), "logit_constraints")) loaded.logit_constraints else false, .fail_closed = if (@hasField(@TypeOf(loaded), "fail_closed")) loaded.fail_closed else false }, .{ .ctx = loaded.ctx, .text = F.explain });
+    try h.serve(io, loaded.facts, loaded.rows, .{ .lanes = streams, .context_window = @intCast(window), .startup = h.startup, .efforts = familyEfforts(F), .vision = vision, .prompt_cache = h.cache != null, .logit_constraints = if (@hasField(@TypeOf(loaded), "logit_constraints")) loaded.logit_constraints else false, .fail_closed = if (@hasField(@TypeOf(loaded), "fail_closed")) loaded.fail_closed else false }, .{ .ctx = loaded.ctx, .text = F.explain });
     opened = true;
     return .{ .engine = h.host.engine(), .close = Host.close, .ctx = h };
 }

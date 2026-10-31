@@ -1103,6 +1103,18 @@ fn refused(err: anyerror) void {
     std.debug.print("{{\"follow_refused\": \"{s}\"}}\n", .{@errorName(err)});
 }
 
+/// A rank-local read fault can strand the peer in a collective. Exit the
+/// follower so the head sees PeerDown and our monitor replaces the whole pair.
+fn refusedPrompt(err: anyerror) !void {
+    refused(err);
+    if (err == error.EngramRankFault) return err;
+}
+
+test "follower exits on a rank-local Engram failure" {
+    try std.testing.expectError(error.EngramRankFault, refusedPrompt(error.EngramRankFault));
+    try refusedPrompt(error.ChunkTooLong);
+}
+
 /// A follower's verify times with Model.prof (a profile on ranks 1-3: rounds, issue and wall ns summed).
 pub var follow_prof: struct { rounds: u64 = 0, enqueue: u64 = 0, forward: u64 = 0 } = .{};
 
@@ -1115,6 +1127,11 @@ pub fn follow(gpa: std.mem.Allocator, m: *Model) !void {
     defer for (&seqs) |*q| q.deinit(gpa);
     var win_ids: [max_streams]std.ArrayList(i32) = @splat(.empty);
     defer for (&win_ids) |*q| q.deinit(gpa);
+    // Join before freeing any prompt ids an asynchronous reader can still use.
+    defer {
+        m.joinAhead();
+        m.fill_seq = &.{};
+    }
     var built: Built = .{};
     var step: u64 = 0;
     var slot: usize = 0;
@@ -1187,7 +1204,7 @@ pub fn follow(gpa: std.mem.Allocator, m: *Model) !void {
                 const replay: usize = @intCast(try r.int(u64));
                 if (start + n > seqs[slot].items.len) return error.BadChunk;
                 m.selectFill(slot, base, seqs[slot].items, img_spans[slot].items, img_rows[slot].items) catch |err| refused(err);
-                _ = m.fillChunk(seqs[slot].items[0 .. start + n], start, n, replay) catch |err| refused(err);
+                _ = m.fillChunk(seqs[slot].items[0 .. start + n], start, n, replay) catch |err| try refusedPrompt(err);
                 if (start + n == seqs[slot].items.len) {
                     img_rows[slot].deinit(gpa);
                     img_rows[slot] = .empty;
