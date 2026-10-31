@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import re
 import sys
+import urllib.error
 
 SOURCE = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(SOURCE / 'tools/qualification'))
@@ -51,6 +52,24 @@ def main():
         cases.append(('thinking-' + str(budget), 'Return result with code AB123 and count 5.',
                       dict(response_format=strict, chat_template_kwargs={'enable_thinking': True}, thinking_budget=budget)))
     try:
+        # These must fail before SSE or a decode round, in either draft mode.
+        refusals = 0
+        for route, payload in (
+            ('/v1/chat/completions', dict(messages=[dict(role='user', content='Return JSON.')])),
+            ('/v1/completions', dict(prompt='Return JSON.')),
+        ):
+            for stream in (False, True):
+                for draft in (False, True):
+                    try:
+                        post(dict(payload, max_tokens=16, stream=stream, draft=draft, ignore_eos=True,
+                                  response_format=dict(type='json_object')),
+                             route=route)
+                    except urllib.error.HTTPError as exc:
+                        assert exc.code == 400 and 'ignore_eos' in exc.response_body
+                        refusals += 1
+                    else:
+                        raise AssertionError('A terminated grammar cannot ignore EOS')
+        record['ignore_eos_refusals'] = refusals
         for temperature in (0, 1):
             for name, prompt, options in cases:
                 body = dict(messages=[dict(role='user', content=prompt)], max_tokens=192,

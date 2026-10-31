@@ -225,6 +225,10 @@ pub fn prepare(srv: *Server, cx: *Cx, input: Input, gone: anytype) Failure!Prepa
         .tools_json = if (input.tools.len > 0) try json.stringify(a, .{ .array = @constCast(input.tools) }, .{ .ascii = false }) else "",
     };
     try srv.checkFeatures(cx, f, input.tools.len > 0, thinking, rendered.ids, input.tools, &request);
+    // A grammar terminates at its end token. Continuing past it would ask a
+    // finished matcher for another mask inside the paired decode round.
+    if (stops_opt.ignore_eos and request.structure != null)
+        return cx.refuse("ignore_eos cannot be combined with structured output or tool-call constraints");
     if (thinking) {
         const budget_field = f.get("thinking_budget");
         const budget: i64 = if (budget_field != null and budget_field.?.truthy()) budget_field.?.int64() orelse 0 else srv.config.thinking_budget;

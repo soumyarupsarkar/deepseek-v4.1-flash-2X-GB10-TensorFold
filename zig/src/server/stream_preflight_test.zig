@@ -223,6 +223,33 @@ test "a reply labels a greedy request greedy and a sampled one exact" {
     try std.testing.expectEqual(@as(i64, 0), sampled.preparing);
 }
 
+test "ignore_eos with a grammar is refused before a reply or stream opens" {
+    var text: TestText = .{};
+    var engine: HiEngine = .{};
+    const srv = try server.Server.init(std.testing.allocator, std.testing.io, engine.engine(), text.text(), .{
+        .served_name = "m",
+        .model_ids = &.{"m"},
+        .enable_thinking = false,
+    }, null);
+    defer srv.deinit();
+    srv.info.structures = true;
+    for ([_]bool{ false, true }) |stream| {
+        for ([_]bool{ false, true }) |chat_route| {
+            var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+            defer arena.deinit();
+            const a = arena.allocator();
+            const body = try std.fmt.allocPrint(a, "{{\"model\":\"m\",{s},\"max_tokens\":2,\"ignore_eos\":true,\"stream\":{s},\"response_format\":{{\"type\":\"json_object\"}}}}", .{ if (chat_route) "\"messages\":[{\"role\":\"user\",\"content\":\"x\"}]" else "\"prompt\":\"prompt\"", if (stream) "true" else "false" });
+            var conn: Conn = .{ .fd = -1, .peer = "", .buf = &.{}, .gpa = a };
+            var seen: Seen = .{};
+            openai.run(srv, a, seen.out(), .{ .conn = &conn }, chat_route, (try json.parse(a, body)).ok);
+            try std.testing.expectEqual(@as(?u16, 400), seen.status);
+            try std.testing.expect(!seen.opened);
+            try std.testing.expectEqual(@as(usize, 0), seen.events);
+            try std.testing.expectEqual(@as(i64, 0), srv.preparing.load(.acquire));
+        }
+    }
+}
+
 test "per-request reasoning guards preserve defaults and exclude budgets, grammars and non-thinking" {
     const chat = @import("chat.zig");
     const Gone = struct {

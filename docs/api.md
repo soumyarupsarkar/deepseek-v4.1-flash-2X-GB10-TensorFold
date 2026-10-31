@@ -104,6 +104,9 @@ greedy. Alternatives are tokenizer tokens and may include leading spaces; `bytes
 Unsupported backends, engines and request modes return HTTP 400 when probabilities are requested.
 `ignore_eos: true` keeps user-supplied `stop` strings active, including when a stop string spans streamed chunks.
 Both backends reject a non-boolean `ignore_eos` or a malformed `stop` with HTTP 400 before a stream opens.
+The native server also rejects `ignore_eos: true` together with structured output
+or tool-call constraints: a grammar must stop at its end token. This applies to
+both ordinary and speculative decoding.
 Both backends reject malformed `temperature`, `top_p`, `top_k` and `seed` values with HTTP 400, whether or not
 the request samples: booleans, non-finite numbers, non-numeric strings, and non-integral `top_k` or `seed`.
 MLX also rejects its other malformed numeric controls and out-of-vocabulary raw prompt IDs.

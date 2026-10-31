@@ -1,5 +1,5 @@
 //! Walk verified rows under the existing xgrammar gate. Adapted from the path
-//! approach in MiaAI-Lab PR85 (markyu0401); compiler and schema support stay local.
+//! approach in MiaAI-Lab PR85 (nuk3s); compiler and schema support stay local.
 const std = @import("std");
 const accept = @import("accept.zig");
 const be = @import("backend.zig");
