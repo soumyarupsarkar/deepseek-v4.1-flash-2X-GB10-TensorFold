@@ -119,10 +119,13 @@ pub const Vision = struct {
 };
 
 /// A request-owned constraint, called immediately before sampling. The owner
-/// lives until the stream is released; constrained streams use ordinary decode.
+/// lives until the stream is released. Drafting also requires reversible preview.
 pub const LogitGate = struct {
     ctx: *anyopaque,
     mask: *const fn (*anyopaque, []f32, []const u32) anyerror!void,
+    /// Sync committed tokens, mask after a hypothetical path, and restore to
+    /// committed state. Neither a rejected draft nor a forced cut may advance it.
+    preview: ?*const fn (*anyopaque, []f32, []const u32, []const u32) anyerror!void = null,
 };
 
 pub const Spec = struct {
@@ -208,8 +211,8 @@ pub const Stream = struct {
             .eos = spec.eos,
             .sampling = spec.sampling,
             .logit_gate = spec.logit_gate,
-            .drafts = spec.drafts and spec.logit_gate == null,
-            .proposer = if (spec.drafts and spec.logit_gate == null) spec.proposer else null,
+            .drafts = spec.drafts and (spec.logit_gate == null or spec.logit_gate.?.preview != null),
+            .proposer = if (spec.drafts and (spec.logit_gate == null or spec.logit_gate.?.preview != null)) spec.proposer else null,
             .stop_check = spec.stop_check,
             .cancel_check = spec.cancel_check,
             .think_budget = spec.think_budget,

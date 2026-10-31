@@ -68,6 +68,7 @@ pub const Loaded = struct {
     stream_bytes: usize,
     max_streams: u32,
     logit_constraints: bool = true,
+    structured_drafts: bool = true,
     fail_closed: bool = true,
     ctx: *anyopaque,
     deinit: *const fn (*anyopaque) void,

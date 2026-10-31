@@ -92,7 +92,7 @@ def stream_post(body):
     return dict(seconds=round(time.monotonic()-start,3),content=''.join(content),reasoning=''.join(reasoning),
                 calls=list(calls.values()),finish=finish,tensorfold=stats,chunks=len(chunks))
 
-def structured():
+def structured(*, drafts=False):
     out={'started':now(),'health_before':get('/health')}
     schema={'type':'object','properties':{'status':{'type':'string','enum':['ok']},
                                         'value':{'type':'integer','const':42}},
@@ -102,7 +102,7 @@ def structured():
               response_format={'type':'json_schema','json_schema':{'name':'answer','strict':True,'schema':schema}})
     out['schema']=post(base)
     assert json.loads(text(out['schema']))=={'status':'ok','value':42}
-    assert out['schema']['response']['tensorfold']['drafts'] is False
+    assert out['schema']['response']['tensorfold']['drafts'] is drafts
     out['json_object']=post({**base,'response_format':{'type':'json_object'}})
     assert isinstance(json.loads(text(out['json_object'])),dict)
     out['schema_stream']=stream_post(base)
@@ -122,12 +122,12 @@ def structured():
     calls=out['tool_named']['response']['choices'][0]['message']['tool_calls']
     assert len(calls)==1 and calls[0]['function']['name']=='weather'
     assert json.loads(calls[0]['function']['arguments'])=={'city':'Seattle','days':3}
-    assert out['tool_named']['response']['tensorfold']['drafts'] is False
+    assert out['tool_named']['response']['tensorfold']['drafts'] is drafts
     out['tool_auto']=post({**tool_body,'tool_choice':'auto'})
     calls=out['tool_auto']['response']['choices'][0]['message']['tool_calls']
     assert len(calls)==1 and calls[0]['function']['name']=='weather'
     assert json.loads(calls[0]['function']['arguments'])=={'city':'Seattle','days':3}
-    assert out['tool_auto']['response']['tensorfold']['drafts'] is False
+    assert out['tool_auto']['response']['tensorfold']['drafts'] is drafts
     out['auto_without_call']=post({**tool_body,'tool_choice':'auto',
         'messages':[{'role':'user','content':'What is 19 + 23? Reply with only the answer and do not use a tool.'}]})
     assert '42' in text(out['auto_without_call'])
@@ -142,7 +142,7 @@ def structured():
         jobs=[pool.submit(post,base),pool.submit(chat,'Write a short haiku about a copper kettle.'),
               pool.submit(post,tool_body),pool.submit(chat,'List the first ten prime numbers.')]
         out['mixed']=[job.result() for job in jobs]
-    assert [r['response']['tensorfold']['drafts'] for r in out['mixed']]==[False,True,False,True]
+    assert [r['response']['tensorfold']['drafts'] for r in out['mixed']]==[drafts,True,drafts,True]
     try:
         post({**base,'response_format':{'type':'json_schema','json_schema':{'schema':{'type':'invalid-type'}}}})
     except urllib.error.HTTPError as exc:

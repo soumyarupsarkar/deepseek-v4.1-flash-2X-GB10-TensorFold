@@ -1,4 +1,4 @@
-"""Require C32 overlap with distinct strict schemas and required tool grammars."""
+"""Require C32 overlap and ordinary/drafted parity for strict schemas and tools."""
 import argparse
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -36,12 +36,12 @@ def main():
                   temperature=args.temperature, waves=[])
     common.atomic(path, record)
 
-    def request(index, mode):
+    def request(index, mode, draft):
         expected = {'values': [index] * 128}
         schema = dict(type='object', properties=dict(values=dict(type='array', minItems=128,
             maxItems=128, items={'const': index})), required=['values'], additionalProperties=False)
         body = dict(messages=[dict(role='user', content=f'Report an array of 128 copies of the number {index}.')],
-                    temperature=args.temperature, seed=96000+index, max_tokens=1024,
+                    temperature=args.temperature, seed=96000+index, max_tokens=1024, draft=draft,
                     chat_template_kwargs={'enable_thinking': False})
         if mode == 'schema':
             body['response_format'] = dict(type='json_schema', json_schema=dict(name='values', strict=True, schema=schema))
@@ -56,18 +56,20 @@ def main():
             if len(calls) != 1 or calls[0]['function']['name'] != 'report':
                 raise AssertionError('Required report tool missing')
             actual = json.loads(calls[0]['function']['arguments'])
-        if actual != expected or result['response']['tensorfold']['drafts'] is not False:
-            raise AssertionError('Strict per-request grammar differs or drafting bypassed its mask')
+        if actual != expected or result['response']['tensorfold']['drafts'] is not draft:
+            raise AssertionError('Strict per-request grammar or requested draft mode differs')
         return dict(index=index, seconds=result['seconds'], usage=result['response']['usage'],
-                    token_sha=result['response']['tensorfold']['token_sha'], valid=True)
+                    token_sha=result['response']['tensorfold']['token_sha'], valid=True,
+                    speculative=result['response'].get('speculative'))
 
     try:
-        for mode in ('schema', 'tools'):
-            wave = dict(mode=mode, started=common.now(), peak_decoding=0, samples=[], results=[])
+        for mode, draft in ((m, d) for m in ('schema', 'tools') for d in (False, True)):
+            start = get('/health')
+            wave = dict(mode=mode, draft=draft, started=common.now(), peak_decoding=0, samples=[], results=[])
             record['waves'].append(wave)
             common.atomic(path, record)
             with ThreadPoolExecutor(max_workers=32) as pool:
-                jobs = [pool.submit(request, index, mode) for index in range(32)]
+                jobs = [pool.submit(request, index, mode, draft) for index in range(32)]
                 while not all(job.done() for job in jobs):
                     h = get('/health')
                     if not ready(h, config):
@@ -83,7 +85,15 @@ def main():
             common.atomic(path, record)
             if wave['peak_decoding'] != 32:
                 raise AssertionError('Did not observe all 32 constrained requests decoding together')
-            print(mode, 'passed at C32', flush=True)
+            h, _ = wait_idle(common.API_BASE)
+            wave['draft_passes'] = h['native']['draft_passes'] - start['native']['draft_passes']
+            if draft:
+                ordinary = record['waves'][-2]
+                if [r['token_sha'] for r in wave['results']] != [r['token_sha'] for r in ordinary['results']]:
+                    raise AssertionError('Constrained ordinary/drafted token parity failed')
+                if wave['draft_passes'] <= 0:
+                    raise AssertionError('Constrained requests did not actually draft')
+            print(mode, 'draft=' + str(draft), 'passed at C32', flush=True)
         h, drain = wait_idle(common.API_BASE)
         if not ready(h, config) or busy(h):
             raise RuntimeError('Candidate did not return to healthy idle')

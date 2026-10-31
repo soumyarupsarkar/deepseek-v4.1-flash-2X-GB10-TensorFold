@@ -132,6 +132,8 @@ pub const Info = struct {
     /// The engine observes loop_guard requests in its lane stream.
     loop_guard: bool = false,
     structures: bool = false,
+    /// The backend verifies speculative paths under the request's logit gate.
+    structured_drafts: bool = false,
     /// Every sampled row passes through Request.logit_gate, including the first token.
     logit_constraints: bool = false,
     /// A rank-synchronized engine must restart both ranks after an uncertain round.

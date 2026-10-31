@@ -282,6 +282,11 @@ pub const Lanes = struct {
     generation_capture: bool = false,
     generation_prefilling: bool = false,
     round_streams: usize = 0,
+    // Borrowed logits for the immediately preceding verify. Each accepted row
+    // is masked at most once, before keep/draft/prefill invalidates this view.
+    redraw_logits: []f32 = &.{},
+    redraw_windows: [max_streams]struct { stream: *lanes.Stream, row: usize, len: usize, position: u64 } = undefined,
+    redraw_count: usize = 0,
     generation_plain_rounds: std.atomic.Value(u64) = .init(0),
     generation_draft_rounds: std.atomic.Value(u64) = .init(0),
     generation_probe_rounds: std.atomic.Value(u64) = .init(0),
@@ -344,6 +349,7 @@ pub const Lanes = struct {
             .queue = queueFn,
             .read = readFn,
             .verify = verifyFn,
+            .redraw = redrawFn,
             .keep = keepFn,
             .draft = draftFn,
             .probabilities = probabilitiesFn,
@@ -495,6 +501,8 @@ pub const Lanes = struct {
     }
 
     fn begin(self: *Lanes, kind: Kind) !bool {
+        self.redraw_count = 0;
+        self.redraw_logits = &.{};
         if (kind != .fill_chunk and kind != .snap_save and kind != .snap_restore and kind != .fill_images) {
             self.m.joinAhead();
             self.m.fill_seq = &.{};
@@ -738,7 +746,7 @@ pub const Lanes = struct {
         var ids: [max_streams][max_rows]i32 = undefined;
         var wins: [max_streams]Win = undefined;
         for (windows, 0..) |w, k| {
-            if (w.stream.logit_gate != null and w.rows() != 1) return error.GrammarNeedsOrdinaryDecode;
+            if (w.stream.logit_gate) |gate| if (gate.preview == null and w.rows() != 1) return error.GrammarNeedsOrdinaryDecode;
             if (w.parents != null) return error.TreesNotBuilt;
             const l = self.streams.getPtr(w.stream) orelse return error.UnknownStream;
             const rows = w.rows();
@@ -818,13 +826,44 @@ pub const Lanes = struct {
         const V = m.vocab;
         for (windows, out, 0..) |w, *o, k| {
             const row0 = self.built.wins[k].row;
-            if (w.stream.logit_gate) |gate| try gate.mask(gate.ctx, @constCast(logits[row0 * V ..][0..V]), w.stream.emitted());
-            for (0..w.rows()) |r| o.sampled[r] = if (greedy) tokens[row0 + r] else try draw(logits[(row0 + r) * V ..][0..V], w.positions[r], w.stream.sampling);
+            const preview = w.stream.logit_gate != null and w.stream.logit_gate.?.preview != null;
+            if (w.stream.logit_gate) |gate| if (!preview) try gate.mask(gate.ctx, @constCast(logits[row0 * V ..][0..V]), w.stream.emitted());
+            // A preview-capable gate is sampled lazily along its accepted path;
+            // the core never consumes these placeholders for constrained rows.
+            for (0..w.rows()) |r| o.sampled[r] = if (preview) 0 else if (greedy) tokens[row0 + r] else try draw(logits[(row0 + r) * V ..][0..V], w.positions[r], w.stream.sampling);
+            self.redraw_windows[k] = .{ .stream = w.stream, .row = row0, .len = w.rows(), .position = w.positions[0] };
             const l = self.streams.getPtr(w.stream).?;
             @memcpy(o.drafts[0..w.held], l.held[0..w.held]);
             @memcpy(o.drafts[w.held..][0..w.tokens.len], w.tokens);
             l.nheld = 0;
         }
+        self.redraw_logits = @constCast(logits);
+        self.redraw_count = windows.len;
+    }
+
+    fn redrawFn(ptr: *anyopaque, s: *lanes.Stream, window: u32, row: u32, position: u64, prefix: []const u32) anyerror!u32 {
+        const self = of(ptr);
+        const timed = self.measurements != null or self.prof != null;
+        const began = if (timed) self.m.now() else 0;
+        defer if (timed) {
+            const elapsed = self.m.now() - began;
+            if (self.measurements) |*measurements| {
+                self.round_backend_ns += elapsed;
+                measurements.add(.{ .sample_ns = elapsed });
+            }
+            if (self.prof) |*p| p.sample += elapsed;
+        };
+        if (window >= self.redraw_count) return error.StaleGrammarRow;
+        const w = self.redraw_windows[window];
+        if (w.stream != s or row >= w.len or position != w.position + row) return error.StaleGrammarRow;
+        const gate = s.logit_gate orelse return error.NoLogitGate;
+        const preview = gate.preview orelse return error.NoGrammarPreview;
+        const vocab = self.m.vocab;
+        const at = (w.row + row) * vocab;
+        if (at + vocab > self.redraw_logits.len) return error.StaleGrammarRow;
+        const logits = self.redraw_logits[at..][0..vocab];
+        try preview(gate.ctx, logits, s.emitted(), prefix);
+        return draw(logits, position, s.sampling);
     }
 
     /// The caches are positional: the next window starts at the stream's new length and writes over the rows past it.

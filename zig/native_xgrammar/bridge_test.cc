@@ -74,7 +74,7 @@ std::string tool_tag() {
 }
 int main() {
   try {
-    require(tf_xg_abi_version() == 1, "ABI mismatch");
+    require(tf_xg_abi_version() == 2, "ABI mismatch");
     const auto tok = tokenizer();
     char error[1024]{};
     Handle compiler(tf_xg_compiler_create(tok.data(), tok.size(), &eos, 1, 2, 8 << 20,
@@ -112,6 +112,32 @@ int main() {
     require(!tf_xg_matcher_create(compiler.get(), 1, "{", 1, error, sizeof(error)), "malformed schema compiled");
     require(!tf_xg_matcher_create(compiler.get(), 99, "", 0, error, sizeof(error)), "unknown format compiled");
     require(tf_xg_cache_bytes(compiler.get()) <= (16 << 20), "compiler exceeded the two cache budgets");
+    {
+      auto m = match(compiler.get(), 2, "AB{2}");
+      const auto before = mask(m.get());
+      const uint32_t valid[] = {'A', 'B'};
+      std::vector<float> logits(160, 1.0f);
+      require(tf_xg_preview_mask(m.get(), valid, 2, logits.data(), logits.size()) == 0, "preview failed");
+      require(std::isfinite(logits['B']) && !std::isfinite(logits['A']), "preview did not advance its mask");
+      require(mask(m.get()) == before, "successful preview changed committed state");
+      const uint32_t invalid[] = {'A', 'B', 'Z'};
+      require(tf_xg_preview_mask(m.get(), invalid, 3, logits.data(), logits.size()) == -1, "invalid draft accepted");
+      require(mask(m.get()) == before, "rejected preview left its accepted prefix behind");
+      const uint32_t end[] = {'A', 'B', 'B', eos};
+      require(tf_xg_preview_mask(m.get(), end, 4, logits.data(), logits.size()) == -1, "terminated preview permitted another token");
+      require(mask(m.get()) == before, "EOS preview did not restore the matcher");
+      // The next committed path can differ from a preview, as at a forced cut.
+      feed(m.get(), "A");
+      const auto partial = mask(m.get());
+      const uint32_t tail[] = {'B', 'B'};
+      logits.assign(160, 1.0f);
+      require(tf_xg_preview_mask(m.get(), tail, 2, logits.data(), logits.size()) == 0, "committed-prefix preview failed");
+      require(std::isfinite(logits[eos]), "preview could not complete the grammar");
+      require(mask(m.get()) == partial, "preview rewound committed tokens");
+      require(tf_xg_preview_mask(m.get(), nullptr, 1, logits.data(), logits.size()) == -1, "null draft accepted");
+      require(tf_xg_preview_mask(m.get(), tail, 65, logits.data(), logits.size()) == -1, "unbounded preview accepted");
+      feed(m.get(), "BB"); finish(m.get());
+    }
     std::cout << "native grammar contracts passed\n";
     return 0;
   } catch (const std::exception& e) {

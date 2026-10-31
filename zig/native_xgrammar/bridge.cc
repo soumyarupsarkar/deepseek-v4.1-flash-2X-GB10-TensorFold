@@ -103,7 +103,7 @@ struct Matcher {
 };
 }
 
-uint32_t tf_xg_abi_version() { return 1; }
+uint32_t tf_xg_abi_version() { return 2; }
 void* tf_xg_compiler_create(const char* tokenizer, size_t length, const uint32_t* stop_ids,
     size_t stop_count, int threads, int64_t cache_bytes, char* error, size_t error_size) {
   try {
@@ -160,7 +160,7 @@ void tf_xg_matcher_destroy(void* matcher) { delete static_cast<Matcher*>(matcher
 int tf_xg_accept(void* matcher, uint32_t token) {
   try {
     auto* m = static_cast<Matcher*>(matcher);
-    if (!m || token >= static_cast<uint32_t>(m->vocab_size)) return -1;
+    if (!m || token >= static_cast<uint32_t>(m->vocab_size) || m->matcher.IsTerminated()) return -1;
     return m->matcher.AcceptToken(static_cast<int32_t>(token)) ? 0 : -1;
   } catch (...) { return -1; }
 }
@@ -184,6 +184,25 @@ int tf_xg_mask(void* matcher, float* logits, size_t count) {
     }
     return any ? 0 : -1;
   } catch (...) { return -1; }
+}
+int tf_xg_preview_mask(void* matcher, const uint32_t* tokens,
+    size_t token_count, float* logits, size_t count) {
+  auto* m = static_cast<Matcher*>(matcher);
+  if (!m || token_count > 64 || (token_count && !tokens)) return -1;
+  int accepted = 0, result = -1;
+  try {
+    for (size_t i = 0; i < token_count; ++i) {
+      if (tf_xg_accept(m, tokens[i]) != 0) break;
+      ++accepted;
+    }
+    if (static_cast<size_t>(accepted) == token_count)
+      result = tf_xg_mask(m, logits, count);
+  } catch (...) { result = -1; }
+  // In particular this restores a temporarily accepted EOS, and partial paths
+  // that fail before their last token. Callers must stop on a rollback error.
+  try { if (accepted) m->matcher.Rollback(accepted); }
+  catch (...) { return -1; }
+  return result;
 }
 uint64_t tf_xg_cache_bytes(void* compiler) {
   try {

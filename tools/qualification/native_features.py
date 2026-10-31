@@ -75,7 +75,8 @@ before=raw_get('/health');assert ready(before,profile()) and before['scheduler']
 record=dict(started=common.now(),stage=args.stage,status='running',health_before=before,source_script_sha256=hashlib.sha256(pathlib.Path(__file__).read_bytes()).hexdigest())
 common.atomic(path,record)
 try:
- if args.stage in ['baseline','structured']:record['result']=getattr(q,args.stage)()
+ if args.stage=='structured':record['result']=q.structured(drafts=True)
+ elif args.stage=='baseline':record['result']=q.baseline()
  else:record['result']=globals()[args.stage]()
  after,drain=wait_idle(common.API_BASE);assert ready(after,profile()) and after['scheduler']['running']==0
  record.update(status='passed',health_after=after,post_response_drain=drain)

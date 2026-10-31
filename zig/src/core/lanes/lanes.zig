@@ -31,6 +31,7 @@ pub const Sampling = sampling.Sampling;
 pub const SuffixLookup = proposer.SuffixLookup;
 
 test {
+    _ = @import("constrained.zig");
     std.testing.refAllDecls(@This());
     _ = @import("engine_test.zig");
     _ = @import("gpu_full_test.zig");

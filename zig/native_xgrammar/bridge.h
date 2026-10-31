@@ -21,6 +21,10 @@ TF_XG_EXPORT void* tf_xg_matcher_create(void* compiler, uint32_t kind,
 TF_XG_EXPORT void tf_xg_matcher_destroy(void* matcher);
 TF_XG_EXPORT int tf_xg_accept(void* matcher, uint32_t token);
 TF_XG_EXPORT int tf_xg_mask(void* matcher, float* logits, size_t count);
+// Mask after a hypothetical accepted path, then restore the matcher even on
+// rejection. At most 64 tokens; no committed state is changed by this call.
+TF_XG_EXPORT int tf_xg_preview_mask(void* matcher, const uint32_t* tokens,
+    size_t token_count, float* logits, size_t count);
 TF_XG_EXPORT uint64_t tf_xg_cache_bytes(void* compiler);
 #ifdef __cplusplus
 }

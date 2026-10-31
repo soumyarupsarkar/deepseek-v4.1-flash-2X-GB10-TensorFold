@@ -189,7 +189,7 @@ pub const Server = struct {
                 var problem: [1024]u8 = @splat(0);
                 var matcher = compiler.matcher(s, &problem) catch return cx.fail(.request, "invalid output grammar: {s}", .{std.mem.sliceTo(&problem, 0)});
                 matcher.deinit(); // validate before SSE opens; generation owns a fresh state
-                request.drafts = false;
+                request.drafts = request.drafts and srv.info.structured_drafts;
             }
             return;
         };

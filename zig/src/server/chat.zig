@@ -279,7 +279,7 @@ pub fn generate(srv: *Server, cx: *Cx, prepared: Prepared, sink: ?Sink, gone: an
         var problem: [1024]u8 = @splat(0);
         grammar_state = compiler.matcher(spec, &problem) catch return cx.fail(.request, "invalid output grammar: {s}", .{std.mem.sliceTo(&problem, 0)});
         request.logit_gate = grammar_state.?.gate();
-        request.drafts = false;
+        request.drafts = request.drafts and srv.info.structured_drafts;
     };
     if (stops_opt.strings.len > 0) request.stop = .{ .ctx = &stop_hook, .check = StopHook.check };
     var box: Mailbox = .{ .io = io, .gpa = srv.gpa };

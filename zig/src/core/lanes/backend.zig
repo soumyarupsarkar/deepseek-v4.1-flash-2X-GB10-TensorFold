@@ -107,6 +107,9 @@ pub const Backend = struct {
         read: *const fn (ptr: *anyopaque, handle: u64) anyerror!u32,
         /// One forward over every window, each row drawn with its stream's sampling at its position.
         verify: *const fn (ptr: *anyopaque, windows: []const Window, out: []Verified) anyerror!void,
+        /// Resample a verified row after masking a hypothetical path. Valid only
+        /// until the next backend operation; the committed grammar is restored.
+        redraw: ?*const fn (ptr: *anyopaque, s: *Stream, window: u32, row: u32, position: u64, prefix: []const u32) anyerror!u32 = null,
         /// Roll each stream's caches back to its kept rows (a prefix count, or a tree's path).
         keep: *const fn (ptr: *anyopaque, windows: []const Window, paths: []const []const u32) anyerror!void,
         /// Absorb kept rows and hold drafts for the next round (one batch for a shared round).
