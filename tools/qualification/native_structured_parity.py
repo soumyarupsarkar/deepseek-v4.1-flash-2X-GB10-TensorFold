@@ -30,6 +30,7 @@ def main():
     epochs = rank_epochs(pair, launch)
     initial, _ = wait_idle(common.API_BASE)
     assert ready(initial, profile()) and initial['structured_drafts']
+    assert initial['structured_drafts_default'] is False
     record = dict(status='running', started=common.now(), checks=[], health_before=initial,
                   launch=launch, script_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest())
     schema = dict(type='object', properties=dict(
@@ -78,8 +79,11 @@ def main():
                 body.update(options)
                 ordinary = post(dict(body, draft=False))['response']
                 drafted = post(dict(body, draft=True))['response']
+                defaulted = post(body)['response']
                 assert ordinary['tensorfold']['drafts'] is False and drafted['tensorfold']['drafts'] is True
+                assert defaulted['tensorfold']['drafts'] is False
                 assert ordinary['tensorfold']['token_sha'] == drafted['tensorfold']['token_sha'], (name, temperature)
+                assert ordinary['tensorfold']['token_sha'] == defaulted['tensorfold']['token_sha'], (name, temperature, 'default')
                 value = text(dict(response=drafted))
                 if name in ('nested-schema', 'object') or name.startswith('thinking-'):
                     parsed = json.loads(value)
@@ -101,7 +105,7 @@ def main():
                     assert streamed['tensorfold']['token_sha'] == drafted['tensorfold']['token_sha']
                 record['checks'].append(dict(name=name, temperature=temperature,
                     token_sha=drafted['tensorfold']['token_sha'], usage=drafted['usage'],
-                    finish_reason=drafted['choices'][0]['finish_reason'], parity=True))
+                    finish_reason=drafted['choices'][0]['finish_reason'], parity=True, default_ordinary=True))
                 common.atomic(out, record)
                 print(name, 'temperature', temperature, 'passed', flush=True)
         final, _ = wait_idle(common.API_BASE)

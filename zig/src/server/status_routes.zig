@@ -25,6 +25,7 @@ pub fn health(srv: *Server, conn: *Conn, a: Allocator) !void {
     try o.put(a, "seed_mode", .{ .string = @tagName(srv.config.seed_mode) });
     try o.put(a, "structured_outputs", .{ .bool = srv.info.structures });
     try o.put(a, "structured_drafts", .{ .bool = srv.info.structures and srv.info.structured_drafts });
+    try o.put(a, "structured_drafts_default", .{ .bool = false });
     if (srv.config.grammars) |compiler| try o.put(a, "grammar_cache_bytes", try json.intValue(a, compiler.cacheBytes()));
     try o.put(a, "model", .{ .string = srv.config.served_name });
     const ids = try a.alloc(Value, srv.config.model_ids.len);

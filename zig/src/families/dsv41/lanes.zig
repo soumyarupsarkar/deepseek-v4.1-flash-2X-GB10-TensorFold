@@ -1147,7 +1147,7 @@ fn refused(err: anyerror) void {
 }
 
 /// A rank-local read fault can strand the peer in a collective. Exit the
-/// follower so the head sees PeerDown and our monitor replaces the whole pair.
+/// follower so the head sees PeerDown and our monitor stops both ranks.
 fn refusedPrompt(err: anyerror) !void {
     refused(err);
     if (err == error.EngramRankFault) return err;

@@ -189,7 +189,7 @@ pub const Server = struct {
                 var problem: [1024]u8 = @splat(0);
                 var matcher = compiler.matcher(s, &problem) catch return cx.fail(.request, "invalid output grammar: {s}", .{std.mem.sliceTo(&problem, 0)});
                 matcher.deinit(); // validate before SSE opens; generation owns a fresh state
-                request.drafts = request.drafts and srv.info.structured_drafts;
+                request.drafts = structuredDrafts(request.drafts, srv.info.structured_drafts, f);
             }
             return;
         };
@@ -332,6 +332,31 @@ fn merge(into: *json.Object, cx: *Cx, from: Value) errors.Refused!void {
 fn number(v: ?Value) ?f64 {
     const x = v orelse return null;
     return if (x == .bool) null else x.float64();
+}
+
+/// Constrained drafting's throughput depends on the workload and concurrency.
+/// Keep ordinary constrained decode by default; callers can opt in per request.
+fn structuredDrafts(enabled: bool, supported: bool, body: Value) bool {
+    const requested = if (body.get("draft")) |value| value == .bool and value.bool else false;
+    return enabled and supported and requested;
+}
+
+test "constrained drafts require explicit opt-in and backend support" {
+    for ([_]struct { body: []const u8, requested: bool }{
+        .{ .body = "{}", .requested = false },
+        .{ .body = "{\"draft\":null}", .requested = false },
+        .{ .body = "{\"draft\":false}", .requested = false },
+        .{ .body = "{\"draft\":true}", .requested = true },
+    }) |case| {
+        var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+        defer arena.deinit();
+        const body = (try json.parse(arena.allocator(), case.body)).ok;
+        for ([_]bool{ false, true }) |enabled| {
+            for ([_]bool{ false, true }) |supported| {
+                try std.testing.expectEqual(enabled and supported and case.requested, structuredDrafts(enabled, supported, body));
+            }
+        }
+    }
 }
 
 /// A request seed as the engine's u64: negative and huge ints wrap as two's complement bits.
