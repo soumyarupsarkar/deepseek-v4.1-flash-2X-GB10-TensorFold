@@ -211,5 +211,5 @@ test "opt-in timing diagnostics retain integer precision and bounded shape table
     try std.testing.expectEqualStrings("9007199254740993", v.get("timing").?.get("verify_ns").?.int);
     try std.testing.expectEqual(@as(usize, 4), v.get("costs").?.get("verify_count").?.array.len);
     try std.testing.expectEqual(@as(usize, 7), v.get("costs").?.get("verify_count").?.array[0].array.len);
-    try std.testing.expectEqual(@as(usize, 49), v.get("costs").?.get("verify_count").?.array[0].array[6].array.len);
+    try std.testing.expectEqual(@as(usize, 65), v.get("costs").?.get("verify_count").?.array[0].array[6].array.len);
 }

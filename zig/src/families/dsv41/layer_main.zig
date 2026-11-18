@@ -433,7 +433,7 @@ pub fn main(init: std.process.Init) !u8 {
         var devices: std.ArrayList([]const u8) = .empty;
         var dit = std.mem.splitScalar(u8, rdma_devices.?, ',');
         while (dit.next()) |dv| try devices.append(a, dv);
-        tp2_ring = try dsv41.model.Model.openRing(gpa, &driver, try dsv41.rdma.Kernels.load(tp2_mod.?), devices.items, rank, &comm, stream);
+        tp2_ring = try dsv41.model.Model.openRing(gpa, &driver, try dsv41.rdma.Kernels.load(tp2_mod.?), devices.items, rank, &comm, stream, round_mod.default_rows);
         eng.ring = tp2_ring;
     }
     var ch = try prompt.Chunk.init(&eng, &arena, chunk_rows, tokens);

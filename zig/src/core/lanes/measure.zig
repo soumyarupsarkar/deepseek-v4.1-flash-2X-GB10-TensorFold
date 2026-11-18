@@ -6,7 +6,7 @@ const Counter = std.atomic.Value(u64);
 
 pub const contexts = 4;
 pub const cohorts = 7;
-pub const widths = 49;
+pub const widths = 65;
 pub const pass_widths = 17;
 pub const depths = 6;
 
@@ -112,8 +112,10 @@ test "cost measurements separate width and context and exclude graph constructio
     m.verify(1048576, 32, 48, 400, false);
     m.verify(1048576, 31, 48, 500, false);
     m.verify(1048576, 32, 48, 9999, true);
-    m.verify(0, 32, 49, 9999, false);
+    m.verify(0, 32, 64, 900, false);
+    m.verify(0, 32, 65, 9999, false);
     const s = m.snapshot();
+    try std.testing.expectEqual(@as(u64, 900), s.verify_ns[0][6][64]);
     try std.testing.expectEqual(@as(u64, 100), s.verify_ns[0][6][32]);
     try std.testing.expectEqual(@as(u64, 200), s.verify_ns[1][6][32]);
     try std.testing.expectEqual(@as(u64, 300), s.verify_ns[2][6][48]);

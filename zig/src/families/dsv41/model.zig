@@ -35,9 +35,10 @@ pub const chunk_rows = 2048;
 pub const max_streams = draft.max_streams;
 /// The pool's streams when unset (--parallel 4).
 pub const max_streams_default = draft.default_streams;
-/// One rank's largest logits slice must fit, including a 48-row verification round.
-/// Keep the upstream per-16-row allowance, independent of the chosen stream count.
-pub const ring_bytes = 4456448 * (round.max_rows / 16);
+/// Keep the existing prompt allowance and make room for a wider round's logits gather.
+fn ringBytesForRows(rows: usize) usize {
+    return 4456448 * @max(3, (rows + 15) / 16);
+}
 
 pub const Options = struct {
     model_dir: []const u8, // config.json
@@ -152,6 +153,7 @@ pub const Model = struct {
     /// and sets up every buffer. Needs `ctx` current on this thread.
     pub fn open(gpa: std.mem.Allocator, io: std.Io, ctx: *const cuda.Context, o: Options) !*Model {
         if (o.world != 2 and o.world != 4) return error.NotPortedYet; // TP2, or the four-node 2D split (prompt2d.zig)
+        if (o.round_rows < round.default_rows or o.round_rows > round.max_rows) return error.BadRoundRows;
         const m = try gpa.create(Model);
         errdefer gpa.destroy(m);
         m.* = undefined;
@@ -241,7 +243,7 @@ pub const Model = struct {
             var devices: std.ArrayList([]const u8) = .empty;
             var it = std.mem.splitScalar(u8, list, ',');
             while (it.next()) |dev| try devices.append(a, dev);
-            m.ring = try openRing(gpa, d, try rdma.Kernels.load(m.rdma_mod.?), devices.items, o.rank, &m.comm, m.stream);
+            m.ring = try openRing(gpa, d, try rdma.Kernels.load(m.rdma_mod.?), devices.items, o.rank, &m.comm, m.stream, o.round_rows);
         }
         errdefer if (m.ring) |r| r.destroy(gpa);
         errdefer if (m.rdma_mod) |*x| x.unload();
@@ -264,7 +266,7 @@ pub const Model = struct {
         // Positions are local to a request, even when its KV extent starts far into the shared pool.
         // RoPE and attention scratch therefore follow the request window, not all streams' storage.
         const half = c.rope_dim / 2;
-        const rope_rows = m.context_cap + round.max_rows + 1;
+        const rope_rows = m.context_cap + o.round_rows + 1;
         m.rope_buf = try cuda.DeviceBuffer.alloc(d, 4 * rope_rows * half * 4);
         errdefer m.rope_buf.free();
         {
@@ -299,7 +301,7 @@ pub const Model = struct {
                 var devices: std.ArrayList([]const u8) = .empty;
                 var dit = std.mem.splitScalar(u8, devs, ',');
                 while (dit.next()) |x| try devices.append(a, x);
-                m.rdma_rings = try ring2d.Rings.open(gpa, d, try rdma.Kernels.load(m.rdma_mod.?), devices.items, o.rank, .{ .max_bytes = ring_bytes, .gid_index = 5 }, &m.comm, m.stream);
+                m.rdma_rings = try ring2d.Rings.open(gpa, d, try rdma.Kernels.load(m.rdma_mod.?), devices.items, o.rank, .{ .max_bytes = ringBytesForRows(o.round_rows), .gid_index = 5 }, &m.comm, m.stream);
                 m.two.?.rings = &m.rdma_rings.?;
             }
         }
@@ -322,7 +324,7 @@ pub const Model = struct {
             try d.check(d.api.cuMemsetD8Async(r.*, 0, m.streams * m.eng.ringBytes(), m.stream.handle), "cuMemsetD8Async");
         }
         m.rd = try round.Round.init(&m.eng, &m.arena, a, m.context_cap);
-        m.amax = try m.arena.take(round.max_rows * 4);
+        m.amax = try m.arena.take(o.round_rows * 4);
         if (o.graphs) m.graphs = try round.Graphs.fromEnv(gpa, m.context_cap);
         if (o.side) try m.rd.useSide(&m.eng);
         if (o.prefetch) try m.rd.usePrefetch(&m.eng);
@@ -376,7 +378,7 @@ pub const Model = struct {
         m.host_pos = try a.alloc(i64, chunk_rows);
         m.ids64 = try a.alloc(i64, chunk_rows);
         m.vocab = sp.world * (if (m.two) |t| t.hw[0] + t.hw[1] else m.w.head.n); // 2D: both pairs' vocabulary parts
-        m.logits = try a.alloc(f32, round.max_rows * m.vocab);
+        m.logits = try a.alloc(f32, o.round_rows * m.vocab);
         return m;
     }
 
@@ -430,10 +432,10 @@ pub const Model = struct {
 
     /// TP2's RDMA ring for the decode gathers: created on both ranks, the queue-pair infos exchanged over NCCL,
     /// connected, and started once both are (an all-gather as the barrier).
-    pub fn openRing(gpa: std.mem.Allocator, d: *const cuda.Driver, k: rdma.Kernels, devices: []const []const u8, rank: u32, comm: *const comm_mod.Comm, stream: cuda.Stream) !*rdma.Ring {
+    pub fn openRing(gpa: std.mem.Allocator, d: *const cuda.Driver, k: rdma.Kernels, devices: []const []const u8, rank: u32, comm: *const comm_mod.Comm, stream: cuda.Stream, rows: usize) !*rdma.Ring {
         if (comm.world != 2) return error.NotTwoRanks;
         const gid = if (std.c.getenv("TF_RDMA_GID_INDEX") orelse std.c.getenv("NCCL_IB_GID_INDEX")) |v| try std.fmt.parseInt(u8, std.mem.span(v), 10) else 5;
-        const r = try rdma.Ring.create(gpa, d, k, devices, rank, 2, .{ .max_bytes = ring_bytes, .gid_index = gid });
+        const r = try rdma.Ring.create(gpa, d, k, devices, rank, 2, .{ .max_bytes = ringBytesForRows(rows), .gid_index = gid });
         errdefer r.destroy(gpa);
         const per = @sizeOf(rdma.Info);
         const mine = [2]rdma.Info{ r.info(0), r.info(1) };

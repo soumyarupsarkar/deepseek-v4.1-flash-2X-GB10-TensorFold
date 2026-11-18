@@ -242,13 +242,13 @@ test "rowmm_gate launches _rowmm_parts as recorded" {
 
 test "wide verification router covers every row with captured 1-16-row variants" {
     const old_bound = tri.decode_rows;
-    tri.decode_rows = 48;
+    tri.decode_rows = @import("round.zig").max_rows;
     defer tri.decode_rows = old_bound;
     const x: u64 = 0x100000;
     const out: u64 = 0x200000;
     const xs: usize = 5120;
     const n: usize = 384;
-    for (17..49) |rows| {
+    for (17..tri.decode_rows + 1) |rows| {
         var log: tri.Log = .{ .gpa = std.testing.allocator };
         defer log.deinit();
         const kc = try rowmmGate(.{ .log = &log }, x, xs, 0x300000, out, rows, xs, n);

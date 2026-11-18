@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "upstream_base": "4e80f05ecba89a4e90d16375ade2eddbdc0a10c4",
-  "status": "November 17 source maintenance with 48 verification rows; release/STATUS.md distinguishes source checks and the hardware-qualified deployment.",
+  "status": "Local 64-row qualification prototype; default profile remains 48. Hardware qualification is outstanding.",
   "scope": "Build, native engine, grammar bridge, deployment controller/configuration and checkpoint-specific compiled test resources. This manifest is not serving qualification.",
   "files": [
     {
@@ -146,7 +146,7 @@
     },
     {
       "path": "zig/build/cuda.zig",
-      "sha256": "debe0850faf08b9a60a427ca6ad2a1822ad09ccb403717e0da85a9bbb0d3454b"
+      "sha256": "32e3ead4f7e7313fbb7cce5b833b0a5122ba5a2efd9727788a15e6b3acbc8e7a"
     },
     {
       "path": "zig/build/dist.zig",
@@ -1630,7 +1630,7 @@
     },
     {
       "path": "zig/src/core/lanes/measure.zig",
-      "sha256": "2ad12344eb6716f988efb2e406cbadca9e226e9989d58a57f18e84771474a241"
+      "sha256": "575b0ffd63651bcff869e997759cbbe85b75ac1de2bb34f650a1d0aa79bd2c01"
     },
     {
       "path": "zig/src/core/lanes/plan_lanes.zig",
@@ -1998,7 +1998,7 @@
     },
     {
       "path": "zig/src/families/dsv41/draft.zig",
-      "sha256": "cf37a9ecdd5602c8877dd63f45d2a3483c51cc7e3dd0c996061e30e511cfbeb8"
+      "sha256": "788eea9dce103000e2e09b22dc1d1838af291de065548bcdf459081f2f2981cc"
     },
     {
       "path": "zig/src/families/dsv41/draft2d.zig",
@@ -2034,11 +2034,11 @@
     },
     {
       "path": "zig/src/families/dsv41/exl3_experts.zig",
-      "sha256": "e589a15683ea4d471d9af281e846a2c2ff4626b273ad7f7ba7916aff5d7b0caf"
+      "sha256": "1c47519b57c8953241a5b7d762e9fbb5dc4905db800848b2a3c2fdae72899b9a"
     },
     {
       "path": "zig/src/families/dsv41/exl3_experts2d.zig",
-      "sha256": "3293516f26f233e77669971bc1974ab3e2e94345ced7b4ac1ede37205e23f7c7"
+      "sha256": "3a245ac5a874f8028cbcfca79aecc322a64e35164872fbdf3105f0ac0cc8d916"
     },
     {
       "path": "zig/src/families/dsv41/exl3_experts2d_rec.zig",
@@ -2058,7 +2058,7 @@
     },
     {
       "path": "zig/src/families/dsv41/extent_plan.zig",
-      "sha256": "f02453636609a02c8289f11dc7424c76ff5aede748d48d87bf3b9008c646c4c6"
+      "sha256": "98bc4f84fba35e9b09310c88655011e9960c893d157f66d02032e8ceec7e1b8d"
     },
     {
       "path": "zig/src/families/dsv41/fixtures/launches.json",
@@ -2082,7 +2082,7 @@
     },
     {
       "path": "zig/src/families/dsv41/layer_main.zig",
-      "sha256": "e0dfd2f07aebced030e203139cae55d006743a38770f7c8cc7208f27cbf6d2e2"
+      "sha256": "bddca1e03b87891b0b9a281a4bfe9c6bc3a6a0e86040dc9595d903352d6b050b"
     },
     {
       "path": "zig/src/families/dsv41/link.zig",
@@ -2098,11 +2098,11 @@
     },
     {
       "path": "zig/src/families/dsv41/model.zig",
-      "sha256": "9092a81719f801e901b8939727927b2ce010905865e514a83eaf14ac98f99cc3"
+      "sha256": "bb573d42c67df6ceb4187635eb4a8fd4b5bbf4ed9226549b976e837699b116e3"
     },
     {
       "path": "zig/src/families/dsv41/native.zig",
-      "sha256": "abc0cb2bdaf6232e5b88f2288d6e57a93b0d7b145e42e643b10fdc9b46c2f3a2"
+      "sha256": "c334ada8527f2d0bac10af815ded557c3867388cb3db9500f4d6702217432db9"
     },
     {
       "path": "zig/src/families/dsv41/ops.zig",
@@ -2162,7 +2162,7 @@
     },
     {
       "path": "zig/src/families/dsv41/round.zig",
-      "sha256": "b26defbe65f088f0f1b5259b9341d5ac883a1f501fc0aefb56053b83f449e659"
+      "sha256": "b417ce9e1862c9b4950a621114326969d146d930e39a314845060f78e695a2b8"
     },
     {
       "path": "zig/src/families/dsv41/round2d.zig",
@@ -2170,7 +2170,7 @@
     },
     {
       "path": "zig/src/families/dsv41/router_check_main.zig",
-      "sha256": "a465cd9ef2ee6e0a62de99d2390d58e31a8b631b07be4b1f2a608a90863a21ee"
+      "sha256": "bed44815c31c7bb1356f715d0bdb8b07415756db9539109827e3dc8cb8a2b893"
     },
     {
       "path": "zig/src/families/dsv41/sampling.zig",
@@ -2206,7 +2206,7 @@
     },
     {
       "path": "zig/src/families/dsv41/tri_norm.zig",
-      "sha256": "5119e2f9df515da2e932d1fc4f92dce4cd1c2aa742a4f53c590e818969e4d573"
+      "sha256": "4c403cbe644819018158f40130357f1813e22c55e24d78e0b225741b61a21eb9"
     },
     {
       "path": "zig/src/families/dsv41/vision.zig",
@@ -2970,7 +2970,7 @@
     },
     {
       "path": "zig/src/server/status_routes.zig",
-      "sha256": "b2a2d8b501f541f277e5af7cf1ed727916d8867f0795db7e021b188409250f8b"
+      "sha256": "486e7ad59045f159b8811e9b483fb21294c512991d9652ec1178f17f72dc61e1"
     },
     {
       "path": "zig/src/server/status_totals_test.zig",
