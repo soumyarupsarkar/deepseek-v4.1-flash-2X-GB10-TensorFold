@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "upstream_base": "4e80f05ecba89a4e90d16375ade2eddbdc0a10c4",
-  "status": "November 17 source maintenance with 48 verification rows; release/STATUS.md distinguishes source checks and the hardware-qualified deployment.",
+  "status": "November 17 source with 48 default verification rows and a calibrated 64-row option. See release/STATUS.md for the stock Mia measurements and deployment revision.",
   "scope": "Build, native engine, grammar bridge, deployment controller/configuration and checkpoint-specific compiled test resources. This manifest is not serving qualification.",
   "files": [
     {
