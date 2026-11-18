@@ -40,6 +40,27 @@ class OverlayTests(unittest.TestCase):
                 self.assertEqual(args['stock'][args['stock'].index('sha256:test'):],
                                  args['keys'][args['keys'].index('sha256:test'):])
 
+    def test_both_ranks_use_the_selected_width_and_shared_cost_table(self):
+        config = read(CONFIG/'cluster.example.json')
+        baseline = profile('stock')['environment']['TF_DS_SHARED_ROUND_MS'].split(',')
+        self.assertEqual(len(baseline), 48)
+        for width in (48, 64):
+            for host in ('worker', 'head'):
+                rails = [dict(r, gid_index=3) for r in config[host]['rails']]
+                args = launch_args(config,host,'00000000-0000-4000-8000-000000000000',
+                                   'sha256:test',rails,round_rows=width)
+                env = dict(args[i+1].split('=',1) for i, item in enumerate(args) if item=='-e')
+                prices = env['TF_DS_SHARED_ROUND_MS'].split(',')
+                self.assertEqual(prices[:48], baseline)
+                self.assertEqual(len(prices), width)
+                self.assertEqual(env['TF_DS_ROUND_ROWS'], str(width))
+                if width == 64:
+                    self.assertEqual(prices[-1], '239.336869')
+                if host == 'worker':
+                    self.assertEqual(args[args.index('--round-rows')+1], str(width))
+        with self.assertRaisesRegex(ValueError, '48 or 64'):
+            profile('stock', round_rows=49)
+
     def test_health_requires_actual_overlay_loading_for_selected_profile(self):
         h=dict(status='ok',runtime_poisoned=False,warming=False,max_batch_size=32,max_model_len=1048576,
             structured_outputs=True,native=dict(rdma_failed=False,pool_tokens=8650752,
@@ -81,20 +102,22 @@ class SwitchTests(unittest.TestCase):
     def test_switch_stops_pair_and_selects_keys(self):
         Pair.switch(self.pair,'keys')
         self.pair.stop.assert_called_once_with()
-        self.pair.start.assert_called_once_with('keys', drop_reasoning_history=False)
+        self.pair.start.assert_called_once_with('keys', drop_reasoning_history=False, round_rows=48)
         self.assertEqual(read(self.pair.state/'switch.json')['status'],'passed')
 
     def test_failed_start_restores_previous_variant(self):
         record = self.pair.state/'launch.json'
-        record.write_text(json.dumps(dict(read(record), drop_reasoning_history=True)))
+        record.write_text(json.dumps(dict(read(record), drop_reasoning_history=True,
+                                          profile={'environment':{'TF_DS_ROUND_ROWS':'64'}})))
+        self.pair.get.return_value['native']['round_rows'] = 64
         self.pair.start.side_effect=[RuntimeError('synthetic startup failure'),None]
         with self.assertRaisesRegex(RuntimeError,'synthetic'):Pair.switch(self.pair,'keys')
         self.assertEqual([x.args for x in self.pair.start.call_args_list],[('keys',),('stock',)])
-        self.assertTrue(all(call.kwargs == {'drop_reasoning_history': True} for call in self.pair.start.call_args_list))
+        self.assertTrue(all(call.kwargs == {'drop_reasoning_history': True, 'round_rows': 64} for call in self.pair.start.call_args_list))
         self.assertEqual(read(self.pair.state/'switch.json')['status'],'rolled-back')
 
     def test_busy_or_poisoned_pair_is_not_stopped(self):
-        for field,value in [('scheduler',{'running':1}),('runtime_poisoned',True)]:
+        for field,value in [('scheduler',{'running':1}),('runtime_poisoned',True), ('native',{'rdma_failed':False,'round_rows':64})]:
             with self.subTest(field=field):
                 h=copy.deepcopy(self.pair.get.return_value);h[field]=value
                 with patch.object(self.pair,'get',return_value=h):

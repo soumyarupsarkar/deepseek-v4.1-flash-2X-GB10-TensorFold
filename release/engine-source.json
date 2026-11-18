@@ -73,6 +73,10 @@
       "sha256": "c0b86eeb488d59d628ec51d800e0c2f11010b80b11c88d3cd46c1083692bbe1d"
     },
     {
+      "path": "deployment/config/verify-64-costs.json",
+      "sha256": "558a91cdd2d12a5b6aa075e184b990992fbc0fe3105ad3cfe6e95180c8ff3576"
+    },
+    {
       "path": "deployment/scripts/assets.py",
       "sha256": "a22fd6bd3d547c71d57d12d4a1ce3a15b0a18f31c549d4421fb436a205d9571c"
     },
@@ -86,11 +90,11 @@
     },
     {
       "path": "deployment/scripts/cli.py",
-      "sha256": "80a2dd4c6060c8d558c669e4a12dbf95bcc9ca60f073a208165f89f50ea7e408"
+      "sha256": "1bac1ff7f02220fc68b515362432320ee78a9275d20d3039cddf2dacdd789262"
     },
     {
       "path": "deployment/scripts/configuration.py",
-      "sha256": "cc135900b4d27ceba364bc0ce7cc03996f3fc5a1e04f1dcd644b59c43677ff3e"
+      "sha256": "1b60a76bc4e910b867026d40675f91478d45a0989738c9abf88a00438ea6f849"
     },
     {
       "path": "deployment/scripts/engine_health.py",
@@ -130,7 +134,7 @@
     },
     {
       "path": "deployment/scripts/runtime.py",
-      "sha256": "e241e6051b14fbb64e790a20917ed611988fc96f1e885f756421031396a26635"
+      "sha256": "b5c57e345873db6015774698b368dda954b93467ea7346e54b3199ebb4955ddb"
     },
     {
       "path": "tests/publication/fixtures/checkpoint-1017-prompts.json",
@@ -146,7 +150,7 @@
     },
     {
       "path": "zig/build/cuda.zig",
-      "sha256": "debe0850faf08b9a60a427ca6ad2a1822ad09ccb403717e0da85a9bbb0d3454b"
+      "sha256": "32e3ead4f7e7313fbb7cce5b833b0a5122ba5a2efd9727788a15e6b3acbc8e7a"
     },
     {
       "path": "zig/build/dist.zig",
@@ -1630,7 +1634,7 @@
     },
     {
       "path": "zig/src/core/lanes/measure.zig",
-      "sha256": "2ad12344eb6716f988efb2e406cbadca9e226e9989d58a57f18e84771474a241"
+      "sha256": "575b0ffd63651bcff869e997759cbbe85b75ac1de2bb34f650a1d0aa79bd2c01"
     },
     {
       "path": "zig/src/core/lanes/plan_lanes.zig",
@@ -1998,7 +2002,7 @@
     },
     {
       "path": "zig/src/families/dsv41/draft.zig",
-      "sha256": "cf37a9ecdd5602c8877dd63f45d2a3483c51cc7e3dd0c996061e30e511cfbeb8"
+      "sha256": "788eea9dce103000e2e09b22dc1d1838af291de065548bcdf459081f2f2981cc"
     },
     {
       "path": "zig/src/families/dsv41/draft2d.zig",
@@ -2034,11 +2038,11 @@
     },
     {
       "path": "zig/src/families/dsv41/exl3_experts.zig",
-      "sha256": "e589a15683ea4d471d9af281e846a2c2ff4626b273ad7f7ba7916aff5d7b0caf"
+      "sha256": "1c47519b57c8953241a5b7d762e9fbb5dc4905db800848b2a3c2fdae72899b9a"
     },
     {
       "path": "zig/src/families/dsv41/exl3_experts2d.zig",
-      "sha256": "3293516f26f233e77669971bc1974ab3e2e94345ced7b4ac1ede37205e23f7c7"
+      "sha256": "3a245ac5a874f8028cbcfca79aecc322a64e35164872fbdf3105f0ac0cc8d916"
     },
     {
       "path": "zig/src/families/dsv41/exl3_experts2d_rec.zig",
@@ -2058,7 +2062,7 @@
     },
     {
       "path": "zig/src/families/dsv41/extent_plan.zig",
-      "sha256": "f02453636609a02c8289f11dc7424c76ff5aede748d48d87bf3b9008c646c4c6"
+      "sha256": "98bc4f84fba35e9b09310c88655011e9960c893d157f66d02032e8ceec7e1b8d"
     },
     {
       "path": "zig/src/families/dsv41/fixtures/launches.json",
@@ -2082,7 +2086,7 @@
     },
     {
       "path": "zig/src/families/dsv41/layer_main.zig",
-      "sha256": "e0dfd2f07aebced030e203139cae55d006743a38770f7c8cc7208f27cbf6d2e2"
+      "sha256": "bddca1e03b87891b0b9a281a4bfe9c6bc3a6a0e86040dc9595d903352d6b050b"
     },
     {
       "path": "zig/src/families/dsv41/link.zig",
@@ -2098,11 +2102,11 @@
     },
     {
       "path": "zig/src/families/dsv41/model.zig",
-      "sha256": "9092a81719f801e901b8939727927b2ce010905865e514a83eaf14ac98f99cc3"
+      "sha256": "bb573d42c67df6ceb4187635eb4a8fd4b5bbf4ed9226549b976e837699b116e3"
     },
     {
       "path": "zig/src/families/dsv41/native.zig",
-      "sha256": "abc0cb2bdaf6232e5b88f2288d6e57a93b0d7b145e42e643b10fdc9b46c2f3a2"
+      "sha256": "c334ada8527f2d0bac10af815ded557c3867388cb3db9500f4d6702217432db9"
     },
     {
       "path": "zig/src/families/dsv41/ops.zig",
@@ -2162,7 +2166,7 @@
     },
     {
       "path": "zig/src/families/dsv41/round.zig",
-      "sha256": "b26defbe65f088f0f1b5259b9341d5ac883a1f501fc0aefb56053b83f449e659"
+      "sha256": "b417ce9e1862c9b4950a621114326969d146d930e39a314845060f78e695a2b8"
     },
     {
       "path": "zig/src/families/dsv41/round2d.zig",
@@ -2170,7 +2174,7 @@
     },
     {
       "path": "zig/src/families/dsv41/router_check_main.zig",
-      "sha256": "a465cd9ef2ee6e0a62de99d2390d58e31a8b631b07be4b1f2a608a90863a21ee"
+      "sha256": "bed44815c31c7bb1356f715d0bdb8b07415756db9539109827e3dc8cb8a2b893"
     },
     {
       "path": "zig/src/families/dsv41/sampling.zig",
@@ -2206,7 +2210,7 @@
     },
     {
       "path": "zig/src/families/dsv41/tri_norm.zig",
-      "sha256": "5119e2f9df515da2e932d1fc4f92dce4cd1c2aa742a4f53c590e818969e4d573"
+      "sha256": "4c403cbe644819018158f40130357f1813e22c55e24d78e0b225741b61a21eb9"
     },
     {
       "path": "zig/src/families/dsv41/vision.zig",
@@ -2754,7 +2758,7 @@
     },
     {
       "path": "zig/src/server/anthropic.zig",
-      "sha256": "9cdfe4e6f0187ed755758bd695122840314dd3623ad6907e25d7fc173ef85155"
+      "sha256": "e7d11707cef6aca9b5f2567ac5f7b624ff6c7cc468d5623ce0d794f606833327"
     },
     {
       "path": "zig/src/server/anthropic_translate.zig",
@@ -2766,7 +2770,7 @@
     },
     {
       "path": "zig/src/server/chat.zig",
-      "sha256": "740cf73cf3ba3ea0a82a620b64db775d03ef20f797777558abd317efec314115"
+      "sha256": "f6dc2037308708053c612b2844225572ce1196456daea110f64574bcb6490640"
     },
     {
       "path": "zig/src/server/checkpoint_1017_test.zig",
@@ -2822,7 +2826,7 @@
     },
     {
       "path": "zig/src/server/effort_values_test.zig",
-      "sha256": "e302f78e685c6c4badd36114b2e58058b7bae14124b71006dc612a4497d26d96"
+      "sha256": "3f25d9907bb4844bd3708bd212bf851d5e536199452026580ca08786d473141d"
     },
     {
       "path": "zig/src/server/engines.zig",
@@ -2834,7 +2838,7 @@
     },
     {
       "path": "zig/src/server/fields.zig",
-      "sha256": "350ce9e01e640c4314460b45e650d9a02deabe9c688def1a98e2898301531cb8"
+      "sha256": "76d861b09f3893c5b777f25f0bb2b825812d2578c3e39c88462ece9886774738"
     },
     {
       "path": "zig/src/server/grammar.zig",
@@ -2902,7 +2906,7 @@
     },
     {
       "path": "zig/src/server/metrics.zig",
-      "sha256": "800671df6bc9dd8b0bd304556739c26db2bf62f2cff218027d86a62e3a1e33fb"
+      "sha256": "43491b19b2d3379e9769fe210e4c232903d25249e91d2b7e89a9aa147922b65b"
     },
     {
       "path": "zig/src/server/model_text.zig",
@@ -2914,7 +2918,11 @@
     },
     {
       "path": "zig/src/server/openai.zig",
-      "sha256": "1a7a911c8297166599bb1473b0c5fa6e020d56468aa8662c36d2abb8bb2f9b75"
+      "sha256": "8803d4d8341d85ee9a4e15ff7e5f0a052bb6cbcb45cb99b07296f785d4ff1032"
+    },
+    {
+      "path": "zig/src/server/output_diagnostics.zig",
+      "sha256": "93bbfc83cc276727b920e0d53d310c824830475b640a9d730958ec8c405e3791"
     },
     {
       "path": "zig/src/server/prompt.zig",
@@ -2941,12 +2949,16 @@
       "sha256": "5435ae7d883796aab232e7debea66c6f1ddd12bf3202a66969d9ffb270d9b559"
     },
     {
+      "path": "zig/src/server/responses_include_test.zig",
+      "sha256": "03d72aaae60832c19a682c6ad02706a9ff015773bb1d59f53c1f4943c7892a0a"
+    },
+    {
       "path": "zig/src/server/responses_translate.zig",
-      "sha256": "90f44a72d05b5608c9a420ad95c1fe7935e45b0f86a734c285365c457a568a9b"
+      "sha256": "138f6f21edf8c1e953ad233ab5e19dc41bca8688c421557fc7c0c7ea383cf2ab"
     },
     {
       "path": "zig/src/server/root.zig",
-      "sha256": "a92fc701cbcad6a12d4302c3acd3ed1dba3d0b27cfd8cce81101266dcf32274c"
+      "sha256": "c6f32aa30f0fbaa31c86ce8dbc8bdf705638d8b6f0e6fb3bab42623a919fe218"
     },
     {
       "path": "zig/src/server/routes.zig",
@@ -2962,7 +2974,7 @@
     },
     {
       "path": "zig/src/server/server.zig",
-      "sha256": "130548d2fe35c779d13a5c7566f4572a597451cffbcefe528ec8533b7d512ecb"
+      "sha256": "b7547d33bf87c8c7d20cc4e9511e4dd8517e267ba7e896d83bcf1ecb07b9daf9"
     },
     {
       "path": "zig/src/server/sse.zig",
@@ -2970,7 +2982,7 @@
     },
     {
       "path": "zig/src/server/status_routes.zig",
-      "sha256": "b2a2d8b501f541f277e5af7cf1ed727916d8867f0795db7e021b188409250f8b"
+      "sha256": "486e7ad59045f159b8811e9b483fb21294c512991d9652ec1178f17f72dc61e1"
     },
     {
       "path": "zig/src/server/status_totals_test.zig",
@@ -2982,7 +2994,7 @@
     },
     {
       "path": "zig/src/server/tokens.zig",
-      "sha256": "037705c3e2731fab8e02f6c971efdbbac19d351e0bdc2c61385cbb336b92cbca"
+      "sha256": "cb790d313737ffa874a2330ef703c3bf6821e3f5f6e7ab198b2a0934ba3492e9"
     },
     {
       "path": "zig/src/server/tool_grammar.zig",
@@ -4626,11 +4638,11 @@
     },
     {
       "path": "zig/tests/server/golden_check.zig",
-      "sha256": "46149c17d22319ee885f1c79d62a10c85c002beda0ca031741e76a7828cd0601"
+      "sha256": "e41ec902a898e0fa54e5b0e1b159df9a311d19d00a766f58c06b2b91ed118bab"
     },
     {
       "path": "zig/tests/server/parity.py",
-      "sha256": "a5a7fede4ae71dd75237ff6d94a6141be49d9f3f70e9779498e743b23d88cec9"
+      "sha256": "a2004cfcc85865656e5dbc19565aa87b09dd1e14e993a38c504df33a87cb8e8e"
     },
     {
       "path": "zig/tests/server/python_server.py",

@@ -4,8 +4,8 @@ const builtin = @import("builtin");
 const api = @import("engine_api");
 
 const prefix = "tensorfold:";
-/// Upper edges shared by the request and time-to-first-token histograms; +Inf is added when rendered.
-pub const buckets = [_]f64{ 0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0, 120.0, 300.0 };
+/// Latency and prompt-processing buckets in seconds, including long-context requests.
+pub const buckets = [_]f64{ 0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0, 60.0, 120.0, 300.0, 600.0, 1200.0, 1800.0, 2400.0, 3600.0 };
 pub const tpot_buckets = [_]f64{ 0.0025, 0.005, 0.0075, 0.01, 0.015, 0.02, 0.025, 0.03, 0.04, 0.05, 0.075, 0.1, 0.15, 0.2, 0.3, 0.5, 1.0 };
 
 fn HistogramType(comptime edges: []const f64) type {
@@ -237,6 +237,24 @@ test "metrics record rounds prefill and per-token timing" {
     defer out.deinit();
     try histogram(&out.writer, "request_prefill_seconds", "prefill", m.prefill);
     try std.testing.expect(std.mem.indexOf(u8, out.written(), "request_prefill_seconds_sum 0.25") != null);
+}
+
+test "long requests appear in cumulative finite latency buckets" {
+    var h: Histogram = .{};
+    for ([_]f64{ 300, 600, 2100, 3601 }) |seconds| h.observe(seconds);
+    var out: std.Io.Writer.Allocating = .init(std.testing.allocator);
+    defer out.deinit();
+    try histogram(&out.writer, "request_prefill_seconds", "prefill", h);
+    const Expected = struct { edge: []const u8, count: u64 };
+    for ([_]Expected{
+        .{ .edge = "300", .count = 1 },  .{ .edge = "600", .count = 2 },
+        .{ .edge = "1800", .count = 2 }, .{ .edge = "2400", .count = 3 },
+        .{ .edge = "3600", .count = 3 }, .{ .edge = "+Inf", .count = 4 },
+    }) |bin| {
+        var buf: [96]u8 = undefined;
+        const sample = try std.fmt.bufPrint(&buf, "tensorfold:request_prefill_seconds_bucket{{le=\"{s}\"}} {d}\n", .{ bin.edge, bin.count });
+        try std.testing.expect(std.mem.indexOf(u8, out.written(), sample) != null);
+    }
 }
 
 const RenderStub = struct {

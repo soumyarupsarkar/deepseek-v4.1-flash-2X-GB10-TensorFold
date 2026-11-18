@@ -23,6 +23,7 @@ test {
     _ = @import("fields.zig");
     _ = @import("reply_text.zig");
     _ = @import("tool_parse.zig");
+    _ = @import("output_diagnostics.zig");
     _ = @import("tool_parse_test.zig");
     _ = @import("tool_stream.zig");
     _ = @import("tool_stream_test.zig");
@@ -47,6 +48,7 @@ test {
     _ = @import("stream_preflight_test.zig");
     _ = @import("late_system_test.zig");
     _ = @import("effort_values_test.zig");
+    _ = @import("responses_include_test.zig");
     _ = @import("compact_test.zig");
     _ = @import("decisions.zig");
     _ = @import("decisions_test.zig");

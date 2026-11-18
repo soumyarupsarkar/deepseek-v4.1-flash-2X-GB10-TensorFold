@@ -97,7 +97,7 @@ def source_revision():
     return subprocess.check_output(['git','rev-parse','HEAD'],cwd=SOURCE,text=True).strip()
 
 
-def profile(weight_variant=None):
+def profile(weight_variant=None, *, round_rows=None):
     if weight_variant is None:
         selection = STATE/'variant.json'
         weight_variant = read(selection)['variant'] if selection.exists() else 'stock'
@@ -115,6 +115,21 @@ def profile(weight_variant=None):
         raise ValueError('The pinned native drafter has a five-token block; disable drafts per request when needed')
     if 'TF_DS_WEIGHT_OVERLAY' in value['environment']:
         raise ValueError('Select the verified Keys variant instead of overriding its path')
+    env = value['environment']
+    width = int(env['TF_DS_ROUND_ROWS']) if round_rows is None else round_rows
+    if type(width) is not int or width not in (48, 64):
+        raise ValueError('Verification rounds support 48 or 64 rows')
+    if width == 64:
+        prices = env['TF_DS_SHARED_ROUND_MS'].split(',')
+        calibration = read(CONFIG / 'verify-64-costs.json')
+        tail = calibration['rows_49_to_64_ms']
+        if len(prices) != 48 or len(tail) != 16:
+            raise ValueError('Expected 48 local verification prices and 16 upstream tail prices')
+        value['qualification'] = ('November 17 two-GB10 verification-width trial with stock Mia weights. '
+                                  'See deployment/UPSTREAM-20261117.md for workload and memory limits.')
+        scale = float(prices[-1]) / calibration['row_48_ms']
+        env['TF_DS_SHARED_ROUND_MS'] = ','.join(prices + [f'{ms * scale:.6f}' for ms in tail])
+    env['TF_DS_ROUND_ROWS'] = str(width)
     value['weight_variant'] = weight_variant
     value['keys_overlay'] = weight_variant == 'keys'
     if weight_variant == 'keys':
@@ -124,7 +139,7 @@ def profile(weight_variant=None):
 
 
 def launch_args(config, host, deployment_id, image, rails, drm_card='/dev/dri/card0', *, prepared_readonly=False,
-                weight_variant='stock', drop_reasoning_history=False):
+                weight_variant='stock', drop_reasoning_history=False, round_rows=None):
     """Pure command rendering; GID indices and DRM card come from host preflight."""
     validate(config)
     if not re.fullmatch(r'[0-9a-f-]{36}', deployment_id):
@@ -133,7 +148,7 @@ def launch_args(config, host, deployment_id, image, rails, drm_card='/dev/dri/ca
         raise ValueError('Expected one of the two ranks and its validated rails')
     if len({r['gid_index'] for r in rails}) != 1:
         raise ValueError('Both rails must have the same IPv4 RoCE-v2 GID index')
-    p = profile(weight_variant)
+    p = profile(weight_variant, round_rows=round_rows)
     rank = 0 if host == 'head' else 1
     node = config[host]
     root = PurePosixPath(node['data_root'])

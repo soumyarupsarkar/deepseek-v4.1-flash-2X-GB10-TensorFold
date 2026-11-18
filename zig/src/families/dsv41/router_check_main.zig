@@ -17,8 +17,8 @@ pub fn main(init: std.process.Init) !u8 {
     var set = try cuda.aot.Set.load(init.gpa, init.io, &driver, ctx.device, args[1]);
     defer set.deinit();
     const t: ds.tri.Tri = .{ .set = &set, .stream = stream };
-    ds.tri.decode_rows = 48;
-    const rows = 48;
+    const rows = ds.round.max_rows;
+    ds.tri.decode_rows = rows;
     const k = 5120;
     const n = 384;
     const kc = k / 256;
@@ -79,7 +79,7 @@ pub fn main(init: std.process.Init) !u8 {
     }
     var buf: [1024]u8 = undefined;
     var out = std.Io.File.stdout().writer(init.io, &buf);
-    try out.interface.print("{{\"ok\":true,\"widths\":48,\"compared_words\":{d},\"mismatches\":0}}\n", .{compared});
+    try out.interface.print("{{\"ok\":true,\"widths\":{d},\"compared_words\":{d},\"mismatches\":0}}\n", .{ rows, compared });
     try out.interface.flush();
     return 0;
 }

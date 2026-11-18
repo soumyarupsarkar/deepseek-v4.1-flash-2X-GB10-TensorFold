@@ -27,6 +27,7 @@ FIXTURES = HERE / "fixtures"
 CONTEXT = 1024
 # where the two servers differ on purpose, and why
 EXPECTED = {
+    ("responses", "refuse-include"): "the native server accepts the encrypted-content include hint and returns its ordinary plaintext reasoning item",
     ("errors", "format-json"): "structured output: Python's test app has no grammar compiler, the Zig engine reports none",
     ("errors", "stream-structured"): "structured output: Python's test app has no grammar compiler, the Zig engine reports none",
     ("anthropic", "refuse-format"): "structured output: Python's test app has no grammar compiler, the Zig engine reports none",

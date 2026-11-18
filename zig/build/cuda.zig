@@ -128,7 +128,9 @@ pub fn targets(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.bu
     const ds_router = b.createModule(.{ .root_source_file = b.path("zig/src/families/dsv41/router_check_main.zig"), .target = target, .optimize = optimize, .link_libc = true });
     ds_router.addImport("dsv41", ds_check.import_table.get("dsv41").?);
     ds_router.addImport("cuda", cuda);
-    b.installArtifact(b.addExecutable(.{ .name = "tf-dsv41-router-check", .root_module = ds_router }));
+    const router_check = b.addInstallArtifact(b.addExecutable(.{ .name = "tf-dsv41-router-check", .root_module = ds_router }), .{});
+    b.getInstallStep().dependOn(&router_check.step);
+    b.step("router-check", "Build the standalone DeepSeek CUDA router width check").dependOn(&router_check.step);
     // the RDMA ring across real nodes (rdma.zig): rendezvous, gathers at each row count, every float checked
     const ds_rdma = b.createModule(.{ .root_source_file = b.path("zig/src/families/dsv41/rdma_bench_main.zig"), .target = target, .optimize = optimize, .link_libc = true });
     ds_rdma.addImport("dsv41", ds_check.import_table.get("dsv41").?);

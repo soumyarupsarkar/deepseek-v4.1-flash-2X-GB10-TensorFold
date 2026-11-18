@@ -109,6 +109,8 @@ python3 cluster start
 python3 cluster status
 ```
 
+The default uses 48 verification rows. For C32 code-heavy workloads, a stopped pair can start with `python3 cluster start --round-rows 64`. This spends more memory per rank to verify more draft tokens per round. The 64-row measurements used stock Mia weights. A running weight switch preserves the width. To return to 48, drain requests, run `python3 cluster stop`, then `python3 cluster start`. Restarting clears retained prefixes. [Measured throughput, memory and parity](UPSTREAM-20261117.md#48-versus-64-verification-rows).
+
 `build` archives the exact Git commit, verifies the pinned Zig compiler,
 compiles the native engine/kernels and xgrammar bridge, runs their CPU tests,
 and transfers the identical image to the worker. It does not publish an image.
@@ -121,7 +123,7 @@ only that incomplete output and retrying. This preparation writes persistent
 weight/cache artifacts, not session KV histories.
 
 `precompile` exercises CUDA copies, graphs, sampling, cuBLAS and NCCL with
-weights unloaded, verifies router widths 1–48 against single-row GPU launches,
+weights unloaded, verifies router widths 1–64 against single-row GPU launches,
 then compares every prepared tensor byte on both hosts. Its
 receipts bind the results to the selected image and asset identities. Native
 kernels are already built into the image; no model-time extension compilation

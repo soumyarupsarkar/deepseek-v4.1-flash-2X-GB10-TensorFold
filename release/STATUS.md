@@ -2,7 +2,7 @@
 
 ## November 17 source update
 
-The public recipe adds optional reasoning-history omission, prefix retention and queue fixes under KV pressure, and lower memory use for multi-image requests. The configured serving profile uses 48 verification rows. [Review, validation and rollback](../deployment/UPSTREAM-20261117.md).
+The public recipe keeps 48 verification rows by default. A calibrated 64-row option raised C32 code decode from 331.1 to 382.7 tok/s, counting from 389.8 to 419.6 and sampled mixed traffic from 280.5 to 310.4. Prose fell from 278.1 to 274.0. The isolated trials used stock Mia. The source also adds optional reasoning-history omission, prefix and queue fixes, tool-client compatibility and long-request monitoring. [Review, limits and rollback](../deployment/UPSTREAM-20261117.md) · [Matched width measurements](native-verify-rows-20261117.json).
 
 ## Qualified deployment from October 30
 

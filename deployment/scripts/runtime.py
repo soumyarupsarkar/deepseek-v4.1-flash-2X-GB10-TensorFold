@@ -361,7 +361,7 @@ class Pair:
                                 display=self.snapshot(host))
         return result
 
-    def start(self, weight_variant=None, *, drop_reasoning_history=False):
+    def start(self, weight_variant=None, *, drop_reasoning_history=False, round_rows=None):
         if not self.config['allow_temporary_drm']:
             raise ValueError('Set allow_temporary_drm=true after reviewing the display takeover and rollback')
         self.ownership()
@@ -373,7 +373,7 @@ class Pair:
         from assets import verify
         from keys_overlay import selected, variant, verify as verify_overlay
         weight_variant = selected(self) if weight_variant is None else variant(weight_variant)
-        p = profile(weight_variant); image = build['id']
+        p = profile(weight_variant, round_rows=round_rows); image = build['id']
         precompile = read(self.state/'precompile.json')
         if precompile['image'] != image or precompile['status'] != 'passed':
             raise RuntimeError('Precompile the selected image with model weights unloaded')
@@ -427,7 +427,7 @@ class Pair:
             for host in ('worker','head'):
                 args = launch_args(self.config,host,self.ownership(),image,rails[host],cards[host],
                                    prepared_readonly=prepared_readonly,weight_variant=weight_variant,
-                                   drop_reasoning_history=drop_reasoning_history)
+                                   drop_reasoning_history=drop_reasoning_history, round_rows=round_rows)
                 started[host] = self.docker(host,*args,timeout=90).stdout.strip()
             atomic(self.state/'launch.json',dict(time=now(),config=self.config,profile=p,image=image,
                                                variant=weight_variant,drop_reasoning_history=drop_reasoning_history,containers=started))
@@ -442,7 +442,8 @@ class Pair:
                 try:
                     health = self.get('/health',3)
                     from engine_health import ready
-                    if ready(health, p) and health.get('drop_reasoning_history', False) is drop_reasoning_history:
+                    if (ready(health, p) and health.get('drop_reasoning_history', False) is drop_reasoning_history
+                            and health['native'].get('round_rows') == int(p['environment']['TF_DS_ROUND_ROWS'])):
                         break
                 except (OSError,ValueError,KeyError):
                     pass
@@ -474,16 +475,20 @@ class Pair:
         was_running = any(present.values())
         previous = selected(self)
         drop_history = False
+        round_rows = None
         if was_running:
             launch = read(self.state/'launch.json')
             previous = variant(launch.get('variant','stock'))
             drop_history = launch.get('drop_reasoning_history', False)
+            round_rows = int(launch.get('profile', {}).get('environment', {}).get('TF_DS_ROUND_ROWS', 48))
             if any(len(rows)!=1 or not rows[0]['State']['Running']
                    or rows[0]['Id']!=launch['containers'][host] or rows[0]['Image']!=build['id']
                    for host,rows in present.items()):
                 raise RuntimeError('Pair is incomplete or changed; use stop before recovering it')
             health = self.get('/health')
-            if (not healthy(health) or busy(health) or health.get('native',{}).get('weight_overlay_entries',0)
+            if (not healthy(health) or busy(health) or round_rows not in (48, 64)
+                    or health['native'].get('round_rows', 48) != round_rows
+                    or health['native'].get('weight_overlay_entries',0)
                     != (78 if previous=='keys' else 0)):
                 raise RuntimeError('Switch requires a healthy idle pair; finish requests or explicitly stop first')
             if previous == weight_variant:
@@ -493,14 +498,14 @@ class Pair:
         try:
             if was_running:
                 self.stop()
-            self.start(weight_variant, drop_reasoning_history=drop_history)
+            self.start(weight_variant, drop_reasoning_history=drop_history, round_rows=round_rows)
             record['status']='passed'
         except BaseException as exc:
             record.update(status='failed',error=type(exc).__name__+': '+str(exc))
             if was_running:
                 try:
                     self.stop()
-                    self.start(previous, drop_reasoning_history=drop_history)
+                    self.start(previous, drop_reasoning_history=drop_history, round_rows=round_rows)
                     record['status']='rolled-back'
                 except BaseException as recovery:
                     record['recovery_error']=type(recovery).__name__+': '+str(recovery)

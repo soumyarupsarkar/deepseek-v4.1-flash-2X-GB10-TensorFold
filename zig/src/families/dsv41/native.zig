@@ -12,7 +12,7 @@
 //!   TF_DS_ROUND_MS                              the lane core's round costs by rows (ms, comma separated; the
 //!                                               served ROUND_MS unless set: a four-node lane's rounds cost less)
 //!   TF_DS_SHARED_ROUND_MS                       optional shared-round cost override, preserving solo costs
-//!   TF_DS_ROUND_ROWS, TF_DS_STREAMS             a round's rows at most (16..48), and resident streams (1..32)
+//!   TF_DS_ROUND_ROWS, TF_DS_STREAMS             a round's rows at most (16..64), and resident streams (1..32)
 //!   TF_DS_POOL_TOKENS                           shared KV capacity, separate from each request's --context
 //!   TF_RDMA_DEVICES                             the decode gathers over the RDMA ring on these devices (else NCCL)
 //!   TF_DS_GRAPHS=1                              the rounds' stretches as CUDA graphs
@@ -207,7 +207,7 @@ pub fn explain(_: ?*anyopaque, err: anyerror) ?[]const u8 {
         error.NoRankCache => "set TF_DS_RANK_CACHE to the lane's per-rank weight files",
         error.NoKit => "set TF_DS_KIT to the kernel kit (cubins/, the RoPE tables, engram.json)",
         error.NoFreeSlot => "this engine serves TF_DS_STREAMS streams at once (default 4): --parallel at most that",
-        error.BadRoundRows => "TF_DS_ROUND_ROWS: a round's rows at most, 16 .. 48",
+        error.BadRoundRows => "TF_DS_ROUND_ROWS: a round's rows at most, 16 .. 64",
         error.BadStreams => "TF_DS_STREAMS: the pool's streams, 1 .. 32",
         error.BadPool => "TF_DS_POOL_TOKENS must be positive and at least the per-request --context window",
         error.ContextFull => "the streams' prompts and budgets fill the context's pool: lower max_tokens, or retry when a stream ends",

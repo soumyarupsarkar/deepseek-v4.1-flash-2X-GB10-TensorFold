@@ -90,7 +90,7 @@ For decisions, `chat_template_kwargs` may be omitted, null, or an object contain
 | `response_format`, `guided_json`, `guided_regex`, `guided_choice`, `guided_grammar`, `structured_outputs` | A JSON schema, any JSON object, a regex, a choice or an EBNF grammar the reply must match | Both |
 | `ignore_eos` | Disable model end-of-sequence stopping; the reply limit still applies | Both |
 | `stop` | Stop at a string or any string in a list; omit the matched text from the response | Both |
-| `reasoning_effort` | `none`, `minimal`, `low`, `medium`, `high`, `xhigh` or `max` | Both |
+| `reasoning_effort` | `none`, `minimal`, `low`, `medium`, `high`, `xhigh` or `max`. The native DeepSeek-V4.1 server also accepts an integer from 1 to 100 as a JSON number or a string of digits. | Both for named levels |
 | `thinking_budget` | Token-count limit inside reasoning | Both |
 | `priority` | `background` yields to foreground requests | Both |
 
@@ -225,9 +225,10 @@ On both backends, `reasoning_effort: none` disables thinking; other effort value
 template. The server also reads it from `chat_template_kwargs.reasoning_effort`, where vLLM's clients send it; the
 top-level field wins. An unnamed level maps to the nearest level the template names, and a tie takes
 the higher one. GLM-5.3 lists `low`, `high` and `max`, so `max` stays `max`, `medium` is heard as `high`
-and `minimal` as `low`. Qwen3.8 lists `low`, `medium` and `xhigh`, so `high` and `max` are heard as `xhigh`.
+and `minimal` as `low`. DeepSeek-V4.1's template takes a number: each name is heard as its number (minimal 25, low 50,
+medium 62, high 75, xhigh 88, max 100) and an integer 1-100 is heard as given. Qwen3.8 lists `low`, `medium` and `xhigh`, so `high` and `max` are heard as `xhigh`.
 `xhigh` stays `xhigh`. GLM-5.3 renders `xhigh` and `max` as Max. A template that names no level hears `max` as
-`xhigh`. `--reasoning-effort` uses the same rule. An omitted effort, with no startup flag, stays
+`xhigh`. The native startup flag `--reasoning-effort` accepts `low`, `medium`, `high` or `xhigh`. The 1–100 range applies to Chat Completions requests and Responses `reasoning.effort`. Messages `output_config.effort` uses named levels. An omitted effort, with no startup flag, stays
 the template's own default. An explicit `chat_template_kwargs.enable_thinking` takes
 precedence. A request without an effort gets `--reasoning-effort` when the server was started with one; otherwise
 the template renders its own default, as vLLM and mlx-lm render it (Qwen3.8's is `xhigh`, which adds an instruction
@@ -288,6 +289,10 @@ GPU's memory can freeze the host, so lower it only with room to spare.
 
 ## Responses
 
+When a request offers tools and the entire answer consists of orphan DSML closing tags, Chat Completions and Responses return `tensorfold.tool_parse_warning` with the value `orphan_dsml_closers`. On a stream it appears in the final result. The server logs the request ID and warning, and passes the generated text and finish reason through. Messages clients can correlate the request with the server log.
+
+The native `POST /v1/responses` route accepts `"include": ["reasoning.encrypted_content"]`. It returns reasoning as text. A client that replays a reasoning item must include its plaintext.
+
 `choices[0].message.content` holds the answer. Reasoning uses `reasoning_content`, or
 `delta.reasoning_content` while streaming. Tools use `tool_calls` and `finish_reason: "tool_calls"`.
 When a template supplies no think opener, a reply-written leading `<think>` tag is removed from
@@ -340,6 +345,7 @@ drafts share it), `request_latency_seconds`, `time_to_first_token_seconds` and `
 finished request's decode time: the CUDA engine's own figure, or first token to end on the Mac server; its `_sum`
 over `generation_tokens_total` is the decode rate), `request_time_per_output_token_seconds`, `decode_rounds_total`,
 and the `request_prefill_seconds` histogram, all under the `tensorfold:` prefix. TPOT already carries vLLM's name.
+Request, prefill, decode and time-to-first-token histograms include finite upper bounds at 600, 1200, 1800, 2400 and 3600 seconds for long contexts.
 The readings vLLM also has are repeated under its names (`num_requests_running`, `num_requests_waiting`,
 `kv_cache_usage_perc`, `spec_decode_num_draft_tokens_total`, `spec_decode_num_accepted_tokens_total`,
 `e2e_request_latency_seconds`, `request_decode_time_seconds`, `request_prefill_time_seconds`) with identical values, so a dashboard copied from vLLM fills by swapping the

@@ -1,0 +1,22 @@
+{
+  "source": "https://github.com/bertholomus/deepseek-v4.1-tensorfold-tp2-2xgb10/blob/2f252f4a6c254242c374a40f38d7e5cb979db862/config.env.example",
+  "row_48_ms": 176.4,
+  "rows_49_to_64_ms": [
+    179.0,
+    181.6,
+    184.2,
+    186.9,
+    189.5,
+    192.1,
+    194.7,
+    197.3,
+    199.9,
+    202.5,
+    205.1,
+    207.8,
+    210.4,
+    213.0,
+    215.6,
+    218.2
+  ]
+}

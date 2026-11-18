@@ -45,10 +45,12 @@ test "fragmented live extents pack in source order and preserve reservation size
 
 test "32 complete 262k reservations fit the independent shared pool" {
     var extents: [max_items]Extent = undefined;
-    const reserve = std.mem.alignForward(usize, 262144 + 48 + 2, 2048);
-    for (&extents, 0..) |*extent, i| extent.* = .{ .slot = i, .base = i * reserve, .end = (i + 1) * reserve };
-    const p = (try plan(&extents, 0, 8650752, 2048)).?;
-    try std.testing.expectEqual(@as(usize, 32), p.count);
-    try std.testing.expect(p.end <= 8650752);
-    try std.testing.expectEqual(@as(?Plan, null), try plan(&extents, reserve, 8650752, 2048));
+    for ([_]usize{ 48, 64 }) |rows| {
+        const reserve = std.mem.alignForward(usize, 262144 + rows + 2, 2048);
+        for (&extents, 0..) |*extent, i| extent.* = .{ .slot = i, .base = i * reserve, .end = (i + 1) * reserve };
+        const p = (try plan(&extents, 0, 8650752, 2048)).?;
+        try std.testing.expectEqual(@as(usize, 32), p.count);
+        try std.testing.expect(p.end <= 8650752);
+        try std.testing.expectEqual(@as(?Plan, null), try plan(&extents, reserve, 8650752, 2048));
+    }
 }
