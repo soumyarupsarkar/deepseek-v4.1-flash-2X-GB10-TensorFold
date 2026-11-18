@@ -78,6 +78,36 @@
   "deep_protocol": "Prime an identical 261120-token document, then run two waves of 32 independent active reservations with 1024 reply tokens each. Fixed per-stream seeds 9000+i, temperature 1, no growth, stock C32 monitor. Wall throughput includes per-wave restore, residual prefill, and decode. The minimum available memory is sampled Linux MemAvailable per host. Engine active bytes are the head allocator counter before and after the full-window phase, after the shorter waves.",
   "guard_gib": 2,
   "hardware": "two NVIDIA GB10 nodes, tensor parallelism 2, one model rank per node",
+  "integrated_source_checks": {
+    "binary_sha256": {
+      "tensorfold-native": "d7e4b6882e70a76ef301ebfb87ed0f743f48acbceab7391236090a09da528ab2",
+      "tf-dsv41-lanes": "5983fbb3f7c984e9a1c5a908abb6da9d7bd9596853855bbf4a8378a4db0f26c2",
+      "tf-dsv41-router-check": "e11e78bfb1c0525363ffd60c3f387a77ed407020b494dc75d725673156ed5fcf"
+    },
+    "controller_tests": 25,
+    "http": {
+      "dsml_route_cases": 18,
+      "latency_buckets_seconds": [
+        600,
+        1200,
+        1800,
+        2400,
+        3600
+      ],
+      "plaintext_reasoning_equivalent": true,
+      "responses_http_status": [
+        200,
+        200,
+        400,
+        400
+      ]
+    },
+    "native_tests": 408,
+    "publication_tests": 92,
+    "sm": 121,
+    "source": "744f2fe826722d436210c028327849c8b6486006",
+    "verified_width_engine_files_same_as_trial": 13
+  },
   "pool_tokens": 8650752,
   "router_gpu": {
     "head": {
