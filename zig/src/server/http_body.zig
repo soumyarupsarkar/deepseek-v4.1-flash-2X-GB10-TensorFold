@@ -33,13 +33,14 @@ fn strip(s: []const u8) []const u8 {
 
 /// Reads one body without consuming the next request on the connection.
 pub fn read(c: *Conn, a: Allocator, max: usize) Allocator.Error!Body {
-    const too_big = try std.fmt.allocPrint(a, "request body exceeds the {d} MiB limit", .{max / (1024 * 1024)});
     var transfers = false;
     var lengths = false;
     for (c.headers) |h| {
         if (std.ascii.eqlIgnoreCase(h.name, "Transfer-Encoding")) transfers = true;
         if (std.ascii.eqlIgnoreCase(h.name, "Content-Length")) lengths = true;
     }
+    if (!transfers and !lengths) return .{ .ok = "" };
+    const too_big = try std.fmt.allocPrint(a, "request body exceeds the {d} MiB limit", .{max / (1024 * 1024)});
     if (transfers) {
         if (lengths) return refuse(c, "Content-Length and Transfer-Encoding cannot be combined");
         var codings: usize = 0;
@@ -56,7 +57,6 @@ pub fn read(c: *Conn, a: Allocator, max: usize) Allocator.Error!Body {
             return refuse(c, "unsupported request Transfer-Encoding; expected chunked over HTTP/1.1");
         return chunks(c, a, max, too_big);
     }
-    if (!lengths) return .{ .ok = "" };
     var size: ?u64 = null;
     for (c.headers) |h| {
         if (!std.ascii.eqlIgnoreCase(h.name, "Content-Length")) continue;

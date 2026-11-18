@@ -15,6 +15,14 @@ from engine_health import ready
 
 
 class OverlayTests(unittest.TestCase):
+    def test_replayed_reasoning_is_opt_in_and_only_the_head_renders_prompts(self):
+        config = read(CONFIG/'cluster.example.json')
+        for host in ('head', 'worker'):
+            rails = [dict(r, gid_index=3) for r in config[host]['rails']]
+            common = (config, host, '00000000-0000-4000-8000-000000000000', 'sha256:test', rails)
+            self.assertNotIn('--drop-reasoning-history', launch_args(*common))
+            self.assertEqual('--drop-reasoning-history' in launch_args(*common, drop_reasoning_history=True), host == 'head')
+
     def test_both_ranks_select_same_readonly_overlay_and_preserve_all_aliases(self):
         config=read(CONFIG/'cluster.example.json')
         for host in ('head','worker'):
@@ -73,13 +81,16 @@ class SwitchTests(unittest.TestCase):
     def test_switch_stops_pair_and_selects_keys(self):
         Pair.switch(self.pair,'keys')
         self.pair.stop.assert_called_once_with()
-        self.pair.start.assert_called_once_with('keys')
+        self.pair.start.assert_called_once_with('keys', drop_reasoning_history=False)
         self.assertEqual(read(self.pair.state/'switch.json')['status'],'passed')
 
     def test_failed_start_restores_previous_variant(self):
+        record = self.pair.state/'launch.json'
+        record.write_text(json.dumps(dict(read(record), drop_reasoning_history=True)))
         self.pair.start.side_effect=[RuntimeError('synthetic startup failure'),None]
         with self.assertRaisesRegex(RuntimeError,'synthetic'):Pair.switch(self.pair,'keys')
         self.assertEqual([x.args for x in self.pair.start.call_args_list],[('keys',),('stock',)])
+        self.assertTrue(all(call.kwargs == {'drop_reasoning_history': True} for call in self.pair.start.call_args_list))
         self.assertEqual(read(self.pair.state/'switch.json')['status'],'rolled-back')
 
     def test_busy_or_poisoned_pair_is_not_stopped(self):

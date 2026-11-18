@@ -124,7 +124,7 @@ def profile(weight_variant=None):
 
 
 def launch_args(config, host, deployment_id, image, rails, drm_card='/dev/dri/card0', *, prepared_readonly=False,
-                weight_variant='stock'):
+                weight_variant='stock', drop_reasoning_history=False):
     """Pure command rendering; GID indices and DRM card come from host preflight."""
     validate(config)
     if not re.fullmatch(r'[0-9a-f-]{36}', deployment_id):
@@ -183,6 +183,8 @@ def launch_args(config, host, deployment_id, image, rails, drm_card='/dev/dri/ca
                  '--context',str(p['context']),'--parallel',str(p['parallel']),
                  '--prompt-cache-gib','0.5','--host',config['api']['bind'],'--port',str(config['api']['port']),
                  '--name',MODEL,'--max-tokens','32768','--temperature','1','--top-p','0.95','--top-k','20']
+        if drop_reasoning_history:
+            args.append('--drop-reasoning-history')
         for alias in aliases:
             args += ['--alias', alias]
     else:

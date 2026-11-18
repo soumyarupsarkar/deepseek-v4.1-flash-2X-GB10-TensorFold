@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "upstream_base": "4e80f05ecba89a4e90d16375ade2eddbdc0a10c4",
-  "status": "October 30 maintenance and constrained drafting qualified on runtime 9ad0c6f3; see release/STATUS.md for deployment and evidence",
+  "status": "November 17 source maintenance with 48 verification rows; release/STATUS.md distinguishes source checks and the hardware-qualified deployment.",
   "scope": "Build, native engine, grammar bridge, deployment controller/configuration and checkpoint-specific compiled test resources. This manifest is not serving qualification.",
   "files": [
     {
@@ -86,11 +86,11 @@
     },
     {
       "path": "deployment/scripts/cli.py",
-      "sha256": "68bb2667fbc91250d33605cbfdcd6d2c2afc5603a5845c4db87b97a874914e9f"
+      "sha256": "80a2dd4c6060c8d558c669e4a12dbf95bcc9ca60f073a208165f89f50ea7e408"
     },
     {
       "path": "deployment/scripts/configuration.py",
-      "sha256": "86a9af011b820d29c252e06410d747db9a6079390dc1badbf7d96990bf5677a4"
+      "sha256": "cc135900b4d27ceba364bc0ce7cc03996f3fc5a1e04f1dcd644b59c43677ff3e"
     },
     {
       "path": "deployment/scripts/engine_health.py",
@@ -130,7 +130,7 @@
     },
     {
       "path": "deployment/scripts/runtime.py",
-      "sha256": "639cbe7f48d13f3bccd5102127b3a945720f88b2b9a6a878ac86245b8b0b939d"
+      "sha256": "e241e6051b14fbb64e790a20917ed611988fc96f1e885f756421031396a26635"
     },
     {
       "path": "tests/publication/fixtures/checkpoint-1017-prompts.json",
@@ -1550,11 +1550,11 @@
     },
     {
       "path": "zig/src/core/lane_host.zig",
-      "sha256": "fa30afe8a41ca6677333d079d6549a2b42345f29ce91ebd9769e89238388d651"
+      "sha256": "568cc49b57a7741ab76815ece2e988112d11ace5acd2c5ed7f026a4c8606c4f1"
     },
     {
       "path": "zig/src/core/lane_host_incremental_test.zig",
-      "sha256": "779c31454ab52d2bfac540073cf9576151821788c65732be40d3e2e23efcfc6d"
+      "sha256": "ceda03f63d48b53bf6a08a1b6be1a671c40d97555d9306d9787c777a402b74e6"
     },
     {
       "path": "zig/src/core/lane_host_reuse_test.zig",
@@ -1574,7 +1574,7 @@
     },
     {
       "path": "zig/src/core/lanes/backend.zig",
-      "sha256": "fa3ca6a8075839e37af68c062ade0d1edd326f47642f8d5bf4a1a8a0e92530cc"
+      "sha256": "f0f25d95b821c92fd2809c9545bca3f7340faba97278706a0cc20e63ee73f829"
     },
     {
       "path": "zig/src/core/lanes/config.zig",
@@ -1602,7 +1602,7 @@
     },
     {
       "path": "zig/src/core/lanes/fake.zig",
-      "sha256": "216179533a13fe7dc6b998aeaed08c9edb6d8f8c9107070714d32c01cf266940"
+      "sha256": "d1ac294f99a568d9f8c8d569a2c44cf52be15e46ff8107227890297f5bcb2a89"
     },
     {
       "path": "zig/src/core/lanes/fill.zig",
@@ -1674,11 +1674,11 @@
     },
     {
       "path": "zig/src/core/prompt_cache.zig",
-      "sha256": "6dcc9ca81260fb19556afbcb2c22068d8dcc847937e4b53f87a6d4981bb348c5"
+      "sha256": "a1e073b2f33155bcd59c400c84ba97c8c754144bee9c440baab8aad9d9769aef"
     },
     {
       "path": "zig/src/core/prompt_cache_test.zig",
-      "sha256": "67f3591c9be9a0d882db207fd0161e8dfb8cd32f8d3e7d399e7f3062b1431cb4"
+      "sha256": "ce705f9ecc2b8e45b952447547ae5117269937fc68b1c5a7d0974627a5d1dab7"
     },
     {
       "path": "zig/src/core/prompt_imprint.zig",
@@ -2074,7 +2074,7 @@
     },
     {
       "path": "zig/src/families/dsv41/lanes.zig",
-      "sha256": "d47e995b89b199640d1a37ae8b9899fd02864bc80955f5bcecfa58c746e027b5"
+      "sha256": "ad2ee105e701d73480438330b7739c028ada6de2dae620fdf2db8221c2d917cc"
     },
     {
       "path": "zig/src/families/dsv41/lanes_main.zig",
@@ -2102,7 +2102,7 @@
     },
     {
       "path": "zig/src/families/dsv41/native.zig",
-      "sha256": "dfda67d7864a2ff4b98c47a1dfe4a415379106993be7db05a5e7570f856b01bc"
+      "sha256": "abc0cb2bdaf6232e5b88f2288d6e57a93b0d7b145e42e643b10fdc9b46c2f3a2"
     },
     {
       "path": "zig/src/families/dsv41/ops.zig",
@@ -2726,7 +2726,7 @@
     },
     {
       "path": "zig/src/native/cuda.zig",
-      "sha256": "9363c5befb557f6d248fe5aa9788ae9dd5c8ff50e52a8d5a860fb9610ca08ea4"
+      "sha256": "089223bd7d87ff991b8039c479cee952eab263178bd6ab9b3294d3068b023eb1"
     },
     {
       "path": "zig/src/native/cuda_memory.zig",
@@ -2770,7 +2770,7 @@
     },
     {
       "path": "zig/src/server/checkpoint_1017_test.zig",
-      "sha256": "beb4252f5c7b3ac8797bf928f54946f053198720a69853babdc88a8d77f6434f"
+      "sha256": "bf788f5cdc4fab5ddcad77d79f0f2caf0741d8c7c1e06475213c0d2b1c0424ef"
     },
     {
       "path": "zig/src/server/chunk_plan.zig",
@@ -2778,7 +2778,7 @@
     },
     {
       "path": "zig/src/server/cli.zig",
-      "sha256": "68e73b1d0d87a75b7354b259624f357982e3ff0f9227b9e308b087de7a62f3c0"
+      "sha256": "04c4f3559347f550239b23a07b3353d11a6aaea686b84c65eb777883b110171a"
     },
     {
       "path": "zig/src/server/clock.zig",
@@ -2850,7 +2850,7 @@
     },
     {
       "path": "zig/src/server/http_body.zig",
-      "sha256": "142af62203e710c0753bc1f993afd9e617ce2913a195678a2da737be7df66622"
+      "sha256": "2d854c56b6988bd187557bb6a65496275ca00dbae843f0fdbcfbb60f6ba3f24d"
     },
     {
       "path": "zig/src/server/http_conn.zig",
@@ -2894,11 +2894,11 @@
     },
     {
       "path": "zig/src/server/main.zig",
-      "sha256": "a622cc150f5e9c3f6238d343e584691831f762a572e49b2729cf7e0f651ff52d"
+      "sha256": "9f29569401893275f096d7d8fa0a8050ca36622d61c7fda76b8c127b1475b498"
     },
     {
       "path": "zig/src/server/messages.zig",
-      "sha256": "ca66c60be25a7a5acd9ab5529a7b5f2983c90d92bc57131fb86cc13af7905477"
+      "sha256": "b10380226966197204b1275f70cc7524fec15fa69b57ccafdc8b413db311b0fd"
     },
     {
       "path": "zig/src/server/metrics.zig",
@@ -2918,7 +2918,7 @@
     },
     {
       "path": "zig/src/server/prompt.zig",
-      "sha256": "eaa2f519a7310a5747535a31374f28926d2a1e0a52b2f2acdc01bf6525281bb8"
+      "sha256": "dd342056627ccb657771ef238fc43d94c1b4909965ab7a1b8c6dbee41563a1e0"
     },
     {
       "path": "zig/src/server/pyrepr.zig",
@@ -2950,7 +2950,7 @@
     },
     {
       "path": "zig/src/server/routes.zig",
-      "sha256": "33c0578d68b53a5e1a8b602a7b540514a1cce5110f1d0db6b3ab0e605a6dc420"
+      "sha256": "96b095ca2d6b6b72c55ba7a017fb5a50aeab0bee6b701378cefd8883bdf5d0fd"
     },
     {
       "path": "zig/src/server/seed_mode.zig",
@@ -2958,11 +2958,11 @@
     },
     {
       "path": "zig/src/server/serve.zig",
-      "sha256": "a8872945453de7a6b64d3547836f8b5a6623d0ca11fa23e7a54ffdf29dd6390a"
+      "sha256": "4aec8c8d9aa4f37538d85a3f2eff3adba61fa1a2c2f7591711c14d7693e28334"
     },
     {
       "path": "zig/src/server/server.zig",
-      "sha256": "27ca75b9bd1ed40a656f94cabedc25b2bac9e34283b803a0d8f1a18543511a10"
+      "sha256": "130548d2fe35c779d13a5c7566f4572a597451cffbcefe528ec8533b7d512ecb"
     },
     {
       "path": "zig/src/server/sse.zig",
@@ -2970,7 +2970,7 @@
     },
     {
       "path": "zig/src/server/status_routes.zig",
-      "sha256": "56dad2ea9eaeaa8fa759cbc27efdc945f53f1cf9e9eb3b65a19fcb336425d2b7"
+      "sha256": "b2a2d8b501f541f277e5af7cf1ed727916d8867f0795db7e021b188409250f8b"
     },
     {
       "path": "zig/src/server/status_totals_test.zig",

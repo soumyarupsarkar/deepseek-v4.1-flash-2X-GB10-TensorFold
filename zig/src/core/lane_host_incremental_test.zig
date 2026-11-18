@@ -56,6 +56,23 @@ const Box = struct {
     }
 };
 
+const Snaps = struct {
+    fn bytes(_: *anyopaque, at: u32) u64 {
+        return 64 + 4 * @as(u64, at);
+    }
+    fn save(ptr: *anyopaque, owner: ?*anyopaque, at: u32) anyerror!pc.Saved {
+        const fake: *lanes.fake.Fake = @ptrCast(@alignCast(ptr));
+        return fake.save(@ptrCast(@alignCast(owner.?)), at);
+    }
+    fn restore(_: *anyopaque, _: ?*anyopaque, _: pc.Saved) anyerror!void {
+        return error.BackendRestores;
+    }
+    fn drop(ptr: *anyopaque, saved: pc.Saved) void {
+        const fake: *lanes.fake.Fake = @ptrCast(@alignCast(ptr));
+        fake.drop(saved);
+    }
+};
+
 test "a short arrival finishes while a long prompt is still filling" {
     var cfg = try lanes.Config.init(a, .{ .exact_width = 8, .gpu_tokens = true, .hidden_rows = true }, 8, 7);
     defer cfg.deinit(a);
@@ -163,22 +180,6 @@ test "another filling prompt may evict a restored prefix before its owner finish
     var clock: lanes.fake.FixedClock = .{};
     var core = lanes.Engine.init(a, &cfg, target.incrementalBackend(), clock.clock());
     defer core.deinit();
-    const Snaps = struct {
-        fn bytes(_: *anyopaque, at: u32) u64 {
-            return 64 + 4 * @as(u64, at);
-        }
-        fn save(ptr: *anyopaque, owner: ?*anyopaque, at: u32) anyerror!pc.Saved {
-            const fake: *lanes.fake.Fake = @ptrCast(@alignCast(ptr));
-            return fake.save(@ptrCast(@alignCast(owner.?)), at);
-        }
-        fn restore(_: *anyopaque, _: ?*anyopaque, _: pc.Saved) anyerror!void {
-            return error.BackendRestores;
-        }
-        fn drop(ptr: *anyopaque, saved: pc.Saved) void {
-            const fake: *lanes.fake.Fake = @ptrCast(@alignCast(ptr));
-            fake.drop(saved);
-        }
-    };
     var store = pc.Store.init(a, .{ .ptr = &target, .vtable = &.{ .bytes = Snaps.bytes, .save = Snaps.save, .restore = Snaps.restore, .drop = Snaps.drop } }, .{ .min_gap = 1, .min_prompt = 0, .max_entries = 1 }, 1 << 20);
     defer store.deinit();
     const long_prompt: [64]u32 = @splat(7);
@@ -206,4 +207,67 @@ test "another filling prompt may evict a restored prefix before its owner finish
     try std.testing.expectEqual(@as(u32, 8), long.cached);
     try std.testing.expectEqual(@as(u64, 1), store.counts.hits);
     try std.testing.expectEqual(@as(u64, 1), store.counts.evicted);
+}
+
+test "a KV refusal lets a fitting request through and the oldest retries after release" {
+    var cfg = try lanes.Config.init(a, .{ .exact_width = 8, .gpu_tokens = true, .hidden_rows = true }, 8, 7);
+    defer cfg.deinit(a);
+    var target: lanes.fake.Fake = .{ .gpa = a, .incremental_pool = 64 };
+    defer target.deinit();
+    var clock: lanes.fake.FixedClock = .{};
+    var core = lanes.Engine.init(a, &cfg, target.incrementalBackend(), clock.clock());
+    defer core.deinit();
+    var host = LaneHost.init(a, std.testing.io, &core, .{ .lanes = 4 });
+    const busy: [60]u32 = @splat(7);
+    const large: [64]u32 = @splat(11);
+    const small = [_]u32{ 2, 5 };
+    const prompts = [_][]const u32{ &busy, &large, &small };
+    var requests: [3]api.Request = undefined;
+    var boxes: [3]Box = @splat(.{});
+    defer for (&boxes) |*box| box.tokens.deinit(a);
+    boxes[2].other_prefilled = &boxes[0].prefilled;
+    for (prompts, &requests, &boxes, 1..) |prompt, *request, *box, id| {
+        request.* = .{ .prompt = prompt, .max_tokens = 3, .drafts = false };
+        try host.engine().submit(id, request, box.sink());
+    }
+    try host.start();
+    defer host.stop();
+    for (prompts, &boxes) |prompt, *box| try box.check(prompt, 3);
+    try std.testing.expect(boxes[2].finished_before_other);
+    try std.testing.expectEqual(@as(usize, 2), target.incremental_refusals);
+}
+
+test "a long prompt with one restored chunk left cuts in during cold prefill" {
+    var cfg = try lanes.Config.init(a, .{ .exact_width = 8, .gpu_tokens = true, .hidden_rows = true }, 8, 7);
+    defer cfg.deinit(a);
+    var target: lanes.fake.Fake = .{ .gpa = a };
+    defer target.deinit();
+    var clock: lanes.fake.FixedClock = .{};
+    var core = lanes.Engine.init(a, &cfg, target.incrementalBackend(), clock.clock());
+    defer core.deinit();
+    const cold: [64]u32 = @splat(2);
+    const replay: [96]u32 = @splat(5);
+    var store = pc.Store.init(a, .{ .ptr = &target, .vtable = &.{ .bytes = Snaps.bytes, .save = Snaps.save, .restore = Snaps.restore, .drop = Snaps.drop } }, .{}, 1 << 20);
+    defer store.deinit();
+    var prefix = try lanes.Stream.init(a, .{ .id = "prefix", .prompt = replay[0..94], .max_new = 1 });
+    defer prefix.deinit(a);
+    try target.backend().prefill(&prefix);
+    try std.testing.expect(store.keep(&replay, 94, &prefix, &.{}));
+    target.backend().release(&prefix);
+    var host = LaneHost.init(a, std.testing.io, &core, .{ .lanes = 2 });
+    host.cache = &store;
+    var first: Box = .{};
+    defer first.tokens.deinit(a);
+    var cached: Box = .{ .other_prefilled = &first.prefilled };
+    defer cached.tokens.deinit(a);
+    const r1: api.Request = .{ .prompt = &cold, .max_tokens = 3, .drafts = false };
+    const r2: api.Request = .{ .prompt = &replay, .max_tokens = 1, .drafts = false };
+    try host.engine().submit(1, &r1, first.sink());
+    try host.engine().submit(2, &r2, cached.sink());
+    try host.start();
+    defer host.stop();
+    try cached.check(&replay, 1);
+    try first.check(&cold, 3);
+    try std.testing.expectEqual(@as(u32, 94), cached.cached);
+    try std.testing.expect(cached.finished_before_other);
 }

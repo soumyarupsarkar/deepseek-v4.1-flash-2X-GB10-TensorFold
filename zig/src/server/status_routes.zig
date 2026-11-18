@@ -23,6 +23,7 @@ pub fn health(srv: *Server, conn: *Conn, a: Allocator) !void {
     try o.put(a, "engine", .{ .string = srv.info.name });
     try o.put(a, "max_model_len", try json.intValue(a, srv.info.context_window));
     try o.put(a, "seed_mode", .{ .string = @tagName(srv.config.seed_mode) });
+    try o.put(a, "drop_reasoning_history", .{ .bool = srv.config.drop_reasoning_history });
     try o.put(a, "structured_outputs", .{ .bool = srv.info.structures });
     try o.put(a, "structured_drafts", .{ .bool = srv.info.structures and srv.info.structured_drafts });
     try o.put(a, "structured_drafts_default", .{ .bool = false });

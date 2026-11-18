@@ -16,9 +16,12 @@ const Allocator = std.mem.Allocator;
 
 pub fn dispatch(srv: *Server, conn: *Conn, a: Allocator) void {
     const m = conn.method;
-    if (std.mem.eql(u8, m, "GET")) return get(srv, conn, a);
+    if (std.mem.eql(u8, m, "GET") or std.mem.eql(u8, m, "DELETE")) {
+        discardBody(conn, a);
+        if (std.mem.eql(u8, m, "GET")) return get(srv, conn, a);
+        return responses.delete(srv, conn, a, responses.route(auth.routePath(conn.path)));
+    }
     if (std.mem.eql(u8, m, "POST")) return post(srv, conn, a);
-    if (std.mem.eql(u8, m, "DELETE")) return responses.delete(srv, conn, a, responses.route(auth.routePath(conn.path)));
     const message = std.fmt.allocPrint(a, "Unsupported method ({s})", .{http_conn.pyRepr(a, m) catch m}) catch return;
     conn.sendError(a, 501, message, null) catch {};
 }
@@ -46,9 +49,11 @@ fn get(srv: *Server, conn: *Conn, a: Allocator) void {
     unknown(conn, a);
 }
 
-/// A refused route's body is read and dropped, so it cannot reach the next request on this connection.
+/// Consume any framed body before reusing this connection for another request.
 fn discardBody(conn: *Conn, a: Allocator) void {
-    _ = http_body.read(conn, a, http_body.limit) catch {};
+    _ = http_body.read(conn, a, http_body.limit) catch {
+        conn.close = true;
+    };
 }
 
 fn post(srv: *Server, conn: *Conn, a: Allocator) void {

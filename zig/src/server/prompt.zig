@@ -17,6 +17,7 @@ pub const isTitle = messages_mod.isTitleRequest;
 /// ``render_prompt_ids``: messages normalized for this template, rendered, and a dangling ``<think>`` closed.
 pub fn renderIds(srv: *Server, cx: *Cx, messages: Value, tools: []const Value, thinking: bool, effort: ?[]const u8, generation: bool) errors.Refused![]const u32 {
     const normalized = try messages_mod.toolArguments(cx, try messages_mod.normalize(cx, messages, srv.late_system, srv.needs_user_after_tool));
+    const history = if (srv.config.drop_reasoning_history) try messages_mod.dropReasoning(cx, normalized) else normalized;
     var problem: []const u8 = "";
     const options: model_text.RenderOptions = .{
         .tools = if (tools.len > 0) Value{ .array = @constCast(tools) } else null,
@@ -25,7 +26,7 @@ pub fn renderIds(srv: *Server, cx: *Cx, messages: Value, tools: []const Value, t
         .reasoning_effort = if (thinking) effort else null,
         .reasoning_effort_value = if (thinking) srv.effortValue(effort) else null,
     };
-    var ids = srv.text.renderIds(cx.a, normalized, options, &problem) catch |e| switch (e) {
+    var ids = srv.text.renderIds(cx.a, history, options, &problem) catch |e| switch (e) {
         error.OutOfMemory => return error.OutOfMemory,
         error.Template => return cx.fail(.server, "{s}", .{problem}),
     };
@@ -66,6 +67,8 @@ fn spans(srv: *Server, cx: *Cx, ids: []const u32, images: []const []const u8) er
     const vision = srv.info.vision orelse return cx.refuse("this server accepts text only; image, audio and video inputs are unsupported");
     var out: std.ArrayList(u32) = .empty;
     var placed: std.ArrayList(api.Image) = .empty;
+    var scratch: std.heap.ArenaAllocator = .init(srv.gpa);
+    defer scratch.deinit();
     for (ids) |id| {
         if (id != vision.token) {
             try out.append(cx.a, id);
@@ -74,11 +77,15 @@ fn spans(srv: *Server, cx: *Cx, ids: []const u32, images: []const []const u8) er
         const k = placed.items.len;
         if (k >= images.len) return cx.refuse("image input: the prompt holds more image placeholders than images");
         var problem: []const u8 = "";
-        const prep = vision.prepare(vision.ctx, cx.a, images[k], &problem) catch |e| switch (e) {
+        _ = scratch.reset(.retain_capacity);
+        const prep = vision.prepare(vision.ctx, scratch.allocator(), images[k], &problem) catch |e| switch (e) {
             error.OutOfMemory => return error.OutOfMemory,
-            error.BadImage => return cx.refuse(problem),
+            error.BadImage => return cx.refuse(try cx.a.dupe(u8, problem)),
         };
-        try placed.append(cx.a, .{ .at = @intCast(out.items.len), .tokens = prep.tokens, .bytes = prep.payload });
+        if (prep.tokens == 0) return cx.refuse("image input: a picture gave no tokens");
+        const payload = try cx.a.alignedAlloc(u8, .@"16", prep.payload.len);
+        @memcpy(payload, prep.payload);
+        try placed.append(cx.a, .{ .at = @intCast(out.items.len), .tokens = prep.tokens, .bytes = payload });
         try out.appendNTimes(cx.a, vision.token, prep.tokens);
     }
     if (placed.items.len != images.len) return cx.refuse("image input: the prompt holds fewer image placeholders than images");
@@ -103,4 +110,35 @@ pub fn systemPrefixLen(srv: *Server, cx: *Cx, messages: Value, tools: []const Va
     var shared: usize = 0;
     while (shared < @min(prompt_ids.len, other.len) and prompt_ids[shared] == other[shared]) shared += 1;
     return if (shared >= 512) shared else 0;
+}
+
+test "picture preparation shares scratch and keeps aligned independent request payloads" {
+    const Fixture = struct {
+        fn prepare(_: *anyopaque, a: std.mem.Allocator, bytes: []const u8, message: *[]const u8) api.Vision.PrepareError!api.Vision.Prepared {
+            const work = try a.alloc(u8, 64 * 1024);
+            if (bytes.len == 0) {
+                message.* = try a.dupe(u8, "missing fixture picture");
+                return error.BadImage;
+            }
+            @memset(work[0..4], bytes[0]);
+            return .{ .tokens = if (bytes[0] == 0) 0 else 2, .payload = work[0..4] };
+        }
+    };
+    var arena: std.heap.ArenaAllocator = .init(std.testing.allocator);
+    defer arena.deinit();
+    var cx: Cx = .{ .a = arena.allocator() };
+    var srv: Server = undefined;
+    srv.gpa = std.testing.allocator;
+    srv.info.vision = .{ .ctx = &srv, .token = 42, .placeholder = "image", .prepare = Fixture.prepare };
+    const r = try spans(&srv, &cx, &.{ 5, 42, 6, 42, 42 }, &.{ "a", "b", "c" });
+    try std.testing.expectEqualSlices(u32, &.{ 5, 42, 42, 6, 42, 42, 42, 42 }, r.ids);
+    for (r.images, [_]usize{ 1, 4, 6 }, [_][]const u8{ "aaaa", "bbbb", "cccc" }) |im, pos, payload| {
+        try std.testing.expectEqual(pos, im.at);
+        try std.testing.expectEqualStrings(payload, im.bytes);
+        try std.testing.expectEqual(@as(usize, 0), @intFromPtr(im.bytes.ptr) % 16);
+    }
+    try std.testing.expect(arena.queryCapacity() < 64 * 1024);
+    try std.testing.expectError(error.Refused, spans(&srv, &cx, &.{42}, &.{""}));
+    try std.testing.expectEqualStrings("missing fixture picture", cx.message);
+    try std.testing.expectError(error.Refused, spans(&srv, &cx, &.{42}, &.{"\x00"}));
 }

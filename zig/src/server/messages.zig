@@ -202,6 +202,32 @@ test "base64 as Python's b64decode reads it" {
     try std.testing.expectEqualStrings("", b64decode(a, "").ok);
 }
 
+/// Some chat clients send the assistant's previous reasoning under the vLLM spelling.
+fn withReplayedReasoning(cx: *Cx, message: Value, role: []const u8) !Value {
+    if (!std.mem.eql(u8, role, "assistant")) return message;
+    const alias = message.strField("reasoning") orelse return message;
+    if (alias.len == 0) return message;
+    if (message.get("reasoning_content")) |v| {
+        if (v != .null and !(v == .string and v.string.len == 0)) return message;
+    }
+    return .{ .object = try withField(cx, message.object, "reasoning_content", .{ .string = alias }) };
+}
+
+/// Remove replayed assistant reasoning from the template input. Other roles and the client's objects stay intact.
+pub fn dropReasoning(cx: *Cx, messages: Value) !Value {
+    var copy: ?[]Value = null;
+    for (messages.array, 0..) |message, i| {
+        if (!std.mem.eql(u8, message.strField("role") orelse "", "assistant")) continue;
+        if (!message.has("reasoning_content") and !message.has("reasoning")) continue;
+        if (copy == null) copy = try cx.a.dupe(Value, messages.array);
+        const fields_ = try json.copyObject(cx.a, message.object);
+        _ = fields_.orderedRemove("reasoning_content");
+        _ = fields_.orderedRemove("reasoning");
+        copy.?[i] = .{ .object = fields_ };
+    }
+    return if (copy) |items| .{ .array = items } else messages;
+}
+
 /// ``normalize_messages`` (text only): leading system and developer text merged, later ones as ``late_system``; a template that needs a user query gains one user turn after a trailing tool run.
 pub fn normalize(cx: *Cx, messages: ?Value, late_system: []const u8, needs_user_after_tool: bool) errors.Refused!Value {
     return normalizeImages(cx, messages, late_system, needs_user_after_tool, null);
@@ -218,10 +244,11 @@ pub fn normalizeImages(cx: *Cx, messages: ?Value, late_system: []const u8, needs
     const ordered = if (with_images and deepseek) try orderToolImages(cx.a, list.array) else list.array;
     var out: std.ArrayList(Value) = .empty;
     var instructions: std.ArrayList(*json.Object) = .empty;
-    for (ordered) |message| {
-        if (message != .object) return cx.refuse("each message must be an object");
-        const role = message.get("role");
+    for (ordered) |incoming| {
+        if (incoming != .object) return cx.refuse("each message must be an object");
+        const role = incoming.get("role");
         if (!isRole(role)) return cx.refuse("message role must be system, developer, user, assistant or tool");
+        const message = try withReplayedReasoning(cx, incoming, role.?.string);
         if (deepseek) {
             for ([_][]const u8{ "content", "reasoning_content" }) |key| if (message.get(key)) |v| if (v == .string and std.mem.indexOf(u8, v.string, images.?.placeholder) != null) return cx.refuse(image_text_refusal);
         }

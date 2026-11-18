@@ -361,7 +361,7 @@ class Pair:
                                 display=self.snapshot(host))
         return result
 
-    def start(self, weight_variant=None):
+    def start(self, weight_variant=None, *, drop_reasoning_history=False):
         if not self.config['allow_temporary_drm']:
             raise ValueError('Set allow_temporary_drm=true after reviewing the display takeover and rollback')
         self.ownership()
@@ -426,10 +426,11 @@ class Pair:
                 cards[host] = '/dev/dri/'+found[0]
             for host in ('worker','head'):
                 args = launch_args(self.config,host,self.ownership(),image,rails[host],cards[host],
-                                   prepared_readonly=prepared_readonly,weight_variant=weight_variant)
+                                   prepared_readonly=prepared_readonly,weight_variant=weight_variant,
+                                   drop_reasoning_history=drop_reasoning_history)
                 started[host] = self.docker(host,*args,timeout=90).stdout.strip()
             atomic(self.state/'launch.json',dict(time=now(),config=self.config,profile=p,image=image,
-                                               variant=weight_variant,containers=started))
+                                               variant=weight_variant,drop_reasoning_history=drop_reasoning_history,containers=started))
             deadline = time.monotonic()+3600
             while time.monotonic() < deadline:
                 for host in ('head','worker'):
@@ -441,7 +442,7 @@ class Pair:
                 try:
                     health = self.get('/health',3)
                     from engine_health import ready
-                    if ready(health, p):
+                    if ready(health, p) and health.get('drop_reasoning_history', False) is drop_reasoning_history:
                         break
                 except (OSError,ValueError,KeyError):
                     pass
@@ -472,9 +473,11 @@ class Pair:
         present = {host:self.containers(host) for host in ('head','worker')}
         was_running = any(present.values())
         previous = selected(self)
+        drop_history = False
         if was_running:
             launch = read(self.state/'launch.json')
             previous = variant(launch.get('variant','stock'))
+            drop_history = launch.get('drop_reasoning_history', False)
             if any(len(rows)!=1 or not rows[0]['State']['Running']
                    or rows[0]['Id']!=launch['containers'][host] or rows[0]['Image']!=build['id']
                    for host,rows in present.items()):
@@ -490,14 +493,14 @@ class Pair:
         try:
             if was_running:
                 self.stop()
-            self.start(weight_variant)
+            self.start(weight_variant, drop_reasoning_history=drop_history)
             record['status']='passed'
         except BaseException as exc:
             record.update(status='failed',error=type(exc).__name__+': '+str(exc))
             if was_running:
                 try:
                     self.stop()
-                    self.start(previous)
+                    self.start(previous, drop_reasoning_history=drop_history)
                     record['status']='rolled-back'
                 except BaseException as recovery:
                     record['recovery_error']=type(recovery).__name__+': '+str(recovery)

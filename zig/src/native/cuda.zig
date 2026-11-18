@@ -412,8 +412,10 @@ fn openWith(comptime F: type, a: Allocator, gpa: Allocator, io: std.Io, o: api.O
     if (@hasField(@TypeOf(loaded), "snaps")) if (loaded.snaps) |sn| {
         const want: u64 = @intFromFloat((o.prompt_cache_gib orelse 0.5) * gib);
         if (want > 0) {
-            h.snap_vt = .{ .bytes = sn.bytes, .save = sn.save, .restore = sn.restore, .drop = sn.drop };
+            h.snap_vt = .{ .bytes = sn.bytes, .save = sn.save, .restore = sn.restore, .drop = sn.drop, .live = if (@hasField(@TypeOf(sn), "live")) sn.live else null };
             h.cache = api.prompt_cache.Store.init(gpa, .{ .ptr = sn.ptr, .vtable = &h.snap_vt }, .{
+                .replay_tail = if (@hasField(@TypeOf(sn), "replay_tail")) sn.replay_tail else 0,
+                .reserve_before_pass = if (@hasDecl(F, "reserve_before_pass")) F.reserve_before_pass else true,
                 .max_entries = if (@hasDecl(F, "prompt_cache_states")) F.prompt_cache_states else 0,
                 .max_marks = if (@hasDecl(F, "prompt_cache_marks")) F.prompt_cache_marks else 0,
             }, want);

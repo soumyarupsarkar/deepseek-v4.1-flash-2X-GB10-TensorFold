@@ -1,6 +1,10 @@
 # Native release status
 
-## Current: October 30 maintenance and constrained drafting update
+## November 17 source update
+
+The public recipe adds optional reasoning-history omission, prefix retention and queue fixes under KV pressure, and lower memory use for multi-image requests. The configured serving profile uses 48 verification rows. [Review, validation and rollback](../deployment/UPSTREAM-20261117.md).
+
+## Qualified deployment from October 30
 
 Runtime `9ad0c6f3a415436dab22e6d6b7d4daa27b785467`, image
 `sha256:973a4fabe83dd4fefc1f868cf62863079e9b63e1be4004e1c064d3084fd1f6e9`, is serving stock Mia EAQ v1 on both hosts.

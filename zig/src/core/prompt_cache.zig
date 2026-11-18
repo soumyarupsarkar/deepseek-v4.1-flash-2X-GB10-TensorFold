@@ -19,6 +19,8 @@ pub const Snapshots = struct {
         /// Make the live state `saved`'s: the next prompt chunk starts at its position.
         restore: *const fn (ptr: *anyopaque, owner: ?*anyopaque, saved: Saved) anyerror!void,
         drop: *const fn (ptr: *anyopaque, saved: Saved) void,
+        /// Whether the saved prefix still has its backing rows.
+        live: ?*const fn (saved: Saved) bool = null,
         /// The storage a kept state holds: new storage up to `bytes`, or the spare storage it took (null: `bytes`).
         charged: ?*const fn (ptr: *anyopaque, saved: Saved) u64 = null,
         /// Free storage the family keeps for later saves, inside the budget (null: none).
@@ -52,6 +54,10 @@ pub const Rules = struct {
     /// Recent planned marks to retain, zero for all. A family can additionally
     /// keep the final complete chunk before its replay boundary.
     max_marks: usize = 0,
+    /// Backends that synchronize each eviction with the peer can defer it until an actual save.
+    reserve_before_pass: bool = true,
+    /// Number of tokens after a saved cut needed by the family for exact replay.
+    replay_tail: usize = 0,
 };
 
 pub const Entry = struct {
@@ -132,6 +138,7 @@ pub const Store = struct {
         for (s.entries.items) |e| {
             if (e.tokens.len > prompt.len or e.at >= prompt.len or !s.usable(e.at, starts)) continue;
             if (best != null and e.at <= best.?.at) continue;
+            if (prompt.len - e.at < s.rules.replay_tail or !s.live(e)) continue;
             const n = e.tokens.len;
             if (prompt[n - 1] != e.tokens[n - 1] or !std.mem.eql(u32, prompt[0..n], e.tokens)) continue;
             best = e;
@@ -168,6 +175,7 @@ pub const Store = struct {
 
     /// Room for every state the pass keeps, made before it: a peer that mirrors the keeps hears of these evictions with the request.
     fn reserve(s: *Store, prompt: []const u32, from: ?*Entry, marks_: []const u32) void {
+        if (!s.rules.reserve_before_pass) return;
         var need: u64 = 0;
         for (marks_) |at| need += s.family.vtable.bytes(s.family.ptr, at);
         while (s.held + need > s.budget) {
@@ -264,7 +272,12 @@ pub const Store = struct {
         if (at == 0 or n > prompt.len) return false;
         s.clock += 1;
         const shared = std.mem.indexOfScalar(u64, s.shared_keys.items, sharedKey(prompt[0..n])) != null;
-        for (s.entries.items) |e| if (e.at == at and std.mem.eql(u32, e.tokens, prompt[0..n])) {
+        for (s.entries.items, 0..) |e, i| if (e.at == at and std.mem.eql(u32, e.tokens, prompt[0..n])) {
+            if (!s.live(e)) {
+                s.remove(i);
+                s.counts.evicted += 1;
+                break; // this pass can refresh the same key with live backing
+            }
             e.used = s.clock; // the same state again: no copy
             e.shared = e.shared or shared;
             return true;
@@ -389,11 +402,18 @@ pub const Store = struct {
         return false;
     }
 
+    fn live(s: *const Store, e: *const Entry) bool {
+        const check = s.family.vtable.live orelse return true;
+        return check(e.saved);
+    }
+
     /// The entry to free first, never `skip` (a pass's resume): one a later prompt extends (never a shared cut), oldest first; else the oldest.
     fn victimBut(s: *const Store, skip: ?*Entry, prompt: []const u32) ?usize {
         var best: ?usize = null;
         for (s.entries.items, 0..) |e, i| {
-            if (e.shared or e == skip) continue; // a shared cut is evicted only as the least recently used
+            if (e == skip) continue;
+            if (!s.live(e)) return i;
+            if (e.shared) continue; // a shared cut is evicted only as the least recently used
             const now = prompt.len > e.born and prompt.len > e.tokens.len and std.mem.eql(u32, prompt[0..e.tokens.len], e.tokens); // this prompt extends it
             const moved_on = now or for (s.entries.items) |o| {
                 if (o != e and o.born > e.born and o.tokens.len > e.tokens.len and std.mem.eql(u32, o.tokens[0..e.tokens.len], e.tokens)) break true;

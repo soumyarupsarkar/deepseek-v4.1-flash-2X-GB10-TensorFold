@@ -499,3 +499,50 @@ test "past the learned-state cap the least recently used state is forgotten, and
     try std.testing.expectEqual(fresh(&p3), g.pass(&t, &p3, plan));
     try std.testing.expect(im.has(imprint.Imprint.keyOf(&two))); // learned again by that pass
 }
+
+test "a refused prompt keeps unrelated snapshots until another save needs the bytes" {
+    const a = std.testing.allocator;
+    var f: Fake = .{ .gpa = a, .at = 4 };
+    var store = Store.init(a, f.snapshots(), .{ .reserve_before_pass = false, .min_prompt = 0 }, 104);
+    defer store.deinit();
+    const previous = [_]u32{ 1, 2, 3, 4, 5 };
+    const next = [_]u32{ 6, 7, 8, 9, 10 };
+    try std.testing.expect(store.keep(&previous, 4, null, &.{}));
+    const refused = try store.lookup(a, &next, 4, &.{}, &.{});
+    defer a.free(refused.marks);
+    try std.testing.expectEqualSlices(u32, &.{4}, refused.marks);
+    try std.testing.expect(store.find(&previous, &.{}) != null);
+    try std.testing.expectEqual(@as(u64, 0), store.counts.evicted);
+    try std.testing.expect(store.keep(&next, 4, null, &.{}));
+    try std.testing.expect(store.find(&previous, &.{}) == null);
+    try std.testing.expect(store.find(&next, &.{}) != null);
+    try std.testing.expectEqual(@as(u64, 1), store.counts.evicted);
+    try std.testing.expectEqual(@as(u64, 104), store.held);
+}
+
+test "lookup skips unavailable backing and replay cuts too close to the prompt end" {
+    const a = std.testing.allocator;
+    var f: Fake = .{ .gpa = a };
+    var vt = f.snapshots().vtable.*;
+    vt.live = struct {
+        fn check(saved: Saved) bool {
+            const state: *Fake.State = @ptrCast(@alignCast(saved));
+            return state.sum != 0;
+        }
+    }.check;
+    var s = Store.init(a, .{ .vtable = &vt, .ptr = &f }, .{ .replay_tail = 2 }, 1 << 20);
+    defer s.deinit();
+    const prompt = [_]u32{ 1, 2, 3, 4, 5, 6, 7, 8 };
+    for ([_]u32{ 3, 5, 7 }) |cut| {
+        f.at = cut;
+        f.sum = @intFromBool(cut != 5);
+        try std.testing.expect(s.keep(&prompt, cut, null, &.{}));
+    }
+    try std.testing.expectEqual(@as(u32, 3), s.find(&prompt, &.{}).?.at);
+    f.at = 5;
+    f.sum = 1;
+    try std.testing.expect(s.keep(&prompt, 5, null, &.{}));
+    try std.testing.expectEqual(@as(u32, 5), s.find(&prompt, &.{}).?.at);
+    try std.testing.expectEqual(@as(u64, 1), s.counts.evicted);
+    try std.testing.expectEqual(@as(usize, 3), f.live);
+}

@@ -367,6 +367,7 @@ pub const Lanes = struct {
             .pool_tokens = self.m.pool_cap,
             .context_tokens = self.m.context_cap,
             .stream_slots = @intCast(self.m.streams),
+            .round_rows = @intCast(self.m.eng.round_rows),
             .active_streams = self.active_streams.load(.monotonic),
             .prefilling_streams = self.prefilling_streams.load(.monotonic),
             .prefill_tokens = self.prefill_tokens.load(.monotonic),
@@ -998,6 +999,10 @@ pub const Lanes = struct {
     /// The first extent that fits around the live streams and the kept states; the oldest kept states go stale
     /// until it does.
     fn placeKept(self: *Lanes, live: []const [2]usize, size: usize) !usize {
+        // An impossible admission cannot benefit from discarding any retained prefix.
+        var room = self.m.pool_cap;
+        for (live) |extent| room -= extent[1] - extent[0];
+        if (size > room) return error.ContextFull;
         const gpa = self.gpa;
         var used: std.ArrayList([2]usize) = .empty;
         defer used.deinit(gpa);
@@ -1063,6 +1068,11 @@ pub const Lanes = struct {
     }
 
     /// The prompt cache's Snapshots functions (native.zig hands them to the CUDA host).
+    pub fn snapLive(saved: *anyopaque) bool {
+        const sn: *const Snap = @ptrCast(@alignCast(saved));
+        return !sn.stale;
+    }
+
     pub fn snapBytesFn(ptr: *anyopaque, at: u32) u64 {
         _ = at;
         return of(ptr).m.snapBytes();
@@ -1431,4 +1441,18 @@ test "greedy draws take the first largest logit" {
     const row = [_]f32{ 0.5, 2.0, -1.0, 2.0 };
     try std.testing.expectEqual(@as(u32, 1), try draw(&row, 9, null));
     try std.testing.expectEqual(@as(u32, 1), try draw(&row, 9, .{ .seed = 3, .temperature = 0 }));
+}
+
+test "a request larger than the free live pool leaves retained extents intact" {
+    var m: model.Model = undefined;
+    m.pool_cap = model.chunk_rows * 4;
+    var host: Lanes = undefined;
+    host.m = &m;
+    host.gpa = std.testing.allocator;
+    host.snaps = .empty;
+    defer host.snaps.deinit(host.gpa);
+    var snap: Snap = .{ .id = 1, .at = model.chunk_rows, .base = 0, .buf = undefined };
+    try host.snaps.append(host.gpa, &snap);
+    try std.testing.expectError(error.ContextFull, host.placeKept(&.{.{ model.chunk_rows, m.pool_cap }}, model.chunk_rows * 2));
+    try std.testing.expect(!snap.stale);
 }

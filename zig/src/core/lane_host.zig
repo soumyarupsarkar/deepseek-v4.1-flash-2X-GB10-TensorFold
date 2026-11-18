@@ -25,6 +25,7 @@ pub const LaneHost = struct {
     mutex: std.Io.Mutex = .init,
     wake: std.Io.Condition = .init,
     queued: std.ArrayList(*Job) = .empty,
+    next_order: u64 = 0, // protected by mutex
     admitted: std.ArrayList(*Job) = .empty,
     cancels: std.ArrayList(Id) = .empty,
     closing: bool = false,
@@ -43,9 +44,8 @@ pub const LaneHost = struct {
     cache: ?*pc.Store = null, // kept prompt states (engine thread only); the backend restores and saves them
     memory: ?api.MemorySource = null, // the backend's memory counts; null: Engine.memory reports none
     explain: ?api.Explain = null, // the backend's words for a request it refuses; null: the error's name
-    // the request at the queue's front waits for room in the backend's pool (its prompt pass refused ContextFull while
-    // other streams ran): admitted again once fewer than this many streams are active
-    full_wait: ?usize = null,
+    // Engine-thread only. A refused request becomes eligible when a stream releases capacity.
+    released: u64 = 0,
     // Give active decoders at least the previous long chunk's elapsed time
     // before the next long chunk (the Python deployment's 50% decode share).
     last_fill_ns: i96 = 0,
@@ -63,6 +63,8 @@ pub const LaneHost = struct {
         proposer: lanes.SuffixLookup = undefined,
         delivered: usize = 0,
         started: bool = false,
+        refused_at: ?u64 = null,
+        order: u64 = 0,
         prefill_sent: bool = false, // a lone driver's prefilled event went out
         began: i96 = 0,
         prefilled: ?i96 = null,
@@ -134,6 +136,19 @@ pub const LaneHost = struct {
         return self(ctx).info_;
     }
 
+    /// Caller holds the queue lock. Preserve foreground priority and FIFO order even
+    /// when a foreground arrival races a background request's failed admission.
+    fn enqueue(h: *LaneHost, job: *Job) !void {
+        var at = h.queued.items.len;
+        while (at > 0) : (at -= 1) {
+            const prev = h.queued.items[at - 1];
+            if (prev.request.background == job.request.background) {
+                if (prev.order < job.order) break;
+            } else if (!prev.request.background) break;
+        }
+        try h.queued.insert(h.gpa, at, job);
+    }
+
     fn submitFn(ctx: *anyopaque, id: Id, request: *const Request, sink: Sink) SubmitError!void {
         const h = self(ctx);
         const job = h.gpa.create(Job) catch return error.Busy;
@@ -144,12 +159,9 @@ pub const LaneHost = struct {
             h.gpa.destroy(job);
             return error.Closed;
         }
-        // foreground before background, each in arrival order (the Python job queue's priority)
-        var at = h.queued.items.len;
-        if (!request.background) {
-            while (at > 0 and h.queued.items[at - 1].request.background) at -= 1;
-        }
-        h.queued.insert(h.gpa, at, job) catch {
+        job.order = h.next_order;
+        h.next_order += 1;
+        h.enqueue(job) catch {
             h.gpa.destroy(job);
             return error.Busy;
         };
@@ -238,6 +250,7 @@ pub const LaneHost = struct {
         const stats: Stats = if (job.started) .{ .rounds = s.rounds, .drafted = s.drafted, .accepted = s.accepted, .min_rows = s.min_rows, .loop_period = s.loop_period, .prefill_seconds = if (job.prefilled != null) @as(f64, @floatFromInt(@max(0, job.prefill_ns))) / 1e9 else null } else .{};
         emit(job, .{ .finished = .{ .reason = reason, .stats = stats, .message = message } });
         if (job.started) {
+            h.released +%= 1;
             s.deinit(h.gpa);
             job.proposer.deinit();
         }
@@ -302,15 +315,13 @@ pub const LaneHost = struct {
             h.unlock();
             return false;
         }
-        if (h.full_wait) |n| {
-            const active = h.admitted.items.len; // includes unfinished prefills
-            if (active > 0 and active >= n) {
-                h.unlock();
-                return false;
-            }
-            h.full_wait = null;
-        }
-        const job = h.queued.orderedRemove(0);
+        const index = for (h.queued.items, 0..) |job, i| {
+            if (job.refused_at != h.released) break i;
+        } else {
+            h.unlock();
+            return false;
+        };
+        const job = h.queued.orderedRemove(index);
         h.admitted.append(h.gpa, job) catch {
             h.unlock();
             h.finish(job, .failed, "out of memory");
@@ -478,9 +489,8 @@ pub const LaneHost = struct {
         return true;
     }
 
-    /// A request whose prompt pass the backend's pool cannot hold while other streams run (error.ContextFull, before
-    /// anything of it was placed) goes back to the queue's front and waits until one of them ends, as the Python
-    /// lane's window waits, instead of failing. Returns false: nothing more is admitted now.
+    /// Preserve queue order on ContextFull. Other requests may fit now. Give the oldest
+    /// refused request the first retry after a stream finishes, even if a new one replaced it.
     fn requeue(h: *LaneHost, job: *Job) bool {
         h.remove(job);
         h.core.discard(&job.stream);
@@ -497,14 +507,14 @@ pub const LaneHost = struct {
         job.delivered = 0;
         job.prefill_sent = false;
         h.lock();
-        h.queued.insert(h.gpa, 0, job) catch {
+        job.refused_at = h.released;
+        h.enqueue(job) catch {
             h.unlock();
             h.finish(job, .failed, "out of memory");
             return true;
         };
-        h.full_wait = h.admitted.items.len;
         h.unlock();
-        return false;
+        return false; // let active prefill or decode advance before scanning for another fit
     }
 
     /// A job cancelled in its prompt pass, its lane already released.
@@ -775,4 +785,22 @@ test "a lane host serves the core's own tokens, in order, and cancels between ro
 test {
     _ = @import("lane_host_test.zig");
     _ = @import("lane_host_incremental_test.zig");
+}
+
+test "retry preserves priority and arrival order across concurrent submissions" {
+    const a = std.testing.allocator;
+    var h = LaneHost.init(a, std.testing.io, undefined, .{});
+    defer h.queued.deinit(a);
+    const foreground: Request = .{ .prompt = &.{1}, .max_tokens = 1 };
+    const background: Request = .{ .prompt = &.{1}, .max_tokens = 1, .background = true };
+    var jobs: [5]LaneHost.Job = undefined;
+    const requests = [_]*const Request{ &background, &foreground, &background, &foreground, &background };
+    for (&jobs, requests, 0..) |*j, req, i| j.* = .{ .host = &h, .id = i, .request = req, .order = i, .sink = undefined };
+    for ([_]usize{ 0, 1, 2 }) |i| try h.enqueue(&jobs[i]);
+    const refused = h.queued.orderedRemove(1);
+    try std.testing.expect(refused == &jobs[0]);
+    try h.enqueue(&jobs[3]);
+    try h.enqueue(&jobs[4]);
+    try h.enqueue(refused);
+    for (h.queued.items, [_]usize{ 1, 3, 0, 2, 4 }) |job, expected| try std.testing.expectEqual(expected, job.order);
 }

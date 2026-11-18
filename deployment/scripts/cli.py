@@ -89,11 +89,15 @@ def main():
     parser.add_argument('action',choices=('plan','init','doctor','fetch','fetch-kit','replicate-kit','prepare','reuse','reuse-prepared','replicate','verify','build',
                                          'precompile','setup-keys','start','switch','stop','status','check-host','watch'))
     parser.add_argument('--variant',choices=('stock','keys'),help='Weight set for plan/start/switch; start remembers the last successful choice')
+    parser.add_argument('--drop-reasoning-history',action='store_true',
+                        help="For this start, omit earlier assistant reasoning when rendering prompts")
     parser.add_argument('--overlay-source',type=Path,help='Verified local Keys sidecar for setup-keys, avoiding a download')
     parser.add_argument('--from-head',help='Existing head asset root for reuse (never adopted)')
     parser.add_argument('--from-worker',help='Existing worker asset root for reuse (never adopted)')
     parser.add_argument('--reuse-prepared',action='store_true',help='Import completed rank caches, mounted read-only')
     args=parser.parse_args()
+    if args.drop_reasoning_history and args.action != 'start':
+        parser.error('--drop-reasoning-history applies only to start')
     if args.variant and args.action not in ('plan','start','switch'):
         parser.error('--variant applies only to plan/start/switch')
     if args.action=='switch' and not args.variant:
@@ -154,7 +158,7 @@ def main():
         elif args.action=='setup-keys':
             from keys_overlay import setup
             print(json.dumps(setup(pair,args.overlay_source),indent=2))
-        elif args.action=='start':pair.start(args.variant)
+        elif args.action=='start':pair.start(args.variant, drop_reasoning_history=args.drop_reasoning_history)
         elif args.action=='switch':pair.switch(args.variant)
         elif args.action=='stop':pair.stop()
         elif args.action=='check-host':check_host(pair)

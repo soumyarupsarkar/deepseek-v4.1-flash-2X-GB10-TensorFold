@@ -38,3 +38,39 @@ test "1017 native prompts and image order match the pinned reference encoder" {
         }
     }
 }
+
+test "assistant reasoning aliases and opt-in omission preserve the 1017 tool round" {
+    var arena: std.heap.ArenaAllocator = .init(std.testing.allocator);
+    defer arena.deinit();
+    const a = arena.allocator();
+    var cx: errors.Cx = .{ .a = a };
+    var diag: template.Diag = .{};
+    var compiled = try template.compile(a, @import("checkpoint_1017").template, &diag);
+    defer compiled.deinit();
+    const cases = (try json.parse(a, @import("checkpoint_1017").prompts)).ok.get("cases").?.array;
+    const case = for (cases) |c| {
+        if (std.mem.eql(u8, c.strField("name").?, "tool_round-thinking-high")) break c;
+    } else return error.MissingFixture;
+    const wire = case.get("wire_messages").?;
+    const assistant = wire.array[1].object;
+    const thought = assistant.get("reasoning_content").?.string;
+    const expected = case.strField("expected").?;
+    const omitted = try std.mem.replaceOwned(u8, a, expected, thought, "");
+    const kwargs = try hf_text.toStd(a, case.get("kwargs").?);
+    for ([_]?json.Value{ .{ .string = thought }, null, .null, .{ .string = "" } }, 0..) |canonical, i| {
+        _ = assistant.orderedRemove("reasoning_content");
+        if (canonical) |field| try assistant.put(a, "reasoning_content", field);
+        try assistant.put(a, "reasoning", .{ .string = if (i == 0) "ignored alias" else thought });
+        const normalized = try messages.toolArguments(&cx, try messages.normalize(&cx, wire, "system", false));
+        const actual = try template.render(a, &compiled, try hf_text.toStd(a, normalized), .null, kwargs, true, &diag);
+        try std.testing.expectEqualStrings(expected, actual);
+        const dropped = try messages.dropReasoning(&cx, normalized);
+        const rendered = try template.render(a, &compiled, try hf_text.toStd(a, dropped), .null, kwargs, true, &diag);
+        try std.testing.expectEqualStrings(omitted, rendered);
+        try std.testing.expect(!dropped.array[1].has("reasoning") and !dropped.array[1].has("reasoning_content"));
+        try std.testing.expectEqualStrings(thought, normalized.array[1].strField("reasoning_content").?);
+        try std.testing.expectEqual(canonical != null, assistant.contains("reasoning_content"));
+    }
+    const user = (try json.parse(a, "[{\"role\":\"user\",\"content\":\"hello\",\"reasoning\":\"keep\"}]")).ok;
+    try std.testing.expect((try messages.dropReasoning(&cx, user)).array.ptr == user.array.ptr);
+}

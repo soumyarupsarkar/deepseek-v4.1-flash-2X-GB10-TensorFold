@@ -40,6 +40,7 @@ pub const Fake = struct {
     prefill_hook_ctx: ?*anyopaque = null,
     refuse_sampled: bool = false, // prefill refuses a sampled stream with error.SamplingRefused
     incremental_capacity: ?usize = null,
+    incremental_pool: ?usize = null, // total prompt tokens that can be admitted
     incremental_refusals: usize = 0,
 
     pub fn deinit(x: *Fake) void {
@@ -71,6 +72,15 @@ pub const Fake = struct {
             x.incremental_refusals += 1;
             return error.ContextFull;
         };
+        if (x.incremental_pool) |cap| {
+            var used: usize = s.prompt_len;
+            var streams = x.lanes.keyIterator();
+            while (streams.next()) |other| used += other.*.prompt_len;
+            if (used > cap) {
+                x.incremental_refusals += 1;
+                return error.ContextFull;
+            }
+        }
         if (x.refuse_sampled and s.sampling != null) return error.SamplingRefused;
         const got = try x.lanes.getOrPut(x.gpa, s);
         if (got.found_existing) freeLane(x.gpa, got.value_ptr);

@@ -35,6 +35,7 @@ pub const Diagnostics = struct {
     pool_tokens: u64 = 0,
     context_tokens: u64 = 0,
     stream_slots: u32 = 0,
+    round_rows: u32 = 0,
     active_streams: u64 = 0,
     prefilling_streams: u64 = 0,
     prefill_tokens: u64 = 0,

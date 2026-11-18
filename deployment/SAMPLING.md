@@ -17,3 +17,12 @@ The `TF_DSV41_TOOL_GRAMMAR=required` deployment setting constrains required/name
 The reasoning-loop guard is off by default. A boolean request `loop_guard` can opt in or out; null inherits the server default. Non-thinking requests, structured output and an explicit positive thinking budget exclude the guard. This is the native engine's repetition detector; the previous Python novelty-based guard is documented in the historical [v0.5.1 report](UPSTREAM-V051.md). Enabling either guard can change output when it fires.
 
 Change profile settings through a reviewed, rebuilt deployment. Do not edit an initialized installation's ownership records to bypass configuration checks. Live qualification receipts establish which replay, streaming and concurrent cases have actually passed on a particular image.
+
+
+## Replayed assistant reasoning
+
+The server normally preserves earlier assistant reasoning when rendering a tool
+conversation. To omit it from new prompts for a deployment, start the stopped pair
+with `python3 cluster start --drop-reasoning-history`. Current-turn reasoning,
+assistant answers and tool results continue through the normal API. A plain start
+restores the default. [Behavior, evidence and rollback](UPSTREAM-20261117.md#assistant-reasoning-and-tool-sessions).

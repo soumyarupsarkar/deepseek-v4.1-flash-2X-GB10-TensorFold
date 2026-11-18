@@ -1,5 +1,12 @@
 # Third-party notices
 
+The November 17 integration adapts work from Mia AI Lab and its contributors
+marknx, nuk3s and Christopher A. Williamson, and queue and prompt-cache
+changes proposed by beastllama for Bertholomus's TensorFold fork. Dick Lai's
+short-tail scheduling work informed the regression tests. Source changes here
+are Apache-2.0. [Patch-level credits](deployment/UPSTREAM-20261117.md) ·
+[Mia's retained notice](LICENSES/Mia-DeepSeek-1017-NOTICE.txt).
+
 The October 30 integration adapts Mia-AiLab's Apache-2.0 maintenance patches:
 Engram handling from hecisaza, streaming keepalives from koniaik, cache metrics
 credited to manuel1618/juliankang4, early rendezvous and replay alignment. The
