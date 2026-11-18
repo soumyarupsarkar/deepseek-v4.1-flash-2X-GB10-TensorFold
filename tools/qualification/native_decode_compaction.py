@@ -138,20 +138,22 @@ def main():
     import common
     import cluster
     from benchmark import wait_idle
-    from configuration import profile, read, STATE
+    from configuration import read, STATE
     from engine_health import ready
     from qualify import MODEL, post
     assert common.PAIR.config['api']['bind'] == '127.0.0.1'
     path = common.ROOT/'records'/('validation-'+args.record+'.json')
     assert not path.exists(), 'Preserve earlier receipts'
-    p = profile()
+    launch = read(STATE/'launch.json')
+    p = launch['profile']
     assert p['pool_tokens'] == 8650752 and p['parallel'] == 32
-    assert int(p['environment']['TF_DS_ROUND_ROWS']) == 48
-    from compaction_fixture import condition
+    rows = int(p['environment']['TF_DS_ROUND_ROWS'])
+    assert rows in (48, 64)
+    from compaction_fixture import CHUNK_ROWS, condition
     conditioned = path.with_name(path.stem + '-conditioning.json')
     condition(common, conditioned)
-    reservation = ((524288 + 48 + 2 + 2047)//2048)*2048
-    record = dict(started=common.now(), status='running', launch=read(STATE/'launch.json'),
+    reservation = ((524288 + rows + 2 + CHUNK_ROWS - 1) // CHUNK_ROWS) * CHUNK_ROWS
+    record = dict(started=common.now(), status='running', launch=launch,
                   script_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                   conditioning=dict(receipt=conditioned.name,
                       sha256=hashlib.sha256(conditioned.read_bytes()).hexdigest()),
@@ -242,7 +244,7 @@ def main():
         generated = checkpoint['scheduler']['generation_tokens_running']
         assert type(generated) is int and 0 <= generated <= 8192
         # Health's aggregate is an upper bound on each selected stream. Allow
-        # more than one complete 48-row round beyond its last scheduler sample.
+        # one full round of up to 64 rows plus 64 subsequent tokens.
         required = generated + 128
         record['post_relocation_checkpoint'] = dict(health=checkpoint,
             selected_generated_tokens=generated, required_nonempty_chunks_each=required,

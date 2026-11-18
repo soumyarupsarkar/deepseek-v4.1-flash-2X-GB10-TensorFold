@@ -90,7 +90,7 @@ def main():
                                          'precompile','setup-keys','start','switch','stop','status','check-host','watch'))
     parser.add_argument('--variant',choices=('stock','keys'),help='Weight set for plan/start/switch; start remembers the last successful choice')
     parser.add_argument('--round-rows', type=int, choices=(48,64),
-                        help='Verification rows at start (default 48). The 64-row option uses a calibrated cost table.')
+                        help='Verification rows at start (default 64). Choose 48 for additional memory headroom.')
     parser.add_argument('--drop-reasoning-history',action='store_true',
                         help="For this start, omit earlier assistant reasoning when rendering prompts")
     parser.add_argument('--overlay-source',type=Path,help='Verified local Keys sidecar for setup-keys, avoiding a download')

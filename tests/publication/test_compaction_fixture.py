@@ -12,13 +12,13 @@ SPEC.loader.exec_module(fixture)
 class CompactionReservationGeometry(unittest.TestCase):
     def profile(self, **changes):
         return dict(dict(pool_tokens=8650752, parallel=32, context=1048576,
-            environment={'TF_DS_ROUND_ROWS': '48'}), **changes)
+            environment={'TF_DS_ROUND_ROWS': '64'}), **changes)
 
     def test_live_reservations_cover_pool_without_rounding_past_its_end(self):
         plan = fixture.reservation_plan(self.profile())
-        # The engine adds 48 verification rows and two boundary tokens before
+        # The engine adds 64 verification rows and two boundary tokens before
         # rounding up to 2048. Omitting that padding over-reserves every slot.
-        self.assertEqual(plan['request_budget'], 270286)
+        self.assertEqual(plan['request_budget'], 270270)
         self.assertEqual(plan['reservation_tokens'], 270336)
         self.assertEqual(plan['reservation_tokens'] * plan['streams'], 8650752)
         self.assertEqual(plan['reservation_tokens'] % 2048, 0)
@@ -34,10 +34,12 @@ class CompactionReservationGeometry(unittest.TestCase):
                 fixture.reservation_plan(self.profile(**changed))
 
     def test_round_budget_change_keeps_the_same_complete_pool_coverage(self):
-        plan = fixture.reservation_plan(self.profile(environment={'TF_DS_ROUND_ROWS': '96'}))
-        self.assertEqual(plan['request_budget'], 270238)
-        self.assertEqual(plan['reservation_tokens'], 270336)
-        self.assertEqual(plan['reservation_tokens'] * plan['streams'], 8650752)
+        for width, budget in ((48, 270286), (96, 270238)):
+            with self.subTest(width=width):
+                plan = fixture.reservation_plan(self.profile(environment={'TF_DS_ROUND_ROWS': str(width)}))
+                self.assertEqual(plan['request_budget'], budget)
+                self.assertEqual(plan['reservation_tokens'], 270336)
+                self.assertEqual(plan['reservation_tokens'] * plan['streams'], 8650752)
 
 
 if __name__ == '__main__':

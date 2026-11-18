@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "upstream_base": "4e80f05ecba89a4e90d16375ade2eddbdc0a10c4",
-  "status": "November 17 source with 48 default verification rows and a calibrated 64-row option. See release/STATUS.md for the stock Mia measurements and deployment revision.",
+  "status": "November 18 recipe with calibrated 64-row verification by default and a 48-row fallback. See release/STATUS.md for the stock Mia measurements and deployment revision.",
   "scope": "Build, native engine, grammar bridge, deployment controller/configuration and checkpoint-specific compiled test resources. This manifest is not serving qualification.",
   "files": [
     {
@@ -66,7 +66,7 @@
     },
     {
       "path": "deployment/config/profile.json",
-      "sha256": "a11aec964bd1721ea94e5855714d2a6c45654702f9c6bf4b931a2c5783a4bd5e"
+      "sha256": "a69876e72875355e59dc47c40899b324e85bb8137b4d0d67880721a7f274d7d5"
     },
     {
       "path": "deployment/config/requirements-resolved.txt",
@@ -90,11 +90,11 @@
     },
     {
       "path": "deployment/scripts/cli.py",
-      "sha256": "1bac1ff7f02220fc68b515362432320ee78a9275d20d3039cddf2dacdd789262"
+      "sha256": "35de0551ab956e9b200825550cdc6f4a6c3ee6509043bf12504cf7493bd8e821"
     },
     {
       "path": "deployment/scripts/configuration.py",
-      "sha256": "1b60a76bc4e910b867026d40675f91478d45a0989738c9abf88a00438ea6f849"
+      "sha256": "b3199424d29d0a882f784f6af27796ab71dd076de7d5f9c959cab8fe4ce96152"
     },
     {
       "path": "deployment/scripts/engine_health.py",

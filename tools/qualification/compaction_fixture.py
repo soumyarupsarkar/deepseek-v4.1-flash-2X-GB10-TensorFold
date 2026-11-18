@@ -38,9 +38,9 @@ def condition(common, receipt):
     receipt = Path(receipt)
     if receipt.exists() or common.PAIR.config['api']['bind'] != '127.0.0.1':
         raise ValueError('Require a new receipt and an isolated loopback candidate')
-    p = profile()
-    shape = reservation_plan(p)
     launch = read(STATE / 'launch.json')
+    p = profile(round_rows=int(launch['profile']['environment']['TF_DS_ROUND_ROWS']))
+    shape = reservation_plan(p)
     build = read(STATE / 'build.json')
     revision = source_revision()
     if build['revision'] != revision or build['id'] != launch['image'] or launch['profile'] != p:
@@ -56,8 +56,8 @@ def condition(common, receipt):
     if not all(part in source for part in required) or 'pub const chunk_rows = 2048;' not in model.read_text():
         raise ValueError('Review the reservation/snapshot proof for the changed engine')
     before, _ = wait_idle(common.API_BASE)
-    if not ready(before, p):
-        raise ValueError('Candidate is not healthy')
+    if not ready(before, p) or before['native'].get('round_rows') != shape['round_rows']:
+        raise ValueError('Candidate must be healthy and report the launched verification width')
     record = dict(started=now(), status='running', source=revision, image=launch['image'],
         rank_epochs=epochs, shape=shape, health_before=before, fixtures=[],
         engine_files={str(f.relative_to(SOURCE)): hashlib.sha256(f.read_bytes()).hexdigest()

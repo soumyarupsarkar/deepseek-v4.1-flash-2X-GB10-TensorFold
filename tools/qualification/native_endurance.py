@@ -201,7 +201,8 @@ def main():
     if subprocess.check_output(['git', 'status', '--porcelain'], cwd=deployment_source, text=True).strip():
         raise RuntimeError('Serving checkout must be clean')
     build = read(STATE / 'build.json')
-    if build['revision'] != source or build['id'] != launch['image'] or profile() != launch['profile']:
+    serving_profile = profile(round_rows=int(launch['profile']['environment']['TF_DS_ROUND_ROWS']))
+    if build['revision'] != source or build['id'] != launch['image'] or serving_profile != launch['profile']:
         raise RuntimeError('Serving source, image or profile differs from the launch')
     if diagnostic:
         validate_diagnostic(gates, launch, source)
@@ -265,7 +266,7 @@ def main():
         validate_continuity(common.PAIR, launch, epochs, read(STATE / 'launch.json'), read(STATE / 'active.json'))
         subprocess.run(['systemctl', 'is-active', '--quiet', common.PAIR.unit()], check=True, timeout=10)
         health, drain = wait_idle(common.API_BASE)
-        if not ready(health, profile()) or health['scheduler']['running'] or health['scheduler']['waiting']:
+        if not ready(health, serving_profile) or health['scheduler']['running'] or health['scheduler']['waiting']:
             raise RuntimeError('Endurance pair is unhealthy or did not become idle')
         if last_requests is not None:
             check_request_delta(last_requests, health['completed']['requests'], expected)
@@ -278,7 +279,7 @@ def main():
                     available_bytes={host: memory(host)['MemAvailable'] for host in ('head', 'worker')})
         if detail:
             result['hosts'] = {host: host_sample(common.PAIR, host, common.PAIR.containers(host)[0]['State']['Pid'],
-                floor_bytes=int(profile()['minimum_available_gib'] * 2**30), detail=True) for host in ('head', 'worker')}
+                floor_bytes=int(serving_profile['minimum_available_gib'] * 2**30), detail=True) for host in ('head', 'worker')}
         return result
 
     def observe_memory():

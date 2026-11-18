@@ -1,8 +1,8 @@
 # Native release status
 
-## November 17 source update
+## November 18 verification default
 
-The public recipe keeps 48 verification rows by default. A calibrated 64-row option raised C32 code decode from 331.1 to 382.7 tok/s, counting from 389.8 to 419.6 and sampled mixed traffic from 280.5 to 310.4. Prose fell from 278.1 to 274.0. The isolated trials used stock Mia. The source also adds optional reasoning-history omission, prefix and queue fixes, tool-client compatibility and long-request monitoring. [Review, limits and rollback](../deployment/UPSTREAM-20261117.md) · [Matched width measurements](native-verify-rows-20261117.json).
+The public recipe now defaults to the calibrated 64-row verifier. Use `python3 cluster start --round-rows 48` for the lower-memory profile. In the November 17 comparison, 64 rows raised C32 code decode from 331.1 to 382.7 tok/s, counting from 389.8 to 419.6 and sampled mixed traffic from 280.5 to 310.4. Prose fell from 278.1 to 274.0. The isolated trials used stock Mia. The source also adds optional reasoning-history omission, prefix and queue fixes, tool-client compatibility and long-request monitoring. [Review, limits and rollback](../deployment/UPSTREAM-20261117.md) · [Matched width measurements](native-verify-rows-20261117.json).
 
 ## Qualified deployment from October 30
 

@@ -109,7 +109,7 @@ python3 cluster start
 python3 cluster status
 ```
 
-The default uses 48 verification rows. For C32 code-heavy workloads, a stopped pair can start with `python3 cluster start --round-rows 64`. This spends more memory per rank to verify more draft tokens per round. The 64-row measurements used stock Mia weights. A running weight switch preserves the width. To return to 48, drain requests, run `python3 cluster stop`, then `python3 cluster start`. Restarting clears retained prefixes. [Measured throughput, memory and parity](UPSTREAM-20261117.md#48-versus-64-verification-rows).
+A normal start uses the calibrated 64-row verifier. Both widths support 32 streams and the full KV pool. For additional memory headroom, start a stopped pair with `python3 cluster start --round-rows 48`. To change widths on a running pair, drain requests and run `python3 cluster stop` first. A restart clears retained prefixes. A running weight switch preserves the active width. The two-GB10 comparison used stock Mia weights. [Measured throughput, memory and parity](UPSTREAM-20261117.md#48-versus-64-verification-rows).
 
 `build` archives the exact Git commit, verifies the pinned Zig compiler,
 compiles the native engine/kernels and xgrammar bridge, runs their CPU tests,

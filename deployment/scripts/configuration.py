@@ -119,16 +119,18 @@ def profile(weight_variant=None, *, round_rows=None):
     width = int(env['TF_DS_ROUND_ROWS']) if round_rows is None else round_rows
     if type(width) is not int or width not in (48, 64):
         raise ValueError('Verification rounds support 48 or 64 rows')
-    if width == 64:
-        prices = env['TF_DS_SHARED_ROUND_MS'].split(',')
+    prices = env['TF_DS_SHARED_ROUND_MS'].split(',')
+    if len(prices) not in (48, 64):
+        raise ValueError('Expected a 48- or 64-entry shared verification cost table')
+    if width > len(prices):
+        # Older profiles store only the 48 measured local prices.
         calibration = read(CONFIG / 'verify-64-costs.json')
         tail = calibration['rows_49_to_64_ms']
-        if len(prices) != 48 or len(tail) != 16:
-            raise ValueError('Expected 48 local verification prices and 16 upstream tail prices')
-        value['qualification'] = ('November 17 two-GB10 verification-width trial with stock Mia weights. '
-                                  'See deployment/UPSTREAM-20261117.md for workload and memory limits.')
+        if len(tail) != 16:
+            raise ValueError('Expected 16 upper verification prices')
         scale = float(prices[-1]) / calibration['row_48_ms']
-        env['TF_DS_SHARED_ROUND_MS'] = ','.join(prices + [f'{ms * scale:.6f}' for ms in tail])
+        prices.extend(f'{ms * scale:.6f}' for ms in tail)
+    env['TF_DS_SHARED_ROUND_MS'] = ','.join(prices[:width])
     env['TF_DS_ROUND_ROWS'] = str(width)
     value['weight_variant'] = weight_variant
     value['keys_overlay'] = weight_variant == 'keys'

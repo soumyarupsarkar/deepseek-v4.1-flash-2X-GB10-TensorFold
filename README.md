@@ -56,7 +56,7 @@ Performance results describe the combined system. [Detailed attribution and sour
 
 The native grammar bridge uses [MLC-AI xgrammar](https://github.com/mlc-ai/xgrammar) directly from C++; [Zig](https://ziglang.org/) supplies the compiler and standard library. Their pinned revisions and retained notices are included with this source.
 
-The [November 17 upstream review](deployment/UPSTREAM-20261117.md) covers optional reasoning-history omission, short-tail scheduling, prefix retention, tool-client compatibility and the measured 64-row startup option for C32. The [October 30 upstream review](deployment/UPSTREAM-20261030.md) records opt-in constrained drafting, Engram/replay fixes, streaming keepalives, cache metrics and matched measurements. The [October 28 review](deployment/UPSTREAM-20261028.md) covers the earlier idle CPU and graph ownership changes. [Current deployment evidence](release/STATUS.md).
+The [November 17 upstream review](deployment/UPSTREAM-20261117.md) covers optional reasoning-history omission, short-tail scheduling, prefix retention, tool-client compatibility and the calibrated 64-row default for C32. The [October 30 upstream review](deployment/UPSTREAM-20261030.md) records opt-in constrained drafting, Engram/replay fixes, streaming keepalives, cache metrics and matched measurements. The [October 28 review](deployment/UPSTREAM-20261028.md) covers the earlier idle CPU and graph ownership changes. [Current deployment evidence](release/STATUS.md).
 
 ## Setup
 

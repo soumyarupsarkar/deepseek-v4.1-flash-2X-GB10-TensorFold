@@ -1,5 +1,6 @@
 """Weight selection must preserve aliases, immutable caches and paired recovery."""
 import copy
+import hashlib
 import json
 from pathlib import Path
 import sys
@@ -42,20 +43,21 @@ class OverlayTests(unittest.TestCase):
 
     def test_both_ranks_use_the_selected_width_and_shared_cost_table(self):
         config = read(CONFIG/'cluster.example.json')
-        baseline = profile('stock')['environment']['TF_DS_SHARED_ROUND_MS'].split(',')
-        self.assertEqual(len(baseline), 48)
-        for width in (48, 64):
+        baseline = read(CONFIG/'native-shared-costs-20261010.json')['environment_value']
+        measured = read(CONFIG.parents[1]/'release/native-verify-rows-20261117.json')['supported_settings']
+        for requested, width in ((None, 64), (48, 48), (64, 64)):
             for host in ('worker', 'head'):
                 rails = [dict(r, gid_index=3) for r in config[host]['rails']]
                 args = launch_args(config,host,'00000000-0000-4000-8000-000000000000',
-                                   'sha256:test',rails,round_rows=width)
+                                   'sha256:test',rails,round_rows=requested)
                 env = dict(args[i+1].split('=',1) for i, item in enumerate(args) if item=='-e')
-                prices = env['TF_DS_SHARED_ROUND_MS'].split(',')
-                self.assertEqual(prices[:48], baseline)
+                table = env['TF_DS_SHARED_ROUND_MS']
+                prices = table.split(',')
+                self.assertEqual(','.join(prices[:48]), baseline)
                 self.assertEqual(len(prices), width)
                 self.assertEqual(env['TF_DS_ROUND_ROWS'], str(width))
                 if width == 64:
-                    self.assertEqual(prices[-1], '239.336869')
+                    self.assertEqual(hashlib.sha256(table.encode()).hexdigest(), measured['calibrated_cost_table_sha256'])
                 if host == 'worker':
                     self.assertEqual(args[args.index('--round-rows')+1], str(width))
         with self.assertRaisesRegex(ValueError, '48 or 64'):
